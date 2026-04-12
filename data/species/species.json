@@ -605,7 +605,7 @@
     "relative_scale_index": 3.0,
     "enabled": true,
     "notes": "Decorative border element. Generate as a cluster, not single stem.",
-    "target_aspect_ratio": 0.15
+    "target_aspect_ratio": 0.5
   },
   {
     "common_name": "Water Lily",
@@ -626,7 +626,7 @@
     "relative_scale_index": 0.6,
     "enabled": true,
     "notes": "Decorative border element. Low-profile, horizontal composition.",
-    "target_aspect_ratio": 1.5
+    "target_aspect_ratio": 1.2
   },
   {
     "common_name": "Bulrush",
@@ -647,7 +647,7 @@
     "relative_scale_index": 2.5,
     "enabled": true,
     "notes": "Decorative border element. Tall vertical accent.",
-    "target_aspect_ratio": 0.12
+    "target_aspect_ratio": 0.5
   },
   {
     "common_name": "Wild Rice",
@@ -668,7 +668,7 @@
     "relative_scale_index": 2.0,
     "enabled": true,
     "notes": "Decorative border element. Graceful vertical accent.",
-    "target_aspect_ratio": 0.15
+    "target_aspect_ratio": 0.5
   },
   {
     "common_name": "Arrowhead",
@@ -689,6 +689,6 @@
     "relative_scale_index": 1.0,
     "enabled": true,
     "notes": "Decorative border element. Distinctive leaf shape.",
-    "target_aspect_ratio": 0.4
+    "target_aspect_ratio": 0.7
   }
 ]
