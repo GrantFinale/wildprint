@@ -1126,6 +1126,33 @@ def admin_data():
             "has_master": has_master,
         })
 
+    # Catalog completeness check: flag regions with zero species in any
+    # major category. This catches the "no alligators for Florida" class
+    # of gap — where a whole animal group is missing from a region.
+    try:
+        regions_data = json.load(
+            open(Path(PROJECT_ROOT) / "data" / "regions.json")
+        )
+    except Exception:  # noqa: BLE001
+        regions_data = {}
+
+    major_categories = {"fish", "bird", "turtle", "reptile", "amphibian", "mammal"}
+    coverage_gaps: list[str] = []
+    for region_slug in regions_data:
+        cats_in_region: set[str] = set()
+        for sp in species:
+            geo = sp.get("geographic_range", [])
+            cat = sp.get("category", "")
+            if cat in major_categories and (
+                region_slug in geo or "nationwide" in geo
+            ):
+                cats_in_region.add(cat)
+        missing = major_categories - cats_in_region
+        if missing:
+            coverage_gaps.append(
+                f"{region_slug}: missing {', '.join(sorted(missing))}"
+            )
+
     return jsonify({
         "species": species_data,
         "summary": {
@@ -1135,6 +1162,7 @@ def admin_data():
             "with_some_masters": with_some,
             "with_no_masters": with_none,
         },
+        "coverage_gaps": coverage_gaps,
     })
 
 

@@ -4926,5 +4926,101 @@
       "moderate": 6,
       "murky": 4
     }
+  },
+  "american_alligator": {
+    "water_type": {
+      "lake": 9,
+      "pond": 7,
+      "river": 7,
+      "stream": 2,
+      "reservoir": 6,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 8,
+      "deep": 5
+    },
+    "flow": {
+      "still": 10,
+      "slow": 8,
+      "moderate": 4,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 8,
+      "murky": 10
+    }
+  },
+  "american_crocodile": {
+    "water_type": {
+      "lake": 4,
+      "pond": 2,
+      "river": 5,
+      "stream": 1,
+      "reservoir": 2,
+      "marsh": 8
+    },
+    "depth": {
+      "shallow": 8,
+      "moderate": 6,
+      "deep": 3
+    },
+    "flow": {
+      "still": 7,
+      "slow": 8,
+      "moderate": 4,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 6,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 8
+    }
+  },
+  "florida_softshell_turtle": {
+    "water_type": {
+      "lake": 9,
+      "pond": 7,
+      "river": 6,
+      "stream": 3,
+      "reservoir": 5,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 9,
+      "deep": 4
+    },
+    "flow": {
+      "still": 8,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 7,
+      "sparse": 8,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 8
+    }
   }
 }

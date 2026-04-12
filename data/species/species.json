@@ -4212,5 +4212,84 @@
     ],
     "notes": "Carnivorous; bladder traps capture tiny aquatic organisms.",
     "enabled": true
+  },
+  {
+    "common_name": "American Alligator",
+    "slug": "american_alligator",
+    "scientific_name": "Alligator mississippiensis",
+    "category": "reptile",
+    "habitat_tags": [
+      "freshwater",
+      "lakes",
+      "swamps",
+      "marshes",
+      "rivers"
+    ],
+    "key_visual_traits": [
+      "massive elongated body, body length is 5-6 times body depth, powerful build",
+      "broad rounded snout distinguishing it from crocodiles",
+      "dark olive-black armored hide with bony scutes along the back",
+      "large powerful tail comprising nearly half of total body length",
+      "short muscular legs, webbed hind feet"
+    ],
+    "relative_scale_index": 8.0,
+    "target_aspect_ratio": 5.0,
+    "geographic_range": [
+      "southeast",
+      "southwest"
+    ],
+    "enabled": true,
+    "notes": "Apex predator of southeastern US freshwater systems."
+  },
+  {
+    "common_name": "American Crocodile",
+    "slug": "american_crocodile",
+    "scientific_name": "Crocodylus acutus",
+    "category": "reptile",
+    "habitat_tags": [
+      "freshwater",
+      "brackish",
+      "coastal",
+      "mangroves"
+    ],
+    "key_visual_traits": [
+      "elongated body, body length is 5-6 times body depth",
+      "narrow V-shaped snout distinguishing it from alligators",
+      "olive-gray coloration lighter than alligators",
+      "visible fourth tooth on lower jaw when mouth closed",
+      "long powerful tail"
+    ],
+    "relative_scale_index": 7.0,
+    "target_aspect_ratio": 5.0,
+    "geographic_range": [
+      "southeast"
+    ],
+    "enabled": true,
+    "notes": "Endangered. Southern Florida only."
+  },
+  {
+    "common_name": "Florida Softshell Turtle",
+    "slug": "florida_softshell_turtle",
+    "scientific_name": "Apalone ferox",
+    "category": "turtle",
+    "habitat_tags": [
+      "freshwater",
+      "lakes",
+      "ponds",
+      "rivers"
+    ],
+    "key_visual_traits": [
+      "large flat oval shell, shell width is 1.3 times height, smooth leathery texture",
+      "elongated tubular snout for breathing at surface",
+      "olive to dark brown coloration",
+      "very large compared to other softshells, up to 60cm carapace"
+    ],
+    "relative_scale_index": 1.5,
+    "target_aspect_ratio": 1.6,
+    "geographic_range": [
+      "southeast"
+    ],
+    "enabled": true,
+    "notes": "Largest North American softshell."
   }
 ]

@@ -73,7 +73,7 @@
     <section class="create-step" id="step-options" style="display:none">
       <h3>4. Customize your poster</h3>
       <label>Poster title
-        <input type="text" id="poster-title" placeholder="Lake Michigan Wildlife">
+        <input type="text" id="poster-title" placeholder="Wildlife of Lake Michigan">
       </label>
       <label>Subtitle
         <input type="text" id="poster-subtitle" placeholder="A field guide">
@@ -203,7 +203,7 @@ document.getElementById('btn-recommend').addEventListener('click', async () => {
   // Auto-fill poster title from water body name
   const name = document.getElementById('water-name').value;
   if (name) {
-    document.getElementById('poster-title').value = name + ' Wildlife';
+    document.getElementById('poster-title').value = 'Wildlife of ' + name;
   }
 });
 
@@ -269,7 +269,7 @@ document.getElementById('btn-generate').addEventListener('click', async () => {
   const body = {
     species_slugs: slugs,
     style: document.getElementById('poster-style').value,
-    title: document.getElementById('poster-title').value || 'Wildlife Poster',
+    title: document.getElementById('poster-title').value || 'Wildlife of This Water',
     subtitle: document.getElementById('poster-subtitle').value || '',
     background: document.getElementById('poster-bg').value,
     water_body_name: document.getElementById('water-name').value,

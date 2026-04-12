@@ -895,9 +895,9 @@ class EditorialMultiRenderer(PosterRenderer):
         scientific_font_size: int = 46,
         subtitle_font_size: int = 36,
         caption_font_size: int = 28,
-        label_common_font_size: int = 32,
-        label_scientific_font_size: int = 26,
-        label_gap_px: int = 24,
+        label_common_font_size: int = 42,
+        label_scientific_font_size: int = 32,
+        label_gap_px: int = 10,
         font_candidates: tuple[str, ...] = _EDITORIAL_FONT_CANDIDATES,
         title_color: str = DEFAULT_TITLE_INK,
         scientific_color: str = DEFAULT_SCIENTIFIC_INK,
@@ -922,7 +922,7 @@ class EditorialMultiRenderer(PosterRenderer):
         self.subtitle_letter_spacing = subtitle_letter_spacing
         self.caption_letter_spacing = caption_letter_spacing
         self.label_letter_spacing = label_letter_spacing
-        self.border_plants: bool = True
+        self.border_plants: bool = False
 
     def render(self, result: LayoutResult, output_path: Path) -> None:
         spec = result.poster
