@@ -371,6 +371,13 @@ def _build_argv(cmd_id: str, form: dict) -> list[str]:
         subtitle = (form.get("subtitle") or "").strip()
         if subtitle:
             argv += ["--subtitle", subtitle]
+        # --species: comma-separated slugs (optional, blank = all enabled).
+        species_raw = (form.get("species") or "").strip()
+        if species_raw:
+            slugs = [s.strip() for s in species_raw.split(",") if s.strip()]
+            for s in slugs:
+                _validate_species_slug(s)
+            argv += ["--species", ",".join(slugs)]
         # --background: hex color from the color picker or text input.
         # Validate shape so we don't pass anything weird through to the CLI.
         background = (form.get("background") or "").strip()

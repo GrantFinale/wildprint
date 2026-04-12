@@ -154,6 +154,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Do not render species labels beneath illustrations.",
     )
     parser.add_argument(
+        "--logo",
+        default=None,
+        help=(
+            "Path to a logo image (PNG with alpha or JPEG). Composited "
+            "centered in the bottom caption band. Intended for bulk-purchase "
+            "buyers who want their brand on the poster."
+        ),
+    )
+    parser.add_argument(
         "--output",
         default=None,
         help="Output PNG path (default: output/posters/{style}_poster.png).",
@@ -411,6 +420,9 @@ def main(argv: list[str] | None = None) -> int:
             renderer = EditorialPosterRenderer()
         else:
             renderer = EditorialMultiRenderer()
+        # Pass logo path through for editorial renderers.
+        if args.logo:
+            renderer._logo_path = Path(args.logo)  # type: ignore[attr-defined]
     else:
         renderer = PillowPosterRenderer()
     logger.info("Rendering poster to %s ...", output_path)

@@ -848,15 +848,18 @@ class PackedLayoutEngine(LayoutEngine):
     def __init__(
         self,
         title_band_fraction: float = 0.14,
-        caption_band_fraction: float = 0.08,
+        caption_band_fraction: float = 0.12,
         side_margin_fraction: float = 0.035,
         packing_target: float = 0.70,
-        inter_item_gap_frac: float = 0.018,
-        inter_shelf_gap_frac: float = 0.025,
+        inter_item_gap_frac: float = 0.008,
+        inter_shelf_gap_frac: float = 0.018,
         label_height_px: int = 80,
         scale_clamp_ratio: float = 4.0,
         min_visible_fraction: float = 0.25,
     ) -> None:
+        # Caption band (12%) reserves space for subtitle text + an optional
+        # centered logo zone. Bulk-purchase buyers can place their brand in
+        # the bottom center of the poster without colliding with fish.
         self.title_band_fraction = title_band_fraction
         self.caption_band_fraction = caption_band_fraction
         self.side_margin_fraction = side_margin_fraction
@@ -955,26 +958,36 @@ class PackedLayoutEngine(LayoutEngine):
             h = w / aspect
             draws[s.slug] = [w, h]
 
-        # 6. Shelf packing (greedy, height-sorted).
+        # 6. Shelf packing — "largest-first, fit-in-best-shelf" strategy.
+        # Instead of packing all species top-to-bottom by size (which dumps
+        # every small species on the bottom shelf), we place the largest
+        # species first to anchor shelves, then slot smaller species into
+        # whichever existing shelf has the most remaining horizontal space.
+        # Small species act as gap-fillers beside large ones — like a real
+        # museum plate where a bluegill sits beside a pike's tail.
         gap_x = content_w * self.inter_item_gap_frac
         gap_y = content_h * self.inter_shelf_gap_frac
 
         shelves: list[list[SpeciesRef]] = []
-        current_shelf: list[SpeciesRef] = []
-        shelf_used_w = 0.0
+        shelf_used: list[float] = []  # pixel width used per shelf
 
         for s in species_sorted:
             w = draws[s.slug][0]
-            needed = w + (gap_x if current_shelf else 0)
-            if current_shelf and shelf_used_w + needed > content_w:
-                shelves.append(current_shelf)
-                current_shelf = [s]
-                shelf_used_w = w
+            # Try to fit in the shelf with the most remaining space.
+            best_shelf = -1
+            best_remaining = -1.0
+            for idx, used in enumerate(shelf_used):
+                remaining = content_w - used - gap_x
+                if remaining >= w and remaining > best_remaining:
+                    best_shelf = idx
+                    best_remaining = remaining
+            if best_shelf >= 0:
+                shelves[best_shelf].append(s)
+                shelf_used[best_shelf] += w + gap_x
             else:
-                current_shelf.append(s)
-                shelf_used_w += needed
-        if current_shelf:
-            shelves.append(current_shelf)
+                # No existing shelf has room — start a new one.
+                shelves.append([s])
+                shelf_used.append(w)
 
         # 7. Compute total packed height.
         label_height_px = self.label_height_px
@@ -1013,11 +1026,10 @@ class PackedLayoutEngine(LayoutEngine):
             else:
                 spacing = 0.0
 
-            # Center the shelf if only 1 item.
-            if len(shelf) == 1:
-                x_start = side_margin_px + (content_w - items_total_w) / 2
-            else:
-                x_start = float(side_margin_px)
+            # Always center shelves horizontally — fish should cluster
+            # toward the center, not spread edge-to-edge.
+            total_with_gaps = items_total_w + spacing * max(0, len(shelf) - 1)
+            x_start = side_margin_px + (content_w - total_with_gaps) / 2
 
             x_cursor = x_start
             for s in shelf:

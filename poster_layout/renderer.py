@@ -23,6 +23,7 @@ Three renderers live here:
 """
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
@@ -921,6 +922,7 @@ class EditorialMultiRenderer(PosterRenderer):
         self.subtitle_letter_spacing = subtitle_letter_spacing
         self.caption_letter_spacing = caption_letter_spacing
         self.label_letter_spacing = label_letter_spacing
+        self.border_plants: bool = True
 
     def render(self, result: LayoutResult, output_path: Path) -> None:
         spec = result.poster
@@ -1034,6 +1036,10 @@ class EditorialMultiRenderer(PosterRenderer):
                 common_letter_spacing=dense_spacing if is_dense else self.label_letter_spacing,
             )
 
+        # 2b. Border plants — decorative waterline strip above caption band.
+        if self.border_plants:
+            self._draw_border_plants(canvas, spec, caption_band_h)
+
         # 3. Caption band. The subtitle is already used in the title block,
         # so populate the caption from habitat tags (or fall back to the
         # subtitle when no habitats are available) so the band isn't empty.
@@ -1054,6 +1060,37 @@ class EditorialMultiRenderer(PosterRenderer):
             primary_letter_spacing=self.subtitle_letter_spacing,
             secondary_letter_spacing=self.caption_letter_spacing,
         )
+
+        # 4. Optional logo — composited centered in the lower caption band.
+        # Supports PNG (alpha) or JPEG. Scaled to fit ~30% of canvas width
+        # and ~40% of caption band height. For bulk-purchase buyers to place
+        # their brand centered at the bottom of the poster.
+        if hasattr(self, "_logo_path") and self._logo_path:
+            try:
+                with Image.open(self._logo_path) as logo_src:
+                    logo = logo_src.convert("RGBA")
+                    max_logo_w = int(canvas_w * 0.30)
+                    max_logo_h = int(caption_band_h * 0.40)
+                    logo_scale = min(
+                        max_logo_w / max(1, logo.width),
+                        max_logo_h / max(1, logo.height),
+                    )
+                    logo_w = max(1, int(logo.width * logo_scale))
+                    logo_h = max(1, int(logo.height * logo_scale))
+                    logo_resized = logo.resize((logo_w, logo_h), Image.LANCZOS)
+                    logo_x = (canvas_w - logo_w) // 2
+                    logo_y = canvas_h - int(caption_band_h * 0.55)
+                    canvas.paste(
+                        logo_resized.convert("RGB"),
+                        (logo_x, logo_y),
+                        mask=logo_resized.split()[3],
+                    )
+                    logger.info(
+                        "Logo composited from %s (%dx%d at y=%d)",
+                        self._logo_path, logo_w, logo_h, logo_y,
+                    )
+            except (OSError, Image.UnidentifiedImageError) as exc:
+                logger.warning("Could not load logo %s: %s", self._logo_path, exc)
 
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1080,6 +1117,90 @@ class EditorialMultiRenderer(PosterRenderer):
         if not seen:
             return None
         return " \u00b7 ".join(t.title() for t in seen)
+
+    def _draw_border_plants(
+        self,
+        canvas: Image.Image,
+        spec: PosterSpec,
+        caption_band_h: int,
+    ) -> None:
+        """Composite decorative water-plant masters along the bottom edge.
+
+        Creates a semi-transparent vegetation strip right above the caption
+        band for a natural "waterline" divider. Skips silently when no plant
+        masters are available.
+        """
+        from config.settings import MASTER_DIR, SPECIES_JSON
+
+        # 1. Load species.json to find plant slugs.
+        try:
+            species_data = json.loads(SPECIES_JSON.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return
+        plant_slugs = [
+            s["slug"] for s in species_data
+            if isinstance(s, dict) and s.get("category") == "plant" and s.get("slug")
+        ]
+        if not plant_slugs:
+            return
+
+        # 2. Check which plant masters exist on disk.
+        plant_images: list[Image.Image] = []
+        for slug in plant_slugs:
+            path = MASTER_DIR / spec.style_slug / f"{slug}.png"
+            if path.is_file():
+                try:
+                    img = Image.open(path).convert("RGBA")
+                    plant_images.append(img)
+                except (OSError, Image.UnidentifiedImageError):
+                    continue
+        if not plant_images:
+            return
+
+        # 3. Compute strip geometry.
+        canvas_w, canvas_h = canvas.size
+        strip_h = int(canvas_h * 0.10)
+        strip_top = canvas_h - caption_band_h - strip_h // 2
+
+        # 4. Scale each plant to fit strip_h, preserving aspect ratio.
+        scaled: list[Image.Image] = []
+        for img in plant_images:
+            ratio = strip_h / max(1, img.height)
+            new_w = max(1, int(img.width * ratio))
+            new_h = strip_h
+            scaled.append(img.resize((new_w, new_h), Image.LANCZOS))
+
+        # 5. Distribute plants across the full canvas width.
+        #    Repeat the available plants to fill the width with slight overlap.
+        total_plant_w = sum(p.width for p in scaled)
+        if total_plant_w == 0:
+            return
+
+        # Build a sequence that tiles across the canvas width.
+        import random as _rng
+        sequence: list[tuple[Image.Image, int, int]] = []  # (img, x, y)
+        x_cursor = 0
+        idx = 0
+        while x_cursor < canvas_w:
+            plant = scaled[idx % len(scaled)]
+            # Slight vertical jitter for a natural look (±8% of strip_h).
+            jitter = int(strip_h * 0.08 * (1 if idx % 2 == 0 else -1))
+            y = strip_top + jitter
+            sequence.append((plant, x_cursor, y))
+            # Advance with slight overlap (~15% of plant width).
+            x_cursor += max(1, int(plant.width * 0.85))
+            idx += 1
+
+        # 6. Composite each plant at 70% opacity.
+        for plant, x, y in sequence:
+            r, g, b, a = plant.split()
+            plant_alpha = a.point(lambda v: int(v * 0.7))
+            plant_rgb = Image.merge("RGB", (r, g, b))
+            canvas.paste(plant_rgb, (x, y), mask=plant_alpha)
+
+        # Close opened images.
+        for img in plant_images:
+            img.close()
 
     def _paste_item(self, canvas: Image.Image, placed: PlacedItem) -> None:
         with Image.open(placed.master.image_path) as src:

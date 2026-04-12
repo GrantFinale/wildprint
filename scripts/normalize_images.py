@@ -309,6 +309,42 @@ def normalize_image(
         )
         return False
 
+    # Aspect-ratio quality check: compare the content's actual aspect ratio
+    # against the species' target_aspect_ratio from species.json. Warns when
+    # the generated image's proportions deviate by >30% — catches cases where
+    # the model rendered a tall pike as a stocky bass, or a standing heron
+    # as a landscape waterfowl. This fires for every species worldwide that
+    # has a target_aspect_ratio set, no manual audit needed.
+    content_w_raw = bbox[2] - bbox[0]
+    content_h_raw = bbox[3] - bbox[1]
+    if content_h_raw > 0:
+        actual_aspect = content_w_raw / content_h_raw
+        # Try to find the target from species.json. Parse the slug from the
+        # filename: convention is {slug}_{style}_v{n}.png.
+        import json as _json
+        from config.settings import SPECIES_JSON
+        try:
+            all_species = _json.load(open(SPECIES_JSON))
+            stem = raw_path.stem  # e.g. "northern_pike_scientific_v1"
+            sp_record = None
+            for sp in all_species:
+                if stem.startswith(sp["slug"] + "_"):
+                    sp_record = sp
+                    break
+            if sp_record and "target_aspect_ratio" in sp_record:
+                target = sp_record["target_aspect_ratio"]
+                deviation = abs(actual_aspect - target) / max(0.01, target)
+                if deviation > 0.30:
+                    logger.warning(
+                        "ASPECT RATIO mismatch in %s — actual %.2f:1 vs "
+                        "target %.2f:1 (%.0f%% off). The model may have "
+                        "rendered wrong proportions for this species. "
+                        "Consider regenerating or picking a different variation.",
+                        raw_path.name, actual_aspect, target, deviation * 100,
+                    )
+        except Exception:  # noqa: BLE001
+            pass  # species.json parse failure — don't block normalize
+
     padded = _pad_bbox(bbox, matted.size, _PADDING_FRAC)
     content = matted.crop(padded)
 

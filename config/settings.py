@@ -83,6 +83,7 @@ BASE_PROMPT_BY_CATEGORY: dict[str, Path] = {
     "fish": BASE_PROMPT_PATH,
     "turtle": PROMPTS_DIR / "base_prompt_turtle.txt",
     "bird": PROMPTS_DIR / "base_prompt_bird.txt",
+    "plant": PROMPTS_DIR / "base_prompt_plant.txt",
 }
 
 # Provider / model settings ----------------------------------------------------
