@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — wildprint{% endblock %}
+
+{% block content %}
+<div class="console">
+  <h1>Species Catalog Admin</h1>
+  <p class="subtle">Manage the species catalog, track master image coverage, and generate missing assets.</p>
+
+  <!-- Summary cards -->
+  <div class="admin-summary" id="admin-summary"></div>
+
+  <!-- Filters -->
+  <div class="admin-filters">
+    <input type="text" id="admin-search" placeholder="Search species...">
+    <select id="admin-category">
+      <option value="">All categories</option>
+    </select>
+    <label class="checkbox">
+      <input type="checkbox" id="admin-missing-only"> Missing masters only
+    </label>
+  </div>
+
+  <!-- Species table -->
+  <table class="admin-table" id="species-table">
+    <thead>
+      <tr>
+        <th>Thumb</th>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Regions</th>
+        <th>Scale</th>
+        <th>Scientific</th>
+        <th>Watercolor</th>
+        <th>Engraving</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="species-tbody"></tbody>
+  </table>
+</div>
+
+<script>
+let allSpecies = [];
+let summary = {};
+
+async function loadAdminData() {
+  const resp = await fetch('/admin/data');
+  const data = await resp.json();
+  allSpecies = data.species;
+  summary = data.summary;
+  renderSummary();
+  populateCategoryFilter();
+  renderTable(allSpecies);
+}
+
+function renderSummary() {
+  const el = document.getElementById('admin-summary');
+  const cats = summary.by_category || {};
+  const catCards = Object.entries(cats).map(([cat, count]) =>
+    `<div class="status-card">
+      <div class="status-label">${cat}</div>
+      <div class="status-value">${count}</div>
+    </div>`
+  ).join('');
+
+  el.innerHTML = `
+    <div class="status-card">
+      <div class="status-label">Total Species</div>
+      <div class="status-value">${summary.total}</div>
+    </div>
+    <div class="status-card">
+      <div class="status-label">All Masters</div>
+      <div class="status-value"><span class="ok">${summary.with_all_masters}</span></div>
+      <div class="status-sub">3 styles each</div>
+    </div>
+    <div class="status-card">
+      <div class="status-label">Some Masters</div>
+      <div class="status-value">${summary.with_some_masters}</div>
+    </div>
+    <div class="status-card">
+      <div class="status-label">Missing Masters</div>
+      <div class="status-value"><span class="bad">${summary.with_no_masters}</span></div>
+    </div>
+    ${catCards}
+  `;
+}
+
+function populateCategoryFilter() {
+  const sel = document.getElementById('admin-category');
+  const cats = summary.by_category || {};
+  for (const [cat, count] of Object.entries(cats)) {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1) + ' (' + count + ')';
+    sel.appendChild(opt);
+  }
+}
+
+function renderTable(species) {
+  const tbody = document.getElementById('species-tbody');
+  if (species.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--fg-muted)">No species match the current filters.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = species.map(sp => {
+    const hasSci = sp.has_master.scientific;
+    const hasWc = sp.has_master.watercolor;
+    const hasVe = sp.has_master.vintage_engraving;
+    const thumbSrc = hasSci ? `/image/output/master/scientific/${sp.slug}.png` : '';
+    const thumbHtml = thumbSrc
+      ? `<div class="admin-thumb"><img src="${thumbSrc}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=admin-thumb-placeholder></div>'"></div>`
+      : '<div class="admin-thumb-placeholder"></div>';
+    const catClass = 'badge-category badge-category--' + sp.category;
+    const regions = (sp.geographic_range || []).map(r =>
+      `<span class="badge-region">${r.replace(/_/g, ' ')}</span>`
+    ).join('');
+    const masterCell = (has) => has
+      ? '<span class="master-status has">&check;</span>'
+      : '<span class="master-status missing">&cross;</span>';
+    return `<tr>
+      <td>${thumbHtml}</td>
+      <td><strong>${sp.common_name}</strong><br><em class="sci-name" style="font-size:0.75rem">${sp.scientific_name}</em></td>
+      <td><span class="${catClass}">${sp.category}</span></td>
+      <td>${regions}</td>
+      <td>${sp.relative_scale_index}</td>
+      <td>${masterCell(hasSci)}</td>
+      <td>${masterCell(hasWc)}</td>
+      <td>${masterCell(hasVe)}</td>
+      <td><a href="/?species=${sp.slug}" target="_blank" class="btn btn-sm">Generate</a></td>
+    </tr>`;
+  }).join('');
+}
+
+function applyFilters() {
+  const search = document.getElementById('admin-search').value.toLowerCase();
+  const category = document.getElementById('admin-category').value;
+  const missingOnly = document.getElementById('admin-missing-only').checked;
+
+  let filtered = allSpecies;
+  if (search) {
+    filtered = filtered.filter(sp =>
+      sp.common_name.toLowerCase().includes(search) ||
+      sp.scientific_name.toLowerCase().includes(search)
+    );
+  }
+  if (category) {
+    filtered = filtered.filter(sp => sp.category === category);
+  }
+  if (missingOnly) {
+    filtered = filtered.filter(sp =>
+      !sp.has_master.scientific || !sp.has_master.watercolor || !sp.has_master.vintage_engraving
+    );
+  }
+  renderTable(filtered);
+}
+
+document.getElementById('admin-search').addEventListener('input', applyFilters);
+document.getElementById('admin-category').addEventListener('change', applyFilters);
+document.getElementById('admin-missing-only').addEventListener('change', applyFilters);
+
+loadAdminData();
+</script>
+{% endblock %}

@@ -49,7 +49,7 @@ from config.settings import (
 )
 from scripts.build_manifest import load_manifest, save_manifest, find_record
 from scripts.select_master import mark_selected, copy_masters
-from webapp.habitat_engine import recommend as habitat_recommend, get_species_by_slugs
+from webapp.habitat_engine import recommend as habitat_recommend, get_species_by_slugs, state_to_region
 from poster_layout import (
     EditorialMultiRenderer,
     FileSystemMasterImageLoader,
@@ -913,6 +913,9 @@ def create():
 @app.route("/api/recommend", methods=["POST"])
 def api_recommend():
     """Return habitat-scored species recommendations as JSON."""
+    import logging
+    _rec_logger = logging.getLogger(__name__)
+
     data = request.get_json(force=True)
     answers = {
         "water_type": data.get("water_type", "lake"),
@@ -921,7 +924,22 @@ def api_recommend():
         "vegetation": data.get("vegetation", "moderate"),
         "clarity": data.get("clarity", "clear"),
     }
-    result = habitat_recommend(answers)
+
+    # Geographic filtering via state code or lat/lng
+    region = None
+    state_code = data.get("state")
+    if state_code:
+        region = state_to_region(state_code)
+        if region:
+            _rec_logger.info("Resolved state=%s to region=%s", state_code, region)
+        else:
+            _rec_logger.warning("Could not resolve state=%s to any region", state_code)
+    elif data.get("lat") is not None and data.get("lng") is not None:
+        _rec_logger.warning(
+            "lat/lng provided without state code; reverse geocoding not available server-side, skipping geographic filter"
+        )
+
+    result = habitat_recommend(answers, region=region)
     return jsonify(result)
 
 
@@ -1052,6 +1070,72 @@ def api_generate_poster():
 
     poster_url = f"/image/output/posters/{poster_id}.png"
     return jsonify({"poster_url": poster_url, "filename": f"{poster_id}.png"})
+
+
+# ---------------------------------------------------------------------------
+# Admin dashboard
+# ---------------------------------------------------------------------------
+
+
+@app.route("/admin")
+def admin():
+    """Render the admin dashboard for species catalog management."""
+    return render_template("admin.html")
+
+
+@app.route("/admin/data")
+def admin_data():
+    """JSON endpoint returning species catalog with master image status."""
+    species = load_species()
+    master_dir = Path(MASTER_DIR)
+    styles = ["scientific", "watercolor", "vintage_engraving"]
+
+    species_data = []
+    by_category: dict[str, int] = {}
+    with_all = 0
+    with_some = 0
+    with_none = 0
+
+    for sp in species:
+        slug = sp.get("slug", "")
+        category = sp.get("category", "other")
+        by_category[category] = by_category.get(category, 0) + 1
+
+        has_master = {}
+        master_count = 0
+        for style in styles:
+            exists = (master_dir / style / f"{slug}.png").exists()
+            has_master[style] = exists
+            if exists:
+                master_count += 1
+
+        if master_count == len(styles):
+            with_all += 1
+        elif master_count > 0:
+            with_some += 1
+        else:
+            with_none += 1
+
+        species_data.append({
+            "slug": slug,
+            "common_name": sp.get("common_name", slug),
+            "scientific_name": sp.get("scientific_name", ""),
+            "category": category,
+            "geographic_range": sp.get("geographic_range", []),
+            "relative_scale_index": sp.get("relative_scale_index", 1.0),
+            "has_master": has_master,
+        })
+
+    return jsonify({
+        "species": species_data,
+        "summary": {
+            "total": len(species),
+            "by_category": by_category,
+            "with_all_masters": with_all,
+            "with_some_masters": with_some,
+            "with_no_masters": with_none,
+        },
+    })
 
 
 # ---------------------------------------------------------------------------

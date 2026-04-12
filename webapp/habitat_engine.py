@@ -7,18 +7,41 @@ recommendations.
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 from config.settings import PROJECT_ROOT, SPECIES_JSON
 
 
+logger = logging.getLogger(__name__)
+
 _HABITAT_PROFILES_PATH = Path(PROJECT_ROOT) / "data" / "species" / "habitat_profiles.json"
+_REGIONS_PATH = Path(PROJECT_ROOT) / "data" / "regions.json"
 
 
 def load_habitat_profiles() -> dict:
     """Read habitat_profiles.json and return the dict keyed by species slug."""
     with open(_HABITAT_PROFILES_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def load_regions() -> dict:
+    """Read regions.json and return the dict mapping region slug to state lists."""
+    with open(_REGIONS_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def state_to_region(state_code: str) -> str | None:
+    """Map a 2-letter state code to a region slug using regions.json.
+
+    Returns None if the state code is not found in any region.
+    """
+    regions = load_regions()
+    upper = state_code.upper()
+    for region_slug, states in regions.items():
+        if upper in states:
+            return region_slug
+    return None
 
 
 def score_species(profiles: dict, answers: dict) -> list[tuple[str, float]]:
@@ -50,11 +73,15 @@ def recommend(
     answers: dict,
     primary_count: int = 10,
     secondary_count: int = 8,
+    region: str | None = None,
 ) -> dict:
     """Return primary and secondary species recommendations.
 
     Filters out category='plant' species from recommendations (plants are
     border decorations handled automatically by the renderer).
+
+    When *region* is provided (e.g. "midwest"), only species whose
+    ``geographic_range`` includes that region or "nationwide" are considered.
 
     Returns
     -------
@@ -75,6 +102,22 @@ def recommend(
         for slug, score in scored
         if species_by_slug.get(slug, {}).get("category") != "plant"
     ]
+
+    # Geographic filtering: keep only species whose range includes the region
+    if region:
+        region_lower = region.lower()
+
+        def _in_region(slug: str) -> bool:
+            sp = species_by_slug.get(slug, {})
+            geo = sp.get("geographic_range", [])
+            return region_lower in [g.lower() for g in geo] or "nationwide" in [g.lower() for g in geo]
+
+        before = len(scored_filtered)
+        scored_filtered = [(s, sc) for s, sc in scored_filtered if _in_region(s)]
+        logger.info(
+            "Geographic filter region=%s: %d -> %d species",
+            region, before, len(scored_filtered),
+        )
 
     def _enrich(slug: str, score: float) -> dict:
         sp = species_by_slug.get(slug, {})

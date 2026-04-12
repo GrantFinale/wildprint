@@ -1,212 +1,4930 @@
 {
   "smallmouth_bass": {
-    "water_type": {"lake": 8, "pond": 4, "river": 10, "stream": 7, "reservoir": 7, "marsh": 2},
-    "depth": {"shallow": 5, "moderate": 9, "deep": 6},
-    "flow": {"still": 4, "slow": 7, "moderate": 10, "fast": 5},
-    "vegetation": {"heavy": 4, "moderate": 8, "sparse": 9, "none": 5},
-    "clarity": {"clear": 10, "moderate": 7, "murky": 3}
+    "water_type": {
+      "lake": 8,
+      "pond": 4,
+      "river": 10,
+      "stream": 7,
+      "reservoir": 7,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 9,
+      "deep": 6
+    },
+    "flow": {
+      "still": 4,
+      "slow": 7,
+      "moderate": 10,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 4,
+      "moderate": 8,
+      "sparse": 9,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 7,
+      "murky": 3
+    }
   },
   "largemouth_bass": {
-    "water_type": {"lake": 9, "pond": 9, "river": 5, "stream": 3, "reservoir": 8, "marsh": 5},
-    "depth": {"shallow": 8, "moderate": 7, "deep": 3},
-    "flow": {"still": 9, "slow": 8, "moderate": 4, "fast": 2},
-    "vegetation": {"heavy": 10, "moderate": 8, "sparse": 5, "none": 3},
-    "clarity": {"clear": 7, "moderate": 8, "murky": 6}
+    "water_type": {
+      "lake": 9,
+      "pond": 9,
+      "river": 5,
+      "stream": 3,
+      "reservoir": 8,
+      "marsh": 5
+    },
+    "depth": {
+      "shallow": 8,
+      "moderate": 7,
+      "deep": 3
+    },
+    "flow": {
+      "still": 9,
+      "slow": 8,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 8,
+      "murky": 6
+    }
   },
   "northern_pike": {
-    "water_type": {"lake": 10, "pond": 5, "river": 7, "stream": 3, "reservoir": 7, "marsh": 6},
-    "depth": {"shallow": 9, "moderate": 7, "deep": 4},
-    "flow": {"still": 8, "slow": 9, "moderate": 5, "fast": 2},
-    "vegetation": {"heavy": 10, "moderate": 8, "sparse": 4, "none": 2},
-    "clarity": {"clear": 7, "moderate": 8, "murky": 5}
+    "water_type": {
+      "lake": 10,
+      "pond": 5,
+      "river": 7,
+      "stream": 3,
+      "reservoir": 7,
+      "marsh": 6
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 7,
+      "deep": 4
+    },
+    "flow": {
+      "still": 8,
+      "slow": 9,
+      "moderate": 5,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 8,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 8,
+      "murky": 5
+    }
   },
   "bowfin": {
-    "water_type": {"lake": 5, "pond": 6, "river": 4, "stream": 2, "reservoir": 3, "marsh": 10},
-    "depth": {"shallow": 9, "moderate": 5, "deep": 2},
-    "flow": {"still": 10, "slow": 8, "moderate": 3, "fast": 1},
-    "vegetation": {"heavy": 10, "moderate": 7, "sparse": 3, "none": 2},
-    "clarity": {"clear": 4, "moderate": 6, "murky": 9}
+    "water_type": {
+      "lake": 5,
+      "pond": 6,
+      "river": 4,
+      "stream": 2,
+      "reservoir": 3,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 10,
+      "slow": 8,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 7,
+      "sparse": 3,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 4,
+      "moderate": 6,
+      "murky": 9
+    }
   },
   "bluegill": {
-    "water_type": {"lake": 9, "pond": 10, "river": 5, "stream": 4, "reservoir": 7, "marsh": 5},
-    "depth": {"shallow": 10, "moderate": 6, "deep": 2},
-    "flow": {"still": 9, "slow": 8, "moderate": 4, "fast": 2},
-    "vegetation": {"heavy": 9, "moderate": 8, "sparse": 5, "none": 3},
-    "clarity": {"clear": 7, "moderate": 8, "murky": 5}
+    "water_type": {
+      "lake": 9,
+      "pond": 10,
+      "river": 5,
+      "stream": 4,
+      "reservoir": 7,
+      "marsh": 5
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 6,
+      "deep": 2
+    },
+    "flow": {
+      "still": 9,
+      "slow": 8,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 8,
+      "murky": 5
+    }
   },
   "black_crappie": {
-    "water_type": {"lake": 9, "pond": 7, "river": 5, "stream": 3, "reservoir": 9, "marsh": 3},
-    "depth": {"shallow": 5, "moderate": 9, "deep": 6},
-    "flow": {"still": 9, "slow": 7, "moderate": 4, "fast": 2},
-    "vegetation": {"heavy": 6, "moderate": 8, "sparse": 7, "none": 4},
-    "clarity": {"clear": 8, "moderate": 7, "murky": 4}
+    "water_type": {
+      "lake": 9,
+      "pond": 7,
+      "river": 5,
+      "stream": 3,
+      "reservoir": 9,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 9,
+      "deep": 6
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 6,
+      "moderate": 8,
+      "sparse": 7,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 7,
+      "murky": 4
+    }
   },
   "rock_bass": {
-    "water_type": {"lake": 8, "pond": 4, "river": 8, "stream": 9, "reservoir": 5, "marsh": 2},
-    "depth": {"shallow": 7, "moderate": 8, "deep": 4},
-    "flow": {"still": 4, "slow": 6, "moderate": 9, "fast": 6},
-    "vegetation": {"heavy": 3, "moderate": 6, "sparse": 9, "none": 7},
-    "clarity": {"clear": 10, "moderate": 7, "murky": 3}
+    "water_type": {
+      "lake": 8,
+      "pond": 4,
+      "river": 8,
+      "stream": 9,
+      "reservoir": 5,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 8,
+      "deep": 4
+    },
+    "flow": {
+      "still": 4,
+      "slow": 6,
+      "moderate": 9,
+      "fast": 6
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 6,
+      "sparse": 9,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 7,
+      "murky": 3
+    }
   },
   "pumpkinseed_sunfish": {
-    "water_type": {"lake": 9, "pond": 10, "river": 4, "stream": 5, "reservoir": 6, "marsh": 5},
-    "depth": {"shallow": 10, "moderate": 5, "deep": 2},
-    "flow": {"still": 9, "slow": 8, "moderate": 4, "fast": 2},
-    "vegetation": {"heavy": 9, "moderate": 8, "sparse": 5, "none": 3},
-    "clarity": {"clear": 8, "moderate": 7, "murky": 4}
+    "water_type": {
+      "lake": 9,
+      "pond": 10,
+      "river": 4,
+      "stream": 5,
+      "reservoir": 6,
+      "marsh": 5
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 9,
+      "slow": 8,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 7,
+      "murky": 4
+    }
   },
   "yellow_perch": {
-    "water_type": {"lake": 10, "pond": 6, "river": 5, "stream": 3, "reservoir": 7, "marsh": 3},
-    "depth": {"shallow": 5, "moderate": 9, "deep": 6},
-    "flow": {"still": 7, "slow": 7, "moderate": 5, "fast": 3},
-    "vegetation": {"heavy": 5, "moderate": 8, "sparse": 7, "none": 5},
-    "clarity": {"clear": 9, "moderate": 7, "murky": 4}
+    "water_type": {
+      "lake": 10,
+      "pond": 6,
+      "river": 5,
+      "stream": 3,
+      "reservoir": 7,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 9,
+      "deep": 6
+    },
+    "flow": {
+      "still": 7,
+      "slow": 7,
+      "moderate": 5,
+      "fast": 3
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 8,
+      "sparse": 7,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 7,
+      "murky": 4
+    }
   },
   "channel_catfish": {
-    "water_type": {"lake": 7, "pond": 4, "river": 10, "stream": 5, "reservoir": 9, "marsh": 3},
-    "depth": {"shallow": 4, "moderate": 8, "deep": 9},
-    "flow": {"still": 4, "slow": 6, "moderate": 9, "fast": 5},
-    "vegetation": {"heavy": 3, "moderate": 5, "sparse": 7, "none": 8},
-    "clarity": {"clear": 5, "moderate": 7, "murky": 9}
+    "water_type": {
+      "lake": 7,
+      "pond": 4,
+      "river": 10,
+      "stream": 5,
+      "reservoir": 9,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 9
+    },
+    "flow": {
+      "still": 4,
+      "slow": 6,
+      "moderate": 9,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 7,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 9
+    }
   },
   "bullhead_catfish": {
-    "water_type": {"lake": 5, "pond": 9, "river": 4, "stream": 3, "reservoir": 5, "marsh": 8},
-    "depth": {"shallow": 9, "moderate": 5, "deep": 2},
-    "flow": {"still": 10, "slow": 7, "moderate": 3, "fast": 1},
-    "vegetation": {"heavy": 7, "moderate": 6, "sparse": 5, "none": 5},
-    "clarity": {"clear": 3, "moderate": 5, "murky": 10}
+    "water_type": {
+      "lake": 5,
+      "pond": 9,
+      "river": 4,
+      "stream": 3,
+      "reservoir": 5,
+      "marsh": 8
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 10,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 6,
+      "sparse": 5,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 3,
+      "moderate": 5,
+      "murky": 10
+    }
   },
   "common_carp": {
-    "water_type": {"lake": 8, "pond": 8, "river": 7, "stream": 4, "reservoir": 7, "marsh": 7},
-    "depth": {"shallow": 8, "moderate": 7, "deep": 4},
-    "flow": {"still": 8, "slow": 8, "moderate": 6, "fast": 3},
-    "vegetation": {"heavy": 8, "moderate": 7, "sparse": 6, "none": 5},
-    "clarity": {"clear": 4, "moderate": 7, "murky": 9}
+    "water_type": {
+      "lake": 8,
+      "pond": 8,
+      "river": 7,
+      "stream": 4,
+      "reservoir": 7,
+      "marsh": 7
+    },
+    "depth": {
+      "shallow": 8,
+      "moderate": 7,
+      "deep": 4
+    },
+    "flow": {
+      "still": 8,
+      "slow": 8,
+      "moderate": 6,
+      "fast": 3
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 6,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 4,
+      "moderate": 7,
+      "murky": 9
+    }
   },
   "white_sucker": {
-    "water_type": {"lake": 6, "pond": 3, "river": 9, "stream": 9, "reservoir": 5, "marsh": 2},
-    "depth": {"shallow": 6, "moderate": 8, "deep": 4},
-    "flow": {"still": 3, "slow": 6, "moderate": 9, "fast": 7},
-    "vegetation": {"heavy": 3, "moderate": 5, "sparse": 7, "none": 8},
-    "clarity": {"clear": 7, "moderate": 8, "murky": 4}
+    "water_type": {
+      "lake": 6,
+      "pond": 3,
+      "river": 9,
+      "stream": 9,
+      "reservoir": 5,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 6,
+      "moderate": 8,
+      "deep": 4
+    },
+    "flow": {
+      "still": 3,
+      "slow": 6,
+      "moderate": 9,
+      "fast": 7
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 7,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 8,
+      "murky": 4
+    }
   },
   "painted_turtle": {
-    "water_type": {"lake": 7, "pond": 10, "river": 5, "stream": 4, "reservoir": 5, "marsh": 9},
-    "depth": {"shallow": 10, "moderate": 5, "deep": 2},
-    "flow": {"still": 10, "slow": 7, "moderate": 3, "fast": 1},
-    "vegetation": {"heavy": 9, "moderate": 8, "sparse": 5, "none": 3},
-    "clarity": {"clear": 7, "moderate": 7, "murky": 6}
+    "water_type": {
+      "lake": 7,
+      "pond": 10,
+      "river": 5,
+      "stream": 4,
+      "reservoir": 5,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 10,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 6
+    }
   },
   "red_eared_slider": {
-    "water_type": {"lake": 7, "pond": 10, "river": 4, "stream": 3, "reservoir": 6, "marsh": 7},
-    "depth": {"shallow": 9, "moderate": 5, "deep": 2},
-    "flow": {"still": 10, "slow": 7, "moderate": 3, "fast": 1},
-    "vegetation": {"heavy": 8, "moderate": 7, "sparse": 5, "none": 4},
-    "clarity": {"clear": 6, "moderate": 7, "murky": 7}
+    "water_type": {
+      "lake": 7,
+      "pond": 10,
+      "river": 4,
+      "stream": 3,
+      "reservoir": 6,
+      "marsh": 7
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 10,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 7
+    }
   },
   "common_snapping_turtle": {
-    "water_type": {"lake": 8, "pond": 8, "river": 7, "stream": 4, "reservoir": 6, "marsh": 9},
-    "depth": {"shallow": 7, "moderate": 7, "deep": 5},
-    "flow": {"still": 8, "slow": 7, "moderate": 5, "fast": 2},
-    "vegetation": {"heavy": 7, "moderate": 7, "sparse": 6, "none": 5},
-    "clarity": {"clear": 5, "moderate": 7, "murky": 8}
+    "water_type": {
+      "lake": 8,
+      "pond": 8,
+      "river": 7,
+      "stream": 4,
+      "reservoir": 6,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 7,
+      "deep": 5
+    },
+    "flow": {
+      "still": 8,
+      "slow": 7,
+      "moderate": 5,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 7,
+      "sparse": 6,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 8
+    }
   },
   "eastern_box_turtle": {
-    "water_type": {"lake": 2, "pond": 3, "river": 2, "stream": 3, "reservoir": 1, "marsh": 4},
-    "depth": {"shallow": 3, "moderate": 1, "deep": 0},
-    "flow": {"still": 3, "slow": 2, "moderate": 1, "fast": 0},
-    "vegetation": {"heavy": 4, "moderate": 3, "sparse": 2, "none": 1},
-    "clarity": {"clear": 2, "moderate": 2, "murky": 2}
+    "water_type": {
+      "lake": 2,
+      "pond": 3,
+      "river": 2,
+      "stream": 3,
+      "reservoir": 1,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 1,
+      "deep": 0
+    },
+    "flow": {
+      "still": 3,
+      "slow": 2,
+      "moderate": 1,
+      "fast": 0
+    },
+    "vegetation": {
+      "heavy": 4,
+      "moderate": 3,
+      "sparse": 2,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 2,
+      "moderate": 2,
+      "murky": 2
+    }
   },
   "spiny_softshell_turtle": {
-    "water_type": {"lake": 7, "pond": 4, "river": 10, "stream": 6, "reservoir": 6, "marsh": 3},
-    "depth": {"shallow": 7, "moderate": 8, "deep": 4},
-    "flow": {"still": 4, "slow": 6, "moderate": 9, "fast": 5},
-    "vegetation": {"heavy": 3, "moderate": 5, "sparse": 8, "none": 7},
-    "clarity": {"clear": 9, "moderate": 7, "murky": 3}
+    "water_type": {
+      "lake": 7,
+      "pond": 4,
+      "river": 10,
+      "stream": 6,
+      "reservoir": 6,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 8,
+      "deep": 4
+    },
+    "flow": {
+      "still": 4,
+      "slow": 6,
+      "moderate": 9,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 8,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 7,
+      "murky": 3
+    }
   },
   "great_blue_heron": {
-    "water_type": {"lake": 8, "pond": 7, "river": 7, "stream": 6, "reservoir": 6, "marsh": 10},
-    "depth": {"shallow": 10, "moderate": 5, "deep": 2},
-    "flow": {"still": 8, "slow": 8, "moderate": 5, "fast": 3},
-    "vegetation": {"heavy": 7, "moderate": 8, "sparse": 7, "none": 5},
-    "clarity": {"clear": 7, "moderate": 7, "murky": 6}
+    "water_type": {
+      "lake": 8,
+      "pond": 7,
+      "river": 7,
+      "stream": 6,
+      "reservoir": 6,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 8,
+      "slow": 8,
+      "moderate": 5,
+      "fast": 3
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 8,
+      "sparse": 7,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 6
+    }
   },
   "belted_kingfisher": {
-    "water_type": {"lake": 8, "pond": 6, "river": 9, "stream": 9, "reservoir": 6, "marsh": 3},
-    "depth": {"shallow": 7, "moderate": 8, "deep": 4},
-    "flow": {"still": 5, "slow": 7, "moderate": 8, "fast": 5},
-    "vegetation": {"heavy": 4, "moderate": 6, "sparse": 8, "none": 6},
-    "clarity": {"clear": 10, "moderate": 7, "murky": 3}
+    "water_type": {
+      "lake": 8,
+      "pond": 6,
+      "river": 9,
+      "stream": 9,
+      "reservoir": 6,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 8,
+      "deep": 4
+    },
+    "flow": {
+      "still": 5,
+      "slow": 7,
+      "moderate": 8,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 4,
+      "moderate": 6,
+      "sparse": 8,
+      "none": 6
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 7,
+      "murky": 3
+    }
   },
   "common_loon": {
-    "water_type": {"lake": 10, "pond": 3, "river": 3, "stream": 1, "reservoir": 6, "marsh": 2},
-    "depth": {"shallow": 3, "moderate": 7, "deep": 10},
-    "flow": {"still": 9, "slow": 5, "moderate": 3, "fast": 1},
-    "vegetation": {"heavy": 3, "moderate": 5, "sparse": 7, "none": 8},
-    "clarity": {"clear": 10, "moderate": 6, "murky": 2}
+    "water_type": {
+      "lake": 10,
+      "pond": 3,
+      "river": 3,
+      "stream": 1,
+      "reservoir": 6,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 7,
+      "deep": 10
+    },
+    "flow": {
+      "still": 9,
+      "slow": 5,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 7,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 6,
+      "murky": 2
+    }
   },
   "osprey": {
-    "water_type": {"lake": 9, "pond": 5, "river": 8, "stream": 4, "reservoir": 8, "marsh": 4},
-    "depth": {"shallow": 6, "moderate": 8, "deep": 7},
-    "flow": {"still": 7, "slow": 7, "moderate": 7, "fast": 5},
-    "vegetation": {"heavy": 5, "moderate": 6, "sparse": 7, "none": 7},
-    "clarity": {"clear": 9, "moderate": 7, "murky": 3}
+    "water_type": {
+      "lake": 9,
+      "pond": 5,
+      "river": 8,
+      "stream": 4,
+      "reservoir": 8,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 6,
+      "moderate": 8,
+      "deep": 7
+    },
+    "flow": {
+      "still": 7,
+      "slow": 7,
+      "moderate": 7,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 6,
+      "sparse": 7,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 7,
+      "murky": 3
+    }
   },
   "mallard": {
-    "water_type": {"lake": 8, "pond": 10, "river": 6, "stream": 4, "reservoir": 6, "marsh": 9},
-    "depth": {"shallow": 10, "moderate": 5, "deep": 2},
-    "flow": {"still": 9, "slow": 8, "moderate": 4, "fast": 2},
-    "vegetation": {"heavy": 8, "moderate": 8, "sparse": 6, "none": 4},
-    "clarity": {"clear": 6, "moderate": 7, "murky": 7}
+    "water_type": {
+      "lake": 8,
+      "pond": 10,
+      "river": 6,
+      "stream": 4,
+      "reservoir": 6,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 9,
+      "slow": 8,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 8,
+      "sparse": 6,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 7
+    }
   },
   "wood_duck": {
-    "water_type": {"lake": 5, "pond": 8, "river": 6, "stream": 5, "reservoir": 4, "marsh": 9},
-    "depth": {"shallow": 9, "moderate": 5, "deep": 2},
-    "flow": {"still": 8, "slow": 9, "moderate": 4, "fast": 2},
-    "vegetation": {"heavy": 9, "moderate": 7, "sparse": 4, "none": 2},
-    "clarity": {"clear": 6, "moderate": 7, "murky": 6}
+    "water_type": {
+      "lake": 5,
+      "pond": 8,
+      "river": 6,
+      "stream": 5,
+      "reservoir": 4,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 8,
+      "slow": 9,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 6
+    }
   },
   "american_bittern": {
-    "water_type": {"lake": 4, "pond": 6, "river": 3, "stream": 2, "reservoir": 3, "marsh": 10},
-    "depth": {"shallow": 10, "moderate": 4, "deep": 1},
-    "flow": {"still": 10, "slow": 6, "moderate": 2, "fast": 1},
-    "vegetation": {"heavy": 10, "moderate": 7, "sparse": 3, "none": 1},
-    "clarity": {"clear": 5, "moderate": 6, "murky": 7}
+    "water_type": {
+      "lake": 4,
+      "pond": 6,
+      "river": 3,
+      "stream": 2,
+      "reservoir": 3,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 10,
+      "slow": 6,
+      "moderate": 2,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 7,
+      "sparse": 3,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 6,
+      "murky": 7
+    }
   },
   "cattails": {
-    "water_type": {"lake": 5, "pond": 8, "river": 3, "stream": 2, "reservoir": 4, "marsh": 10},
-    "depth": {"shallow": 10, "moderate": 3, "deep": 1},
-    "flow": {"still": 10, "slow": 7, "moderate": 2, "fast": 1},
-    "vegetation": {"heavy": 10, "moderate": 6, "sparse": 2, "none": 1},
-    "clarity": {"clear": 5, "moderate": 6, "murky": 7}
+    "water_type": {
+      "lake": 5,
+      "pond": 8,
+      "river": 3,
+      "stream": 2,
+      "reservoir": 4,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 3,
+      "deep": 1
+    },
+    "flow": {
+      "still": 10,
+      "slow": 7,
+      "moderate": 2,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 6,
+      "sparse": 2,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 6,
+      "murky": 7
+    }
   },
   "water_lily": {
-    "water_type": {"lake": 8, "pond": 10, "river": 2, "stream": 1, "reservoir": 5, "marsh": 6},
-    "depth": {"shallow": 10, "moderate": 5, "deep": 1},
-    "flow": {"still": 10, "slow": 6, "moderate": 1, "fast": 0},
-    "vegetation": {"heavy": 9, "moderate": 7, "sparse": 3, "none": 1},
-    "clarity": {"clear": 8, "moderate": 6, "murky": 3}
+    "water_type": {
+      "lake": 8,
+      "pond": 10,
+      "river": 2,
+      "stream": 1,
+      "reservoir": 5,
+      "marsh": 6
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 1
+    },
+    "flow": {
+      "still": 10,
+      "slow": 6,
+      "moderate": 1,
+      "fast": 0
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 7,
+      "sparse": 3,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 6,
+      "murky": 3
+    }
   },
   "bulrush": {
-    "water_type": {"lake": 5, "pond": 7, "river": 3, "stream": 2, "reservoir": 4, "marsh": 10},
-    "depth": {"shallow": 10, "moderate": 4, "deep": 1},
-    "flow": {"still": 9, "slow": 7, "moderate": 3, "fast": 1},
-    "vegetation": {"heavy": 9, "moderate": 6, "sparse": 3, "none": 1},
-    "clarity": {"clear": 5, "moderate": 6, "murky": 7}
+    "water_type": {
+      "lake": 5,
+      "pond": 7,
+      "river": 3,
+      "stream": 2,
+      "reservoir": 4,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 6,
+      "sparse": 3,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 6,
+      "murky": 7
+    }
   },
   "wild_rice": {
-    "water_type": {"lake": 8, "pond": 5, "river": 6, "stream": 3, "reservoir": 4, "marsh": 7},
-    "depth": {"shallow": 10, "moderate": 5, "deep": 1},
-    "flow": {"still": 7, "slow": 8, "moderate": 4, "fast": 1},
-    "vegetation": {"heavy": 8, "moderate": 7, "sparse": 4, "none": 2},
-    "clarity": {"clear": 6, "moderate": 7, "murky": 5}
+    "water_type": {
+      "lake": 8,
+      "pond": 5,
+      "river": 6,
+      "stream": 3,
+      "reservoir": 4,
+      "marsh": 7
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 1
+    },
+    "flow": {
+      "still": 7,
+      "slow": 8,
+      "moderate": 4,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 5
+    }
   },
   "arrowhead": {
-    "water_type": {"lake": 5, "pond": 8, "river": 4, "stream": 3, "reservoir": 3, "marsh": 9},
-    "depth": {"shallow": 10, "moderate": 4, "deep": 1},
-    "flow": {"still": 9, "slow": 7, "moderate": 3, "fast": 1},
-    "vegetation": {"heavy": 9, "moderate": 7, "sparse": 3, "none": 1},
-    "clarity": {"clear": 6, "moderate": 6, "murky": 6}
+    "water_type": {
+      "lake": 5,
+      "pond": 8,
+      "river": 4,
+      "stream": 3,
+      "reservoir": 3,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 7,
+      "sparse": 3,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 6,
+      "murky": 6
+    }
+  },
+  "spotted_bass": {
+    "water_type": {
+      "lake": 7,
+      "pond": 4,
+      "river": 10,
+      "stream": 7,
+      "reservoir": 9,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 9,
+      "deep": 6
+    },
+    "flow": {
+      "still": 4,
+      "slow": 6,
+      "moderate": 10,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 7,
+      "sparse": 9,
+      "none": 6
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "striped_bass": {
+    "water_type": {
+      "lake": 8,
+      "pond": 2,
+      "river": 10,
+      "stream": 3,
+      "reservoir": 9,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 9
+    },
+    "flow": {
+      "still": 4,
+      "slow": 6,
+      "moderate": 9,
+      "fast": 7
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 4,
+      "sparse": 7,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "white_bass": {
+    "water_type": {
+      "lake": 9,
+      "pond": 3,
+      "river": 8,
+      "stream": 3,
+      "reservoir": 10,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 8
+    },
+    "flow": {
+      "still": 5,
+      "slow": 6,
+      "moderate": 8,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 7,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "guadalupe_bass": {
+    "water_type": {
+      "lake": 3,
+      "pond": 2,
+      "river": 9,
+      "stream": 10,
+      "reservoir": 4,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 8,
+      "deep": 3
+    },
+    "flow": {
+      "still": 2,
+      "slow": 5,
+      "moderate": 10,
+      "fast": 7
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 8,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 6,
+      "murky": 2
+    }
+  },
+  "redear_sunfish": {
+    "water_type": {
+      "lake": 9,
+      "pond": 10,
+      "river": 4,
+      "stream": 3,
+      "reservoir": 7,
+      "marsh": 5
+    },
+    "depth": {
+      "shallow": 8,
+      "moderate": 7,
+      "deep": 3
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "green_sunfish": {
+    "water_type": {
+      "lake": 6,
+      "pond": 9,
+      "river": 6,
+      "stream": 10,
+      "reservoir": 5,
+      "marsh": 5
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 7,
+      "slow": 8,
+      "moderate": 6,
+      "fast": 3
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 7,
+      "sparse": 6,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 7
+    }
+  },
+  "longear_sunfish": {
+    "water_type": {
+      "lake": 5,
+      "pond": 6,
+      "river": 8,
+      "stream": 10,
+      "reservoir": 4,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 6,
+      "deep": 2
+    },
+    "flow": {
+      "still": 5,
+      "slow": 7,
+      "moderate": 8,
+      "fast": 4
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 7,
+      "sparse": 8,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 6,
+      "murky": 2
+    }
+  },
+  "warmouth": {
+    "water_type": {
+      "lake": 5,
+      "pond": 8,
+      "river": 4,
+      "stream": 3,
+      "reservoir": 4,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 10,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 3,
+      "moderate": 5,
+      "murky": 10
+    }
+  },
+  "redbreast_sunfish": {
+    "water_type": {
+      "lake": 5,
+      "pond": 5,
+      "river": 9,
+      "stream": 10,
+      "reservoir": 4,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 8,
+      "moderate": 7,
+      "deep": 3
+    },
+    "flow": {
+      "still": 4,
+      "slow": 7,
+      "moderate": 8,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 7,
+      "sparse": 8,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 7,
+      "murky": 3
+    }
+  },
+  "white_crappie": {
+    "water_type": {
+      "lake": 9,
+      "pond": 6,
+      "river": 6,
+      "stream": 3,
+      "reservoir": 10,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 9,
+      "deep": 6
+    },
+    "flow": {
+      "still": 8,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 7,
+      "sparse": 7,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 8,
+      "murky": 6
+    }
+  },
+  "blue_catfish": {
+    "water_type": {
+      "lake": 6,
+      "pond": 2,
+      "river": 10,
+      "stream": 3,
+      "reservoir": 9,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 7,
+      "deep": 10
+    },
+    "flow": {
+      "still": 3,
+      "slow": 5,
+      "moderate": 9,
+      "fast": 6
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 4,
+      "sparse": 6,
+      "none": 9
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 8
+    }
+  },
+  "flathead_catfish": {
+    "water_type": {
+      "lake": 5,
+      "pond": 2,
+      "river": 10,
+      "stream": 4,
+      "reservoir": 8,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 7,
+      "deep": 10
+    },
+    "flow": {
+      "still": 3,
+      "slow": 5,
+      "moderate": 8,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 4,
+      "sparse": 6,
+      "none": 9
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 8
+    }
+  },
+  "chain_pickerel": {
+    "water_type": {
+      "lake": 9,
+      "pond": 8,
+      "river": 5,
+      "stream": 4,
+      "reservoir": 6,
+      "marsh": 6
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 6,
+      "deep": 3
+    },
+    "flow": {
+      "still": 9,
+      "slow": 8,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 8,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "muskellunge": {
+    "water_type": {
+      "lake": 10,
+      "pond": 3,
+      "river": 7,
+      "stream": 3,
+      "reservoir": 7,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 9,
+      "deep": 6
+    },
+    "flow": {
+      "still": 7,
+      "slow": 8,
+      "moderate": 6,
+      "fast": 3
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "tiger_musky": {
+    "water_type": {
+      "lake": 10,
+      "pond": 4,
+      "river": 6,
+      "stream": 2,
+      "reservoir": 8,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 8,
+      "deep": 5
+    },
+    "flow": {
+      "still": 7,
+      "slow": 8,
+      "moderate": 5,
+      "fast": 3
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "walleye": {
+    "water_type": {
+      "lake": 10,
+      "pond": 3,
+      "river": 8,
+      "stream": 4,
+      "reservoir": 9,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 8,
+      "deep": 9
+    },
+    "flow": {
+      "still": 5,
+      "slow": 6,
+      "moderate": 8,
+      "fast": 4
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 8,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 9,
+      "murky": 5
+    }
+  },
+  "sauger": {
+    "water_type": {
+      "lake": 7,
+      "pond": 2,
+      "river": 10,
+      "stream": 4,
+      "reservoir": 8,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 7,
+      "deep": 9
+    },
+    "flow": {
+      "still": 4,
+      "slow": 6,
+      "moderate": 9,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 4,
+      "sparse": 7,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 8,
+      "murky": 7
+    }
+  },
+  "saugeye": {
+    "water_type": {
+      "lake": 8,
+      "pond": 3,
+      "river": 7,
+      "stream": 3,
+      "reservoir": 10,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 8
+    },
+    "flow": {
+      "still": 5,
+      "slow": 6,
+      "moderate": 8,
+      "fast": 4
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 7,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 8,
+      "murky": 6
+    }
+  },
+  "rainbow_trout": {
+    "water_type": {
+      "lake": 6,
+      "pond": 2,
+      "river": 10,
+      "stream": 10,
+      "reservoir": 6,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 7
+    },
+    "flow": {
+      "still": 2,
+      "slow": 4,
+      "moderate": 9,
+      "fast": 10
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 4,
+      "sparse": 8,
+      "none": 6
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 6,
+      "murky": 1
+    }
+  },
+  "brown_trout": {
+    "water_type": {
+      "lake": 6,
+      "pond": 2,
+      "river": 10,
+      "stream": 10,
+      "reservoir": 6,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 8,
+      "deep": 7
+    },
+    "flow": {
+      "still": 2,
+      "slow": 5,
+      "moderate": 9,
+      "fast": 9
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 8,
+      "none": 6
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 7,
+      "murky": 3
+    }
+  },
+  "brook_trout": {
+    "water_type": {
+      "lake": 4,
+      "pond": 3,
+      "river": 7,
+      "stream": 10,
+      "reservoir": 3,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 6,
+      "moderate": 7,
+      "deep": 4
+    },
+    "flow": {
+      "still": 2,
+      "slow": 4,
+      "moderate": 8,
+      "fast": 10
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 4,
+      "sparse": 7,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 5,
+      "murky": 1
+    }
+  },
+  "lake_trout": {
+    "water_type": {
+      "lake": 10,
+      "pond": 1,
+      "river": 2,
+      "stream": 2,
+      "reservoir": 7,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 2,
+      "moderate": 5,
+      "deep": 10
+    },
+    "flow": {
+      "still": 8,
+      "slow": 5,
+      "moderate": 3,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 3,
+      "sparse": 5,
+      "none": 9
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 5,
+      "murky": 1
+    }
+  },
+  "cutthroat_trout": {
+    "water_type": {
+      "lake": 5,
+      "pond": 2,
+      "river": 9,
+      "stream": 10,
+      "reservoir": 4,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 8,
+      "deep": 5
+    },
+    "flow": {
+      "still": 2,
+      "slow": 4,
+      "moderate": 9,
+      "fast": 10
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 4,
+      "sparse": 7,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 6,
+      "murky": 1
+    }
+  },
+  "bull_trout": {
+    "water_type": {
+      "lake": 5,
+      "pond": 1,
+      "river": 9,
+      "stream": 10,
+      "reservoir": 4,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 7
+    },
+    "flow": {
+      "still": 2,
+      "slow": 3,
+      "moderate": 8,
+      "fast": 10
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 3,
+      "sparse": 7,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 5,
+      "murky": 1
+    }
+  },
+  "apache_trout": {
+    "water_type": {
+      "lake": 2,
+      "pond": 1,
+      "river": 5,
+      "stream": 10,
+      "reservoir": 2,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 7,
+      "deep": 3
+    },
+    "flow": {
+      "still": 1,
+      "slow": 3,
+      "moderate": 9,
+      "fast": 10
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 3,
+      "sparse": 7,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 5,
+      "murky": 1
+    }
+  },
+  "chinook_salmon": {
+    "water_type": {
+      "lake": 3,
+      "pond": 1,
+      "river": 10,
+      "stream": 7,
+      "reservoir": 4,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 8
+    },
+    "flow": {
+      "still": 2,
+      "slow": 4,
+      "moderate": 9,
+      "fast": 10
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 3,
+      "sparse": 6,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 6,
+      "murky": 2
+    }
+  },
+  "coho_salmon": {
+    "water_type": {
+      "lake": 3,
+      "pond": 1,
+      "river": 10,
+      "stream": 8,
+      "reservoir": 3,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 8,
+      "deep": 7
+    },
+    "flow": {
+      "still": 2,
+      "slow": 4,
+      "moderate": 9,
+      "fast": 10
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 3,
+      "sparse": 6,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 6,
+      "murky": 2
+    }
+  },
+  "sockeye_salmon": {
+    "water_type": {
+      "lake": 8,
+      "pond": 1,
+      "river": 9,
+      "stream": 6,
+      "reservoir": 3,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 7,
+      "deep": 9
+    },
+    "flow": {
+      "still": 4,
+      "slow": 5,
+      "moderate": 8,
+      "fast": 9
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 3,
+      "sparse": 6,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 6,
+      "murky": 1
+    }
+  },
+  "atlantic_salmon": {
+    "water_type": {
+      "lake": 3,
+      "pond": 1,
+      "river": 10,
+      "stream": 8,
+      "reservoir": 3,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 8,
+      "deep": 7
+    },
+    "flow": {
+      "still": 2,
+      "slow": 4,
+      "moderate": 9,
+      "fast": 10
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 3,
+      "sparse": 7,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 6,
+      "murky": 1
+    }
+  },
+  "pink_salmon": {
+    "water_type": {
+      "lake": 2,
+      "pond": 1,
+      "river": 10,
+      "stream": 7,
+      "reservoir": 2,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 7,
+      "deep": 6
+    },
+    "flow": {
+      "still": 2,
+      "slow": 4,
+      "moderate": 8,
+      "fast": 10
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 3,
+      "sparse": 6,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 6,
+      "murky": 2
+    }
+  },
+  "kokanee": {
+    "water_type": {
+      "lake": 10,
+      "pond": 2,
+      "river": 3,
+      "stream": 3,
+      "reservoir": 8,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 6,
+      "deep": 10
+    },
+    "flow": {
+      "still": 7,
+      "slow": 5,
+      "moderate": 3,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 3,
+      "sparse": 6,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 6,
+      "murky": 1
+    }
+  },
+  "lake_sturgeon": {
+    "water_type": {
+      "lake": 10,
+      "pond": 1,
+      "river": 8,
+      "stream": 2,
+      "reservoir": 6,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 6,
+      "deep": 10
+    },
+    "flow": {
+      "still": 4,
+      "slow": 6,
+      "moderate": 8,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 3,
+      "sparse": 6,
+      "none": 9
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "white_sturgeon": {
+    "water_type": {
+      "lake": 3,
+      "pond": 1,
+      "river": 10,
+      "stream": 2,
+      "reservoir": 5,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 2,
+      "moderate": 5,
+      "deep": 10
+    },
+    "flow": {
+      "still": 3,
+      "slow": 5,
+      "moderate": 8,
+      "fast": 7
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 3,
+      "sparse": 5,
+      "none": 9
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "atlantic_sturgeon": {
+    "water_type": {
+      "lake": 2,
+      "pond": 1,
+      "river": 10,
+      "stream": 2,
+      "reservoir": 3,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 6,
+      "deep": 10
+    },
+    "flow": {
+      "still": 3,
+      "slow": 5,
+      "moderate": 8,
+      "fast": 7
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 3,
+      "sparse": 5,
+      "none": 9
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "pallid_sturgeon": {
+    "water_type": {
+      "lake": 2,
+      "pond": 1,
+      "river": 10,
+      "stream": 2,
+      "reservoir": 4,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 2,
+      "moderate": 6,
+      "deep": 10
+    },
+    "flow": {
+      "still": 2,
+      "slow": 4,
+      "moderate": 8,
+      "fast": 8
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 2,
+      "sparse": 5,
+      "none": 10
+    },
+    "clarity": {
+      "clear": 3,
+      "moderate": 6,
+      "murky": 9
+    }
+  },
+  "shovelnose_sturgeon": {
+    "water_type": {
+      "lake": 2,
+      "pond": 1,
+      "river": 10,
+      "stream": 3,
+      "reservoir": 4,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 7,
+      "deep": 9
+    },
+    "flow": {
+      "still": 2,
+      "slow": 4,
+      "moderate": 9,
+      "fast": 8
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 2,
+      "sparse": 5,
+      "none": 10
+    },
+    "clarity": {
+      "clear": 4,
+      "moderate": 7,
+      "murky": 8
+    }
+  },
+  "paddlefish": {
+    "water_type": {
+      "lake": 5,
+      "pond": 1,
+      "river": 10,
+      "stream": 2,
+      "reservoir": 8,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 6,
+      "deep": 10
+    },
+    "flow": {
+      "still": 4,
+      "slow": 6,
+      "moderate": 8,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 4,
+      "sparse": 6,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 7
+    }
+  },
+  "longnose_gar": {
+    "water_type": {
+      "lake": 7,
+      "pond": 4,
+      "river": 9,
+      "stream": 5,
+      "reservoir": 7,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 7,
+      "deep": 4
+    },
+    "flow": {
+      "still": 6,
+      "slow": 8,
+      "moderate": 7,
+      "fast": 4
+    },
+    "vegetation": {
+      "heavy": 6,
+      "moderate": 7,
+      "sparse": 6,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "shortnose_gar": {
+    "water_type": {
+      "lake": 5,
+      "pond": 4,
+      "river": 10,
+      "stream": 4,
+      "reservoir": 6,
+      "marsh": 5
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 7,
+      "deep": 4
+    },
+    "flow": {
+      "still": 6,
+      "slow": 8,
+      "moderate": 6,
+      "fast": 3
+    },
+    "vegetation": {
+      "heavy": 6,
+      "moderate": 7,
+      "sparse": 6,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 4,
+      "moderate": 7,
+      "murky": 8
+    }
+  },
+  "alligator_gar": {
+    "water_type": {
+      "lake": 5,
+      "pond": 3,
+      "river": 9,
+      "stream": 2,
+      "reservoir": 6,
+      "marsh": 8
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 7,
+      "deep": 5
+    },
+    "flow": {
+      "still": 8,
+      "slow": 9,
+      "moderate": 5,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 4,
+      "moderate": 6,
+      "murky": 8
+    }
+  },
+  "spotted_gar": {
+    "water_type": {
+      "lake": 8,
+      "pond": 5,
+      "river": 7,
+      "stream": 3,
+      "reservoir": 6,
+      "marsh": 6
+    },
+    "depth": {
+      "shallow": 8,
+      "moderate": 6,
+      "deep": 3
+    },
+    "flow": {
+      "still": 7,
+      "slow": 8,
+      "moderate": 5,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "florida_gar": {
+    "water_type": {
+      "lake": 8,
+      "pond": 6,
+      "river": 5,
+      "stream": 3,
+      "reservoir": 5,
+      "marsh": 8
+    },
+    "depth": {
+      "shallow": 8,
+      "moderate": 6,
+      "deep": 3
+    },
+    "flow": {
+      "still": 9,
+      "slow": 8,
+      "moderate": 4,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 7
+    }
+  },
+  "american_shad": {
+    "water_type": {
+      "lake": 3,
+      "pond": 1,
+      "river": 10,
+      "stream": 5,
+      "reservoir": 5,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 7
+    },
+    "flow": {
+      "still": 3,
+      "slow": 5,
+      "moderate": 9,
+      "fast": 7
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 4,
+      "sparse": 6,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "gizzard_shad": {
+    "water_type": {
+      "lake": 8,
+      "pond": 5,
+      "river": 7,
+      "stream": 3,
+      "reservoir": 9,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 8,
+      "deep": 6
+    },
+    "flow": {
+      "still": 7,
+      "slow": 7,
+      "moderate": 5,
+      "fast": 3
+    },
+    "vegetation": {
+      "heavy": 4,
+      "moderate": 6,
+      "sparse": 7,
+      "none": 6
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 7
+    }
+  },
+  "hickory_shad": {
+    "water_type": {
+      "lake": 2,
+      "pond": 1,
+      "river": 10,
+      "stream": 4,
+      "reservoir": 4,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 8,
+      "deep": 6
+    },
+    "flow": {
+      "still": 3,
+      "slow": 5,
+      "moderate": 8,
+      "fast": 7
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 4,
+      "sparse": 6,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "freshwater_drum": {
+    "water_type": {
+      "lake": 9,
+      "pond": 4,
+      "river": 8,
+      "stream": 3,
+      "reservoir": 8,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 8
+    },
+    "flow": {
+      "still": 5,
+      "slow": 7,
+      "moderate": 8,
+      "fast": 4
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 7,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 7
+    }
+  },
+  "longnose_sucker": {
+    "water_type": {
+      "lake": 7,
+      "pond": 2,
+      "river": 9,
+      "stream": 8,
+      "reservoir": 5,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 8,
+      "deep": 6
+    },
+    "flow": {
+      "still": 3,
+      "slow": 5,
+      "moderate": 8,
+      "fast": 8
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 4,
+      "sparse": 7,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 7,
+      "murky": 3
+    }
+  },
+  "smallmouth_buffalo": {
+    "water_type": {
+      "lake": 7,
+      "pond": 3,
+      "river": 9,
+      "stream": 4,
+      "reservoir": 8,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 7
+    },
+    "flow": {
+      "still": 5,
+      "slow": 7,
+      "moderate": 8,
+      "fast": 4
+    },
+    "vegetation": {
+      "heavy": 4,
+      "moderate": 6,
+      "sparse": 7,
+      "none": 6
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 7
+    }
+  },
+  "bigmouth_buffalo": {
+    "water_type": {
+      "lake": 8,
+      "pond": 4,
+      "river": 8,
+      "stream": 3,
+      "reservoir": 7,
+      "marsh": 6
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 8,
+      "deep": 6
+    },
+    "flow": {
+      "still": 7,
+      "slow": 8,
+      "moderate": 6,
+      "fast": 3
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 7,
+      "sparse": 6,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 7
+    }
+  },
+  "lake_whitefish": {
+    "water_type": {
+      "lake": 10,
+      "pond": 1,
+      "river": 3,
+      "stream": 2,
+      "reservoir": 5,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 6,
+      "deep": 10
+    },
+    "flow": {
+      "still": 7,
+      "slow": 5,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 4,
+      "sparse": 6,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 6,
+      "murky": 2
+    }
+  },
+  "cisco": {
+    "water_type": {
+      "lake": 10,
+      "pond": 1,
+      "river": 2,
+      "stream": 2,
+      "reservoir": 4,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 5,
+      "deep": 10
+    },
+    "flow": {
+      "still": 8,
+      "slow": 5,
+      "moderate": 3,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 1,
+      "moderate": 3,
+      "sparse": 6,
+      "none": 9
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 6,
+      "murky": 1
+    }
+  },
+  "mooneye": {
+    "water_type": {
+      "lake": 7,
+      "pond": 2,
+      "river": 9,
+      "stream": 5,
+      "reservoir": 5,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 5
+    },
+    "flow": {
+      "still": 4,
+      "slow": 6,
+      "moderate": 8,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 7,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 6,
+      "murky": 3
+    }
+  },
+  "goldeye": {
+    "water_type": {
+      "lake": 7,
+      "pond": 2,
+      "river": 9,
+      "stream": 4,
+      "reservoir": 5,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 5
+    },
+    "flow": {
+      "still": 4,
+      "slow": 6,
+      "moderate": 8,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 7,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 7
+    }
+  },
+  "green_heron": {
+    "water_type": {
+      "lake": 5,
+      "pond": 9,
+      "river": 6,
+      "stream": 7,
+      "reservoir": 4,
+      "marsh": 8
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 8,
+      "slow": 8,
+      "moderate": 5,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "little_blue_heron": {
+    "water_type": {
+      "lake": 5,
+      "pond": 8,
+      "river": 5,
+      "stream": 4,
+      "reservoir": 4,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "great_egret": {
+    "water_type": {
+      "lake": 7,
+      "pond": 8,
+      "river": 6,
+      "stream": 4,
+      "reservoir": 5,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 8,
+      "sparse": 6,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "snowy_egret": {
+    "water_type": {
+      "lake": 6,
+      "pond": 8,
+      "river": 5,
+      "stream": 4,
+      "reservoir": 4,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 8,
+      "sparse": 6,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "black_crowned_night_heron": {
+    "water_type": {
+      "lake": 7,
+      "pond": 9,
+      "river": 6,
+      "stream": 4,
+      "reservoir": 5,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 6,
+      "murky": 7
+    }
+  },
+  "yellow_crowned_night_heron": {
+    "water_type": {
+      "lake": 4,
+      "pond": 7,
+      "river": 5,
+      "stream": 4,
+      "reservoir": 3,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 6,
+      "murky": 7
+    }
+  },
+  "least_bittern": {
+    "water_type": {
+      "lake": 3,
+      "pond": 6,
+      "river": 2,
+      "stream": 2,
+      "reservoir": 3,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 3,
+      "deep": 1
+    },
+    "flow": {
+      "still": 10,
+      "slow": 6,
+      "moderate": 2,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 6,
+      "sparse": 2,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 6,
+      "murky": 7
+    }
+  },
+  "tricolored_heron": {
+    "water_type": {
+      "lake": 4,
+      "pond": 7,
+      "river": 4,
+      "stream": 3,
+      "reservoir": 3,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "blue_winged_teal": {
+    "water_type": {
+      "lake": 5,
+      "pond": 9,
+      "river": 3,
+      "stream": 2,
+      "reservoir": 4,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 10,
+      "slow": 7,
+      "moderate": 2,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 8,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "green_winged_teal": {
+    "water_type": {
+      "lake": 5,
+      "pond": 9,
+      "river": 4,
+      "stream": 3,
+      "reservoir": 4,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 3,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "canvasback": {
+    "water_type": {
+      "lake": 9,
+      "pond": 5,
+      "river": 3,
+      "stream": 1,
+      "reservoir": 7,
+      "marsh": 8
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 8,
+      "deep": 7
+    },
+    "flow": {
+      "still": 9,
+      "slow": 6,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "redhead": {
+    "water_type": {
+      "lake": 8,
+      "pond": 6,
+      "river": 3,
+      "stream": 1,
+      "reservoir": 7,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 6,
+      "moderate": 8,
+      "deep": 5
+    },
+    "flow": {
+      "still": 9,
+      "slow": 6,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "ring_necked_duck": {
+    "water_type": {
+      "lake": 7,
+      "pond": 9,
+      "river": 3,
+      "stream": 2,
+      "reservoir": 6,
+      "marsh": 8
+    },
+    "depth": {
+      "shallow": 6,
+      "moderate": 8,
+      "deep": 5
+    },
+    "flow": {
+      "still": 9,
+      "slow": 6,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "common_goldeneye": {
+    "water_type": {
+      "lake": 9,
+      "pond": 4,
+      "river": 7,
+      "stream": 3,
+      "reservoir": 6,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 8
+    },
+    "flow": {
+      "still": 6,
+      "slow": 6,
+      "moderate": 6,
+      "fast": 4
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 7,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 6,
+      "murky": 3
+    }
+  },
+  "bufflehead": {
+    "water_type": {
+      "lake": 8,
+      "pond": 7,
+      "river": 4,
+      "stream": 2,
+      "reservoir": 6,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 8,
+      "deep": 6
+    },
+    "flow": {
+      "still": 8,
+      "slow": 6,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 7,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 6,
+      "murky": 3
+    }
+  },
+  "common_merganser": {
+    "water_type": {
+      "lake": 9,
+      "pond": 3,
+      "river": 9,
+      "stream": 6,
+      "reservoir": 7,
+      "marsh": 2
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 8
+    },
+    "flow": {
+      "still": 5,
+      "slow": 6,
+      "moderate": 8,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 4,
+      "sparse": 7,
+      "none": 8
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 6,
+      "murky": 2
+    }
+  },
+  "hooded_merganser": {
+    "water_type": {
+      "lake": 5,
+      "pond": 9,
+      "river": 5,
+      "stream": 6,
+      "reservoir": 4,
+      "marsh": 7
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 7,
+      "deep": 4
+    },
+    "flow": {
+      "still": 7,
+      "slow": 8,
+      "moderate": 5,
+      "fast": 3
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "ruddy_duck": {
+    "water_type": {
+      "lake": 7,
+      "pond": 8,
+      "river": 3,
+      "stream": 1,
+      "reservoir": 6,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 6,
+      "moderate": 8,
+      "deep": 5
+    },
+    "flow": {
+      "still": 9,
+      "slow": 6,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "northern_pintail": {
+    "water_type": {
+      "lake": 7,
+      "pond": 7,
+      "river": 4,
+      "stream": 2,
+      "reservoir": 5,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 6,
+      "moderate": 7,
+      "sparse": 7,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "gadwall": {
+    "water_type": {
+      "lake": 7,
+      "pond": 8,
+      "river": 4,
+      "stream": 2,
+      "reservoir": 6,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "american_wigeon": {
+    "water_type": {
+      "lake": 7,
+      "pond": 8,
+      "river": 4,
+      "stream": 2,
+      "reservoir": 5,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "northern_shoveler": {
+    "water_type": {
+      "lake": 5,
+      "pond": 8,
+      "river": 3,
+      "stream": 1,
+      "reservoir": 5,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 10,
+      "slow": 7,
+      "moderate": 2,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 7,
+      "sparse": 6,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 4,
+      "moderate": 6,
+      "murky": 8
+    }
+  },
+  "canada_goose": {
+    "water_type": {
+      "lake": 9,
+      "pond": 8,
+      "river": 6,
+      "stream": 3,
+      "reservoir": 7,
+      "marsh": 6
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 8,
+      "slow": 7,
+      "moderate": 5,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 7,
+      "sparse": 7,
+      "none": 6
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "snow_goose": {
+    "water_type": {
+      "lake": 7,
+      "pond": 6,
+      "river": 4,
+      "stream": 2,
+      "reservoir": 5,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 8,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 6,
+      "moderate": 7,
+      "sparse": 7,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "double_crested_cormorant": {
+    "water_type": {
+      "lake": 9,
+      "pond": 5,
+      "river": 8,
+      "stream": 3,
+      "reservoir": 8,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 7,
+      "deep": 9
+    },
+    "flow": {
+      "still": 7,
+      "slow": 6,
+      "moderate": 6,
+      "fast": 4
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 7,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "american_white_pelican": {
+    "water_type": {
+      "lake": 10,
+      "pond": 4,
+      "river": 6,
+      "stream": 2,
+      "reservoir": 7,
+      "marsh": 6
+    },
+    "depth": {
+      "shallow": 8,
+      "moderate": 7,
+      "deep": 4
+    },
+    "flow": {
+      "still": 8,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 4,
+      "moderate": 6,
+      "sparse": 7,
+      "none": 6
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "bald_eagle": {
+    "water_type": {
+      "lake": 9,
+      "pond": 4,
+      "river": 9,
+      "stream": 5,
+      "reservoir": 8,
+      "marsh": 5
+    },
+    "depth": {
+      "shallow": 6,
+      "moderate": 7,
+      "deep": 7
+    },
+    "flow": {
+      "still": 6,
+      "slow": 7,
+      "moderate": 7,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 4,
+      "moderate": 6,
+      "sparse": 7,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "pied_billed_grebe": {
+    "water_type": {
+      "lake": 7,
+      "pond": 10,
+      "river": 4,
+      "stream": 3,
+      "reservoir": 6,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 7,
+      "deep": 4
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "alligator_snapping_turtle": {
+    "water_type": {
+      "lake": 5,
+      "pond": 4,
+      "river": 10,
+      "stream": 4,
+      "reservoir": 6,
+      "marsh": 7
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 7,
+      "deep": 9
+    },
+    "flow": {
+      "still": 6,
+      "slow": 8,
+      "moderate": 6,
+      "fast": 3
+    },
+    "vegetation": {
+      "heavy": 6,
+      "moderate": 6,
+      "sparse": 6,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 4,
+      "moderate": 6,
+      "murky": 9
+    }
+  },
+  "ornate_box_turtle": {
+    "water_type": {
+      "lake": 1,
+      "pond": 2,
+      "river": 1,
+      "stream": 2,
+      "reservoir": 1,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 2,
+      "moderate": 1,
+      "deep": 0
+    },
+    "flow": {
+      "still": 2,
+      "slow": 2,
+      "moderate": 1,
+      "fast": 0
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 4,
+      "sparse": 3,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 2,
+      "moderate": 2,
+      "murky": 2
+    }
+  },
+  "common_map_turtle": {
+    "water_type": {
+      "lake": 8,
+      "pond": 4,
+      "river": 10,
+      "stream": 5,
+      "reservoir": 6,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 8,
+      "deep": 5
+    },
+    "flow": {
+      "still": 4,
+      "slow": 6,
+      "moderate": 8,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 4,
+      "moderate": 6,
+      "sparse": 7,
+      "none": 6
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 7,
+      "murky": 3
+    }
+  },
+  "false_map_turtle": {
+    "water_type": {
+      "lake": 7,
+      "pond": 5,
+      "river": 9,
+      "stream": 4,
+      "reservoir": 6,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 8,
+      "deep": 5
+    },
+    "flow": {
+      "still": 5,
+      "slow": 7,
+      "moderate": 7,
+      "fast": 4
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 7,
+      "sparse": 6,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "common_musk_turtle": {
+    "water_type": {
+      "lake": 6,
+      "pond": 9,
+      "river": 5,
+      "stream": 8,
+      "reservoir": 4,
+      "marsh": 5
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 8,
+      "slow": 7,
+      "moderate": 5,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 7
+    }
+  },
+  "eastern_mud_turtle": {
+    "water_type": {
+      "lake": 4,
+      "pond": 9,
+      "river": 3,
+      "stream": 5,
+      "reservoir": 3,
+      "marsh": 8
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 4,
+      "moderate": 6,
+      "murky": 8
+    }
+  },
+  "river_cooter": {
+    "water_type": {
+      "lake": 7,
+      "pond": 5,
+      "river": 10,
+      "stream": 5,
+      "reservoir": 6,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 6,
+      "moderate": 8,
+      "deep": 4
+    },
+    "flow": {
+      "still": 5,
+      "slow": 7,
+      "moderate": 8,
+      "fast": 4
+    },
+    "vegetation": {
+      "heavy": 6,
+      "moderate": 7,
+      "sparse": 6,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "blandings_turtle": {
+    "water_type": {
+      "lake": 5,
+      "pond": 8,
+      "river": 3,
+      "stream": 4,
+      "reservoir": 3,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "diamondback_terrapin": {
+    "water_type": {
+      "lake": 1,
+      "pond": 2,
+      "river": 3,
+      "stream": 2,
+      "reservoir": 1,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 6,
+      "slow": 7,
+      "moderate": 5,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 7,
+      "sparse": 7,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "wood_turtle": {
+    "water_type": {
+      "lake": 3,
+      "pond": 4,
+      "river": 7,
+      "stream": 10,
+      "reservoir": 2,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 4,
+      "slow": 7,
+      "moderate": 7,
+      "fast": 4
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 7,
+      "sparse": 7,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "american_bullfrog": {
+    "water_type": {
+      "lake": 8,
+      "pond": 10,
+      "river": 4,
+      "stream": 3,
+      "reservoir": 6,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 10,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "green_frog": {
+    "water_type": {
+      "lake": 6,
+      "pond": 9,
+      "river": 5,
+      "stream": 7,
+      "reservoir": 4,
+      "marsh": 8
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 1
+    },
+    "flow": {
+      "still": 8,
+      "slow": 8,
+      "moderate": 5,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "northern_leopard_frog": {
+    "water_type": {
+      "lake": 6,
+      "pond": 9,
+      "river": 4,
+      "stream": 5,
+      "reservoir": 4,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "southern_leopard_frog": {
+    "water_type": {
+      "lake": 5,
+      "pond": 9,
+      "river": 4,
+      "stream": 5,
+      "reservoir": 4,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 8,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "wood_frog": {
+    "water_type": {
+      "lake": 3,
+      "pond": 7,
+      "river": 2,
+      "stream": 4,
+      "reservoir": 2,
+      "marsh": 6
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 3,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 6,
+      "moderate": 2,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "spring_peeper": {
+    "water_type": {
+      "lake": 3,
+      "pond": 7,
+      "river": 2,
+      "stream": 3,
+      "reservoir": 2,
+      "marsh": 8
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 2,
+      "deep": 1
+    },
+    "flow": {
+      "still": 10,
+      "slow": 6,
+      "moderate": 2,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 7,
+      "sparse": 3,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 6,
+      "murky": 6
+    }
+  },
+  "gray_tree_frog": {
+    "water_type": {
+      "lake": 3,
+      "pond": 7,
+      "river": 2,
+      "stream": 4,
+      "reservoir": 2,
+      "marsh": 5
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 2,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 6,
+      "moderate": 2,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 7,
+      "sparse": 3,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 6,
+      "murky": 6
+    }
+  },
+  "pacific_tree_frog": {
+    "water_type": {
+      "lake": 4,
+      "pond": 8,
+      "river": 3,
+      "stream": 6,
+      "reservoir": 3,
+      "marsh": 7
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 3,
+      "deep": 1
+    },
+    "flow": {
+      "still": 8,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "american_toad": {
+    "water_type": {
+      "lake": 3,
+      "pond": 7,
+      "river": 2,
+      "stream": 4,
+      "reservoir": 2,
+      "marsh": 5
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 2,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 5,
+      "moderate": 2,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 6,
+      "moderate": 7,
+      "sparse": 6,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 6,
+      "murky": 6
+    }
+  },
+  "eastern_newt": {
+    "water_type": {
+      "lake": 4,
+      "pond": 10,
+      "river": 2,
+      "stream": 4,
+      "reservoir": 3,
+      "marsh": 6
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "spotted_salamander": {
+    "water_type": {
+      "lake": 2,
+      "pond": 6,
+      "river": 1,
+      "stream": 3,
+      "reservoir": 1,
+      "marsh": 5
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 3,
+      "deep": 1
+    },
+    "flow": {
+      "still": 10,
+      "slow": 5,
+      "moderate": 1,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "tiger_salamander": {
+    "water_type": {
+      "lake": 3,
+      "pond": 8,
+      "river": 2,
+      "stream": 3,
+      "reservoir": 2,
+      "marsh": 6
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 3,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 5,
+      "moderate": 2,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 6,
+      "sparse": 6,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "red_backed_salamander": {
+    "water_type": {
+      "lake": 1,
+      "pond": 2,
+      "river": 1,
+      "stream": 2,
+      "reservoir": 1,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 3,
+      "moderate": 1,
+      "deep": 0
+    },
+    "flow": {
+      "still": 3,
+      "slow": 2,
+      "moderate": 1,
+      "fast": 0
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 4,
+      "sparse": 3,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 2,
+      "moderate": 2,
+      "murky": 2
+    }
+  },
+  "hellbender": {
+    "water_type": {
+      "lake": 1,
+      "pond": 1,
+      "river": 10,
+      "stream": 10,
+      "reservoir": 2,
+      "marsh": 1
+    },
+    "depth": {
+      "shallow": 5,
+      "moderate": 8,
+      "deep": 5
+    },
+    "flow": {
+      "still": 1,
+      "slow": 3,
+      "moderate": 9,
+      "fast": 10
+    },
+    "vegetation": {
+      "heavy": 2,
+      "moderate": 3,
+      "sparse": 7,
+      "none": 9
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 6,
+      "murky": 1
+    }
+  },
+  "mudpuppy": {
+    "water_type": {
+      "lake": 7,
+      "pond": 4,
+      "river": 9,
+      "stream": 8,
+      "reservoir": 5,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 4,
+      "moderate": 8,
+      "deep": 6
+    },
+    "flow": {
+      "still": 4,
+      "slow": 6,
+      "moderate": 8,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 4,
+      "moderate": 6,
+      "sparse": 7,
+      "none": 6
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "north_american_river_otter": {
+    "water_type": {
+      "lake": 8,
+      "pond": 5,
+      "river": 10,
+      "stream": 8,
+      "reservoir": 6,
+      "marsh": 7
+    },
+    "depth": {
+      "shallow": 6,
+      "moderate": 8,
+      "deep": 7
+    },
+    "flow": {
+      "still": 5,
+      "slow": 7,
+      "moderate": 8,
+      "fast": 6
+    },
+    "vegetation": {
+      "heavy": 5,
+      "moderate": 7,
+      "sparse": 7,
+      "none": 5
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "american_beaver": {
+    "water_type": {
+      "lake": 6,
+      "pond": 9,
+      "river": 8,
+      "stream": 10,
+      "reservoir": 5,
+      "marsh": 6
+    },
+    "depth": {
+      "shallow": 6,
+      "moderate": 8,
+      "deep": 5
+    },
+    "flow": {
+      "still": 6,
+      "slow": 8,
+      "moderate": 8,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "muskrat": {
+    "water_type": {
+      "lake": 5,
+      "pond": 8,
+      "river": 5,
+      "stream": 4,
+      "reservoir": 4,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 7,
+      "murky": 7
+    }
+  },
+  "american_mink": {
+    "water_type": {
+      "lake": 5,
+      "pond": 6,
+      "river": 8,
+      "stream": 9,
+      "reservoir": 4,
+      "marsh": 8
+    },
+    "depth": {
+      "shallow": 8,
+      "moderate": 6,
+      "deep": 3
+    },
+    "flow": {
+      "still": 5,
+      "slow": 7,
+      "moderate": 8,
+      "fast": 5
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 7,
+      "sparse": 6,
+      "none": 4
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 6
+    }
+  },
+  "nutria": {
+    "water_type": {
+      "lake": 4,
+      "pond": 6,
+      "river": 6,
+      "stream": 3,
+      "reservoir": 4,
+      "marsh": 10
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 8,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 4,
+      "moderate": 6,
+      "murky": 8
+    }
+  },
+  "water_shrew": {
+    "water_type": {
+      "lake": 3,
+      "pond": 3,
+      "river": 7,
+      "stream": 10,
+      "reservoir": 2,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 3,
+      "slow": 5,
+      "moderate": 9,
+      "fast": 8
+    },
+    "vegetation": {
+      "heavy": 4,
+      "moderate": 6,
+      "sparse": 7,
+      "none": 6
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 6,
+      "murky": 3
+    }
+  },
+  "star_nosed_mole": {
+    "water_type": {
+      "lake": 2,
+      "pond": 5,
+      "river": 3,
+      "stream": 6,
+      "reservoir": 2,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 3,
+      "deep": 1
+    },
+    "flow": {
+      "still": 7,
+      "slow": 7,
+      "moderate": 5,
+      "fast": 3
+    },
+    "vegetation": {
+      "heavy": 7,
+      "moderate": 7,
+      "sparse": 5,
+      "none": 3
+    },
+    "clarity": {
+      "clear": 4,
+      "moderate": 6,
+      "murky": 7
+    }
+  },
+  "american_water_shrew": {
+    "water_type": {
+      "lake": 2,
+      "pond": 3,
+      "river": 6,
+      "stream": 10,
+      "reservoir": 2,
+      "marsh": 3
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 5,
+      "deep": 2
+    },
+    "flow": {
+      "still": 2,
+      "slow": 4,
+      "moderate": 8,
+      "fast": 9
+    },
+    "vegetation": {
+      "heavy": 3,
+      "moderate": 5,
+      "sparse": 7,
+      "none": 7
+    },
+    "clarity": {
+      "clear": 10,
+      "moderate": 6,
+      "murky": 2
+    }
+  },
+  "duckweed": {
+    "water_type": {
+      "lake": 6,
+      "pond": 10,
+      "river": 2,
+      "stream": 1,
+      "reservoir": 5,
+      "marsh": 8
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 3,
+      "deep": 1
+    },
+    "flow": {
+      "still": 10,
+      "slow": 5,
+      "moderate": 1,
+      "fast": 0
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 6,
+      "sparse": 2,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 6,
+      "murky": 6
+    }
+  },
+  "pickerelweed": {
+    "water_type": {
+      "lake": 6,
+      "pond": 9,
+      "river": 4,
+      "stream": 3,
+      "reservoir": 4,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 7,
+      "sparse": 3,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 6,
+      "moderate": 7,
+      "murky": 5
+    }
+  },
+  "american_lotus": {
+    "water_type": {
+      "lake": 8,
+      "pond": 9,
+      "river": 5,
+      "stream": 2,
+      "reservoir": 5,
+      "marsh": 6
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 6,
+      "deep": 2
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 7,
+      "murky": 4
+    }
+  },
+  "blue_flag_iris": {
+    "water_type": {
+      "lake": 4,
+      "pond": 7,
+      "river": 3,
+      "stream": 3,
+      "reservoir": 3,
+      "marsh": 9
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 3,
+      "deep": 1
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 3,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 5,
+      "moderate": 6,
+      "murky": 6
+    }
+  },
+  "water_hyacinth": {
+    "water_type": {
+      "lake": 7,
+      "pond": 9,
+      "river": 5,
+      "stream": 2,
+      "reservoir": 6,
+      "marsh": 7
+    },
+    "depth": {
+      "shallow": 10,
+      "moderate": 4,
+      "deep": 1
+    },
+    "flow": {
+      "still": 10,
+      "slow": 7,
+      "moderate": 2,
+      "fast": 0
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 6,
+      "sparse": 2,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 4,
+      "moderate": 6,
+      "murky": 7
+    }
+  },
+  "elodea": {
+    "water_type": {
+      "lake": 8,
+      "pond": 9,
+      "river": 5,
+      "stream": 6,
+      "reservoir": 6,
+      "marsh": 4
+    },
+    "depth": {
+      "shallow": 8,
+      "moderate": 8,
+      "deep": 3
+    },
+    "flow": {
+      "still": 8,
+      "slow": 8,
+      "moderate": 5,
+      "fast": 2
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 7,
+      "sparse": 3,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 6,
+      "murky": 2
+    }
+  },
+  "coontail": {
+    "water_type": {
+      "lake": 8,
+      "pond": 9,
+      "river": 5,
+      "stream": 4,
+      "reservoir": 6,
+      "marsh": 6
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 8,
+      "deep": 4
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 9,
+      "moderate": 7,
+      "sparse": 3,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 7,
+      "murky": 3
+    }
+  },
+  "pondweed": {
+    "water_type": {
+      "lake": 8,
+      "pond": 9,
+      "river": 4,
+      "stream": 5,
+      "reservoir": 6,
+      "marsh": 5
+    },
+    "depth": {
+      "shallow": 8,
+      "moderate": 7,
+      "deep": 3
+    },
+    "flow": {
+      "still": 9,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 8,
+      "moderate": 7,
+      "murky": 3
+    }
+  },
+  "water_milfoil": {
+    "water_type": {
+      "lake": 9,
+      "pond": 8,
+      "river": 5,
+      "stream": 4,
+      "reservoir": 7,
+      "marsh": 5
+    },
+    "depth": {
+      "shallow": 7,
+      "moderate": 9,
+      "deep": 4
+    },
+    "flow": {
+      "still": 8,
+      "slow": 7,
+      "moderate": 4,
+      "fast": 1
+    },
+    "vegetation": {
+      "heavy": 10,
+      "moderate": 7,
+      "sparse": 3,
+      "none": 1
+    },
+    "clarity": {
+      "clear": 9,
+      "moderate": 7,
+      "murky": 3
+    }
+  },
+  "bladderwort": {
+    "water_type": {
+      "lake": 5,
+      "pond": 9,
+      "river": 2,
+      "stream": 3,
+      "reservoir": 4,
+      "marsh": 8
+    },
+    "depth": {
+      "shallow": 9,
+      "moderate": 5,
+      "deep": 1
+    },
+    "flow": {
+      "still": 10,
+      "slow": 6,
+      "moderate": 2,
+      "fast": 0
+    },
+    "vegetation": {
+      "heavy": 8,
+      "moderate": 7,
+      "sparse": 4,
+      "none": 2
+    },
+    "clarity": {
+      "clear": 7,
+      "moderate": 6,
+      "murky": 4
+    }
   }
 }

@@ -1,0 +1,65 @@
+{
+  "northeast": [
+    "ME",
+    "NH",
+    "VT",
+    "MA",
+    "RI",
+    "CT",
+    "NY",
+    "NJ",
+    "PA"
+  ],
+  "southeast": [
+    "VA",
+    "WV",
+    "NC",
+    "SC",
+    "GA",
+    "FL",
+    "AL",
+    "MS",
+    "LA",
+    "AR",
+    "TN",
+    "KY"
+  ],
+  "midwest": [
+    "OH",
+    "MI",
+    "IN",
+    "IL",
+    "WI",
+    "MN",
+    "IA",
+    "MO",
+    "ND",
+    "SD",
+    "NE",
+    "KS"
+  ],
+  "southwest": [
+    "TX",
+    "OK",
+    "NM",
+    "AZ"
+  ],
+  "mountain_west": [
+    "MT",
+    "WY",
+    "CO",
+    "UT",
+    "ID",
+    "NV"
+  ],
+  "pacific_northwest": [
+    "WA",
+    "OR"
+  ],
+  "california": [
+    "CA"
+  ],
+  "alaska": [
+    "AK"
+  ]
+}
