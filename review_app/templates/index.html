@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}wildprint review &middot; styles{% endblock %}
+
+{% block content %}
+  <h1>Styles</h1>
+
+  {% if manifest_empty %}
+    <div class="empty-state">
+      <h2>No generated images yet</h2>
+      <p>The manifest is empty or missing. Run
+        <code>python -m scripts.batch_generate</code>
+        to generate images, then refresh this page.</p>
+    </div>
+  {% else %}
+    <p class="subtle">{{ total_records }} total generated images across {{ style_stats|length }} styles.</p>
+    <div class="grid">
+      {% for s in style_stats %}
+        <a class="card" href="{{ url_for('style_view', style_slug=s.slug) }}">
+          <h2>{{ s.name }}</h2>
+          {% if s.description %}
+            <p class="card-desc">{{ s.description }}</p>
+          {% endif %}
+          <dl class="stats">
+            <div><dt>Species covered</dt><dd>{{ s.species_covered }} / {{ s.total_species }}</dd></div>
+            <div><dt>Masters selected</dt><dd>{{ s.selected_count }}</dd></div>
+            <div><dt>Total images</dt><dd>{{ s.total_images }}</dd></div>
+          </dl>
+        </a>
+      {% else %}
+        <p>No styles configured.</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}

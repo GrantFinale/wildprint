@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+
+{% block title %}wildprint console{% endblock %}
+
+{% block content %}
+<section class="console">
+  <h1>Command console</h1>
+  <p class="subtle">Drive the wildprint CLI without leaving the browser.</p>
+
+  <div class="status-bar">
+    <div class="status-card">
+      <div class="status-label">Species</div>
+      <div class="status-value">{{ status.species_total }}</div>
+      <div class="status-sub">
+        {% for cat, n in status.category_counts.items() %}
+          {{ n }} {{ cat }}{% if not loop.last %} &middot; {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-label">Styles</div>
+      <div class="status-value">{{ status.styles_total }}</div>
+      <div class="status-sub">{{ status.style_names|join(', ') }}</div>
+    </div>
+    <div class="status-card">
+      <div class="status-label">Masters</div>
+      <div class="status-value">{{ status.masters_count }}</div>
+      <div class="status-sub">selected as master</div>
+    </div>
+    <div class="status-card">
+      <div class="status-label">Manifest</div>
+      <div class="status-value">{{ status.manifest_count }}</div>
+      <div class="status-sub">records total</div>
+    </div>
+    <div class="status-card">
+      <div class="status-label">API key</div>
+      <div class="status-value">
+        {% if status.api_key_loaded %}
+          <span class="ok">OK</span>
+        {% else %}
+          <span class="bad">missing</span>
+        {% endif %}
+      </div>
+      <div class="status-sub">
+        {% if status.api_key_loaded %}
+          OPENAI_API_KEY loaded
+        {% else %}
+          OPENAI_API_KEY not loaded
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="cmd-panel">
+
+    <form class="cmd-form cmd-card" action="{{ url_for('run_command', cmd_id='generate') }}" method="post">
+      <h2>Generate</h2>
+      <p class="subtle">Run <code>scripts.batch_generate</code>.</p>
+      <div class="fields">
+        <label>Species
+          <select name="species">
+            <option value="">(all enabled)</option>
+            {% for sp in species %}
+              <option value="{{ sp.slug }}">{{ sp.common_name }} ({{ sp.slug }})</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Style
+          <select name="style">
+            <option value="">(all enabled)</option>
+            {% for s in styles %}
+              <option value="{{ s.slug }}">{{ s.style_name or s.slug }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Variations
+          <input type="number" name="variations" value="3" min="1" max="12">
+        </label>
+        <label>Provider
+          <select name="provider">
+            <option value="mock">mock</option>
+            <option value="openai" selected>openai</option>
+            <option value="recraft">recraft</option>
+          </select>
+        </label>
+        <label>Model
+          <input type="text" name="model" value="gpt-image-1">
+        </label>
+        <label>Size
+          <select name="size">
+            <option value="1024x1024">1024x1024</option>
+            <option value="1024x1536">1024x1536</option>
+            <option value="1536x1024" selected>1536x1024</option>
+            <option value="auto">auto</option>
+          </select>
+        </label>
+        <label>Quality
+          <select name="quality">
+            <option value="low">low</option>
+            <option value="medium" selected>medium</option>
+            <option value="high">high</option>
+            <option value="auto">auto</option>
+          </select>
+        </label>
+        <label>Seed
+          <input type="number" name="seed" placeholder="optional">
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" name="dry_run" value="1"> Dry run
+        </label>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">Generate</button>
+      </div>
+    </form>
+
+    <form class="cmd-form cmd-card" action="{{ url_for('run_command', cmd_id='normalize') }}" method="post">
+      <h2>Normalize</h2>
+      <p class="subtle">Run <code>scripts.normalize_images</code>.</p>
+      <div class="fields">
+        <label>Species
+          <select name="species">
+            <option value="">(all)</option>
+            {% for sp in species %}
+              <option value="{{ sp.slug }}">{{ sp.common_name }} ({{ sp.slug }})</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Style
+          <select name="style">
+            <option value="">(all)</option>
+            {% for s in styles %}
+              <option value="{{ s.slug }}">{{ s.style_name or s.slug }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" name="force" value="1"> Force re-normalize
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" name="dry_run" value="1"> Dry run
+        </label>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">Normalize</button>
+      </div>
+    </form>
+
+    <form class="cmd-form cmd-card" action="{{ url_for('run_command', cmd_id='build-manifest') }}" method="post">
+      <h2>Rebuild manifest</h2>
+      <p class="subtle">Run <code>scripts.build_manifest --verbose</code>.</p>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">Rebuild manifest</button>
+      </div>
+    </form>
+
+    <form class="cmd-form cmd-card" action="{{ url_for('run_command', cmd_id='copy-masters') }}" method="post">
+      <h2>Copy masters</h2>
+      <p class="subtle">Run <code>scripts.select_master --copy</code>.</p>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">Copy selected masters &rarr; output/master</button>
+      </div>
+    </form>
+
+    <form class="cmd-form cmd-card" action="{{ url_for('run_command', cmd_id='render-poster') }}" method="post">
+      <h2>Render poster</h2>
+      <p class="subtle">Run <code>scripts.render_poster</code>.</p>
+      <div class="fields">
+        <label>Style
+          <select name="style">
+            {% for s in styles %}
+              <option value="{{ s.slug }}" {% if s.slug == 'scientific' %}selected{% endif %}>{{ s.style_name or s.slug }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Title
+          <input type="text" name="title" required placeholder="Freshwater fish of the Midwest">
+        </label>
+        <label>Subtitle
+          <input type="text" name="subtitle" placeholder="optional">
+        </label>
+        <label>Category
+          <select name="category">
+            <option value="">(all)</option>
+            <option value="fish">fish</option>
+            <option value="turtle">turtle</option>
+            <option value="bird">bird</option>
+          </select>
+        </label>
+        <label>Layout
+          <select name="layout">
+            <option value="scaled_row" selected>scaled_row</option>
+            <option value="grid">grid</option>
+          </select>
+        </label>
+        <label>Group by
+          <select name="group_by">
+            <option value="none" selected>none</option>
+            <option value="habitat">habitat</option>
+            <option value="scientific_family">scientific_family</option>
+          </select>
+        </label>
+        <label>Canvas preset
+          <select name="canvas_preset">
+            <option value="tabloid_landscape" selected>tabloid_landscape</option>
+            <option value="tabloid_portrait">tabloid_portrait</option>
+            <option value="poster_24x36">poster_24x36</option>
+            <option value="poster_36x24">poster_36x24</option>
+          </select>
+        </label>
+        <label>Background color
+          <input type="color" name="background" value="#ffffff" title="Click to pick a background color for the poster">
+        </label>
+        <label>Max per row fraction
+          <input type="number" step="0.05" name="max_per_row_fraction" placeholder="optional">
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" name="editorial" value="1"> Editorial (single-subject hero layout with Didot typography)
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" name="no_labels" value="1"> No labels
+        </label>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">Render poster</button>
+      </div>
+    </form>
+
+  </div>
+
+  <div class="output-pane">
+    <div class="output-header">
+      <div id="run-status" class="run-status subtle">No run yet.</div>
+      <div class="output-actions">
+        <button type="button" class="btn btn-secondary" id="btn-clear">Clear</button>
+        <button type="button" class="btn btn-secondary" id="btn-stop">Stop following</button>
+      </div>
+    </div>
+    <pre id="output-log" class="output-log"></pre>
+  </div>
+
+  <div class="recent-section">
+    <div class="recent-header">
+      <h2>Recent rendered posters</h2>
+      <button type="button" class="btn btn-secondary" id="btn-refresh-posters">Refresh</button>
+    </div>
+    <div class="recent-grid recent-grid--wide" id="recent-posters">
+      <p class="subtle">Loading...</p>
+    </div>
+  </div>
+
+  <div class="recent-section">
+    <div class="recent-header">
+      <h2>Recent raw generations</h2>
+      <button type="button" class="btn btn-secondary" id="btn-refresh-recent">Refresh</button>
+    </div>
+    <div class="recent-grid" id="recent-grid">
+      <p class="subtle">Loading...</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  const outputLog = document.getElementById("output-log");
+  const runStatus = document.getElementById("run-status");
+  const recentGrid = document.getElementById("recent-grid");
+  const recentPosters = document.getElementById("recent-posters");
+  let currentSource = null;
+  let currentJob = null;
+
+  function appendLine(text) {
+    const atBottom =
+      outputLog.scrollTop + outputLog.clientHeight >= outputLog.scrollHeight - 4;
+    outputLog.textContent += text + "\n";
+    if (atBottom) outputLog.scrollTop = outputLog.scrollHeight;
+  }
+
+  function clearLog() {
+    outputLog.textContent = "";
+  }
+
+  function closeSource() {
+    if (currentSource) {
+      currentSource.close();
+      currentSource = null;
+    }
+  }
+
+  function setStatus(cmd, started, state, exitCode) {
+    const parts = [];
+    parts.push("Last run: " + cmd);
+    if (started) parts.push("Started " + started);
+    parts.push("Status " + state);
+    if (exitCode !== undefined && exitCode !== null) {
+      parts.push("Exit " + exitCode);
+    }
+    runStatus.textContent = parts.join(" \u00b7 ");
+  }
+
+  function timeAgo(iso) {
+    try {
+      const then = new Date(iso).getTime();
+      const now = Date.now();
+      let diff = Math.max(0, Math.floor((now - then) / 1000));
+      if (diff < 60) return diff + "s ago";
+      if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+      if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+      return Math.floor(diff / 86400) + "d ago";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function renderRecent(images) {
+    if (!images || images.length === 0) {
+      recentGrid.innerHTML = '<p class="subtle">No raw images found.</p>';
+      return;
+    }
+    const html = images.map(function (img) {
+      const href =
+        "/review/" +
+        encodeURIComponent(img.style_slug) +
+        "/" +
+        encodeURIComponent(img.species_slug);
+      const src = "/image/" + img.raw_path.split("/").map(encodeURIComponent).join("/");
+      const v = img.variation ? "v" + img.variation : "";
+      const ago = timeAgo(img.mtime_iso);
+      return (
+        '<a class="recent-tile" href="' + href + '">' +
+          '<div class="recent-thumb"><img src="' + src + '" alt="" loading="lazy"></div>' +
+          '<div class="recent-meta">' +
+            '<div class="recent-species">' + escapeHtml(img.species_common_name) + '</div>' +
+            '<div class="recent-style subtle">' +
+              escapeHtml(img.style_name) + ' ' + v + ' \u00b7 ' + ago +
+            '</div>' +
+          '</div>' +
+        '</a>'
+      );
+    }).join("");
+    recentGrid.innerHTML = html;
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function refreshRecent() {
+    fetch("/recent-images")
+      .then(function (r) { return r.json(); })
+      .then(function (data) { renderRecent(data.images || []); })
+      .catch(function () {
+        recentGrid.innerHTML = '<p class="subtle">Failed to load recent images.</p>';
+      });
+  }
+
+  function renderPosters(posters) {
+    if (!posters || posters.length === 0) {
+      recentPosters.innerHTML =
+        '<p class="subtle">No posters rendered yet. Fill out the Render poster card and click the button.</p>';
+      return;
+    }
+    const html = posters.map(function (p) {
+      const src = "/image/" + p.path.split("/").map(encodeURIComponent).join("/");
+      const ago = timeAgo(p.mtime_iso);
+      const sizeMb = (p.bytes / (1024 * 1024)).toFixed(1);
+      return (
+        '<a class="recent-tile recent-tile--poster" href="' + src + '" target="_blank" rel="noopener">' +
+          '<div class="recent-thumb recent-thumb--poster"><img src="' + src + '" alt="" loading="lazy"></div>' +
+          '<div class="recent-meta">' +
+            '<div class="recent-species">' + escapeHtml(p.label) + '</div>' +
+            '<div class="recent-style subtle">' +
+              escapeHtml(p.filename) + ' \u00b7 ' + sizeMb + ' MB \u00b7 ' + ago +
+            '</div>' +
+          '</div>' +
+        '</a>'
+      );
+    }).join("");
+    recentPosters.innerHTML = html;
+  }
+
+  function refreshPosters() {
+    fetch("/recent-posters")
+      .then(function (r) { return r.json(); })
+      .then(function (data) { renderPosters(data.posters || []); })
+      .catch(function () {
+        recentPosters.innerHTML = '<p class="subtle">Failed to load recent posters.</p>';
+      });
+  }
+
+  function subscribe(jobId, cmd) {
+    closeSource();
+    currentJob = jobId;
+    const started = new Date().toLocaleTimeString();
+    setStatus(cmd, started, "running");
+    const source = new EventSource("/stream/" + jobId);
+    currentSource = source;
+    source.onmessage = function (ev) {
+      appendLine(ev.data);
+    };
+    source.addEventListener("done", function (ev) {
+      let code = null;
+      try {
+        code = JSON.parse(ev.data).exit_code;
+      } catch (e) {}
+      setStatus(cmd, started, "done", code);
+      closeSource();
+      refreshRecent();
+      refreshPosters();
+    });
+    source.onerror = function () {
+      // Let the done handler close. If nothing comes, close after a beat.
+      setTimeout(function () {
+        if (currentSource === source) {
+          setStatus(cmd, started, "disconnected");
+          closeSource();
+        }
+      }, 1000);
+    };
+  }
+
+  document.addEventListener("submit", function (e) {
+    const form = e.target;
+    if (!form.classList || !form.classList.contains("cmd-form")) return;
+    e.preventDefault();
+    const fd = new FormData(form);
+    clearLog();
+    setStatus(form.action.split("/").pop(), null, "submitting");
+    fetch(form.action, { method: "POST", body: fd })
+      .then(function (r) {
+        return r.json().then(function (body) {
+          return { ok: r.ok, body: body };
+        });
+      })
+      .then(function (res) {
+        if (!res.ok) {
+          appendLine("[error] " + (res.body.error || "bad request"));
+          setStatus(form.action.split("/").pop(), null, "error");
+          return;
+        }
+        appendLine("$ " + (res.body.argv || []).join(" "));
+        subscribe(res.body.job_id, res.body.cmd || "");
+      })
+      .catch(function (err) {
+        appendLine("[error] " + err);
+      });
+  });
+
+  document.getElementById("btn-clear").addEventListener("click", clearLog);
+  document.getElementById("btn-stop").addEventListener("click", function () {
+    closeSource();
+    runStatus.textContent = runStatus.textContent + " (stopped following)";
+  });
+  document.getElementById("btn-refresh-recent").addEventListener("click", refreshRecent);
+  document.getElementById("btn-refresh-posters").addEventListener("click", refreshPosters);
+
+  refreshRecent();
+  refreshPosters();
+})();
+</script>
+{% endblock %}

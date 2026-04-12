@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}wildprint review{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="site-title" href="{{ url_for('console') }}">wildprint review</a>
+      <nav class="site-nav">
+        <a href="{{ url_for('console') }}">Console</a>
+        <a href="{{ url_for('browse') }}">Browse</a>
+        <form method="post" action="{{ url_for('copy_masters_route') }}" class="inline-form">
+          <button type="submit" class="btn btn-secondary">Copy Masters</button>
+        </form>
+      </nav>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flashes">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    wildprint &middot; master image review
+  </footer>
+</body>
+</html>

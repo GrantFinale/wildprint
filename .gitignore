@@ -1,0 +1,30 @@
+# wildprint — local-only and generated artifacts
+
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated output (regeneratable; not source of truth)
+output/raw/
+output/normalized/
+output/master/
+output/posters/
+metadata/manifest.json
+metadata/generation.log
+
+# OS
+.DS_Store
+Thumbs.db

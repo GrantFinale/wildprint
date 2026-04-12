@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wildprint.local/schemas/manifest.json",
+  "title": "WildprintManifest",
+  "description": "Manifest of all generated wildlife illustrations. Each record represents one generated image (one variation of one (species, style) pair). The manifest is maintained by scripts/build_manifest.py, updated by scripts/normalize_images.py, and mutated by scripts/select_master.py. It is also read by the Flask review app.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "title": "WildprintManifestRecord",
+    "description": "A single generated image record.",
+    "additionalProperties": true,
+    "required": [
+      "species_slug",
+      "species_common_name",
+      "style_slug",
+      "style_name",
+      "provider",
+      "model",
+      "image_size",
+      "prompt",
+      "variation",
+      "seed_requested",
+      "seed_used",
+      "supports_seed",
+      "generated_at",
+      "raw_path",
+      "normalized_path",
+      "selected_as_master"
+    ],
+    "properties": {
+      "species_slug": {
+        "type": "string",
+        "description": "Stable, lowercase, hyphenated identifier for the species (e.g. 'red-fox'). Used in filesystem paths and as part of the composite key (species_slug, style_slug, variation).",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "species_common_name": {
+        "type": "string",
+        "description": "Human-readable common name for the species (e.g. 'Red Fox'). Sourced from data/species/species.json at generation time."
+      },
+      "style_slug": {
+        "type": "string",
+        "description": "Stable, lowercase, hyphenated identifier for the illustration style (e.g. 'vintage-naturalist'). Used in filesystem paths and as part of the composite key.",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "style_name": {
+        "type": "string",
+        "description": "Human-readable name of the illustration style (e.g. 'Vintage Naturalist Plate')."
+      },
+      "provider": {
+        "type": "string",
+        "description": "Which image generation provider produced this image (e.g. 'openai', 'replicate', 'mock'). Matches the providers/ module names."
+      },
+      "model": {
+        "type": "string",
+        "description": "Specific model identifier used by the provider (e.g. 'gpt-image-1'). Recorded verbatim from the generation request."
+      },
+      "image_size": {
+        "type": "string",
+        "description": "Requested output size from the provider, formatted as 'WIDTHxHEIGHT' (e.g. '1536x1024'). This is the provider's native size, before normalization to the print canvas."
+      },
+      "prompt": {
+        "type": "string",
+        "description": "The fully rendered prompt string sent to the provider. Contains style instructions and species-specific details. Useful for debugging and for reproducing a generation."
+      },
+      "variation": {
+        "type": "integer",
+        "description": "1-based variation index for this (species_slug, style_slug) pair. Corresponds to the 'v{n}' suffix in filenames.",
+        "minimum": 1
+      },
+      "seed_requested": {
+        "type": ["integer", "null"],
+        "description": "Seed value the script asked the provider to use, if any. May be null when no deterministic seed was requested."
+      },
+      "seed_used": {
+        "type": ["integer", "null"],
+        "description": "Seed value actually used by the provider, if the provider reports it. May be null when the provider does not expose or support seeds."
+      },
+      "supports_seed": {
+        "type": "boolean",
+        "description": "Whether the provider/model combination supports deterministic seeding. When false, seed_requested and seed_used are expected to be null."
+      },
+      "generated_at": {
+        "type": "string",
+        "description": "ISO-8601 UTC timestamp (e.g. '2026-04-11T14:32:08Z') recorded when the image was successfully generated.",
+        "format": "date-time"
+      },
+      "raw_path": {
+        "type": "string",
+        "description": "Filesystem path (relative to project root or absolute) to the raw PNG as returned by the provider. Convention: 'output/raw/{style_slug}/{species_slug}/{species_slug}_{style_slug}_v{n}.png'."
+      },
+      "normalized_path": {
+        "type": ["string", "null"],
+        "description": "Filesystem path to the normalized (cropped, centered, white-canvas) PNG. Set by scripts/normalize_images.py. Null until the image has been normalized. Convention: 'output/normalized/{style_slug}/{species_slug}/{species_slug}_{style_slug}_v{n}.png'."
+      },
+      "selected_as_master": {
+        "type": "boolean",
+        "description": "Whether this variation has been chosen as the canonical master image for its (species_slug, style_slug) pair. Exactly one record per pair should have this set to true at any given time. Managed by scripts/select_master.py."
+      }
+    }
+  }
+}

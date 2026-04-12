@@ -1,0 +1,427 @@
+[
+  {
+    "common_name": "Smallmouth Bass",
+    "slug": "smallmouth_bass",
+    "scientific_name": "Micropterus dolomieu",
+    "category": "fish",
+    "habitat_tags": ["freshwater", "lakes", "rivers", "rocky"],
+    "key_visual_traits": [
+      "bronze to olive-green flanks with dark vertical bars",
+      "red to reddish-brown eye",
+      "upper jaw extending to the middle of the eye (not past it)",
+      "spiny dorsal fin joined to soft dorsal with a shallow notch",
+      "robust, torpedo-shaped body with a slightly forked tail"
+    ],
+    "relative_scale_index": 1.0,
+    "enabled": true,
+    "notes": "Baseline species for relative scale index."
+  },
+  {
+    "common_name": "Largemouth Bass",
+    "slug": "largemouth_bass",
+    "scientific_name": "Micropterus salmoides",
+    "category": "fish",
+    "habitat_tags": ["freshwater", "lakes", "ponds", "weedy"],
+    "key_visual_traits": [
+      "green to olive back fading to a pale belly",
+      "dark horizontal stripe running along the midline from gill to tail",
+      "upper jaw extending well past the rear edge of the eye",
+      "deeply notched dorsal fin separating spiny and soft sections",
+      "stocky body with a broad, slightly forked caudal fin"
+    ],
+    "relative_scale_index": 1.3,
+    "enabled": true,
+    "notes": "Distinguished from smallmouth by jaw length and lateral stripe."
+  },
+  {
+    "common_name": "Northern Pike",
+    "slug": "northern_pike",
+    "scientific_name": "Esox lucius",
+    "category": "fish",
+    "habitat_tags": ["freshwater", "lakes", "rivers", "weedy"],
+    "key_visual_traits": [
+      "long, slender, torpedo-shaped body",
+      "dark olive-green flanks marked with rows of light bean-shaped spots",
+      "broad, flat duckbill-like snout with a wide mouth full of sharp teeth",
+      "single soft dorsal fin set far back near the tail",
+      "forked caudal fin and fully scaled cheek with lower half of gill cover bare"
+    ],
+    "relative_scale_index": 2.5,
+    "enabled": true,
+    "notes": "Apex freshwater predator with distinctive elongated body."
+  },
+  {
+    "common_name": "Bowfin",
+    "slug": "bowfin",
+    "scientific_name": "Amia calva",
+    "category": "fish",
+    "habitat_tags": ["freshwater", "swamps", "backwaters", "slow rivers"],
+    "key_visual_traits": [
+      "long, cylindrical, heavy-bodied build with a rounded tail",
+      "very long undulating dorsal fin running most of the back",
+      "bony gular plate under the lower jaw",
+      "mottled olive to brown coloration with darker reticulated patterning",
+      "prominent dark eye spot (ocellus) at the base of the tail in males"
+    ],
+    "relative_scale_index": 1.6,
+    "enabled": true,
+    "notes": "Living fossil; only surviving member of its order."
+  },
+  {
+    "common_name": "Bluegill",
+    "slug": "bluegill",
+    "scientific_name": "Lepomis macrochirus",
+    "category": "fish",
+    "habitat_tags": ["freshwater", "lakes", "ponds", "weedy"],
+    "key_visual_traits": [
+      "deep, laterally compressed disc-shaped body",
+      "olive to blue-green back with yellow-orange belly and faint vertical bars",
+      "solid black ear flap (opercular tab) at the rear of the gill cover",
+      "dark blotch at the rear base of the soft dorsal fin",
+      "small mouth not extending past the front of the eye"
+    ],
+    "relative_scale_index": 0.5,
+    "enabled": true,
+    "notes": "Most recognizable panfish; black ear flap is diagnostic."
+  },
+  {
+    "common_name": "Black Crappie",
+    "slug": "black_crappie",
+    "scientific_name": "Pomoxis nigromaculatus",
+    "category": "fish",
+    "habitat_tags": ["freshwater", "lakes", "ponds", "clear water"],
+    "key_visual_traits": [
+      "deep, strongly compressed silvery body speckled with irregular dark blotches",
+      "seven or eight dorsal spines (more than white crappie)",
+      "large, symmetric dorsal and anal fins of roughly equal size",
+      "broad head with upturned mouth and large eyes",
+      "faintly forked tail fin with mottled dark markings"
+    ],
+    "relative_scale_index": 0.6,
+    "enabled": true,
+    "notes": "Irregular speckling (not vertical bars) distinguishes from white crappie."
+  },
+  {
+    "common_name": "Rock Bass",
+    "slug": "rock_bass",
+    "scientific_name": "Ambloplites rupestris",
+    "category": "fish",
+    "habitat_tags": ["freshwater", "rivers", "rocky shorelines", "clear lakes"],
+    "key_visual_traits": [
+      "stocky, slightly compressed body with a brassy olive coloration",
+      "bright red eye",
+      "rows of small dark spots forming faint horizontal lines on the lower flanks",
+      "six anal fin spines (more than most sunfish)",
+      "large mouth reaching to the middle of the eye"
+    ],
+    "relative_scale_index": 0.55,
+    "enabled": true,
+    "notes": "Often called 'redeye'; distinctive red iris."
+  },
+  {
+    "common_name": "Pumpkinseed Sunfish",
+    "slug": "pumpkinseed_sunfish",
+    "scientific_name": "Lepomis gibbosus",
+    "category": "fish",
+    "habitat_tags": ["freshwater", "lakes", "ponds", "weedy"],
+    "key_visual_traits": [
+      "deep, round, laterally compressed body",
+      "brilliant orange belly and iridescent blue-green back with orange speckling",
+      "wavy turquoise lines radiating across the cheek and gill cover",
+      "black ear flap tipped with a bright crimson or scarlet spot",
+      "small mouth with a short upper jaw"
+    ],
+    "relative_scale_index": 0.5,
+    "enabled": true,
+    "notes": "Red spot on the ear flap is diagnostic versus bluegill."
+  },
+  {
+    "common_name": "Yellow Perch",
+    "slug": "yellow_perch",
+    "scientific_name": "Perca flavescens",
+    "category": "fish",
+    "habitat_tags": ["freshwater", "lakes", "rivers"],
+    "key_visual_traits": [
+      "elongated oval body with a golden-yellow background color",
+      "six to nine dark vertical bars (tiger stripes) along the flanks",
+      "two clearly separated dorsal fins, the first spiny and the second soft",
+      "bright orange to red pelvic and anal fins",
+      "slightly humped back and a blunt, rounded snout"
+    ],
+    "relative_scale_index": 0.55,
+    "enabled": true,
+    "notes": "Member of the true perch family; separated dorsals are key."
+  },
+  {
+    "common_name": "Channel Catfish",
+    "slug": "channel_catfish",
+    "scientific_name": "Ictalurus punctatus",
+    "category": "fish",
+    "habitat_tags": ["freshwater", "rivers", "reservoirs", "lakes"],
+    "key_visual_traits": [
+      "slender, elongated body with a slate-gray to olive back and silvery-white belly",
+      "deeply forked tail fin",
+      "four pairs of long whisker-like barbels around the mouth",
+      "scattered small dark spots on the sides (especially in juveniles and younger adults)",
+      "smooth scaleless skin with a small adipose fin ahead of the tail"
+    ],
+    "relative_scale_index": 2.0,
+    "enabled": true,
+    "notes": "Forked tail and spotted sides separate from bullheads."
+  },
+  {
+    "common_name": "Bullhead Catfish",
+    "slug": "bullhead_catfish",
+    "scientific_name": "Ameiurus melas",
+    "category": "fish",
+    "habitat_tags": ["freshwater", "ponds", "slow rivers", "muddy"],
+    "key_visual_traits": [
+      "stout, thick-bodied shape with a broad flattened head",
+      "dark brown to nearly black back with a yellowish belly",
+      "squared-off or only slightly notched tail (not forked)",
+      "four pairs of dark barbels around the mouth",
+      "smooth scaleless skin and a small adipose fin"
+    ],
+    "relative_scale_index": 0.9,
+    "enabled": true,
+    "notes": "Black bullhead; unforked tail distinguishes from channel cat."
+  },
+  {
+    "common_name": "Common Carp",
+    "slug": "common_carp",
+    "scientific_name": "Cyprinus carpio",
+    "category": "fish",
+    "habitat_tags": ["freshwater", "lakes", "rivers", "warm water"],
+    "key_visual_traits": [
+      "deep, thick-bodied shape covered in large brassy-gold scales",
+      "long single dorsal fin with a serrated leading spine",
+      "two pairs of fleshy barbels at the corners of the mouth",
+      "downturned, sucker-like protrusible mouth",
+      "reddish-orange tint in the tail and anal fins"
+    ],
+    "relative_scale_index": 2.2,
+    "enabled": true,
+    "notes": "Large scales and four barbels are diagnostic."
+  },
+  {
+    "common_name": "White Sucker",
+    "slug": "white_sucker",
+    "scientific_name": "Catostomus commersonii",
+    "category": "fish",
+    "habitat_tags": ["freshwater", "rivers", "streams", "lakes"],
+    "key_visual_traits": [
+      "elongated cylindrical body tapering evenly toward the tail",
+      "dusky olive to bronze back fading to a cream or white belly",
+      "thick, fleshy, downward-facing sucker mouth with papillose lips",
+      "small scales that become noticeably smaller toward the head",
+      "single short dorsal fin with no spines and a slightly forked tail"
+    ],
+    "relative_scale_index": 1.1,
+    "enabled": true,
+    "notes": "Ventral sucker mouth is the key identifier."
+  },
+  {
+    "common_name": "Painted Turtle",
+    "slug": "painted_turtle",
+    "scientific_name": "Chrysemys picta",
+    "category": "turtle",
+    "habitat_tags": ["freshwater", "ponds", "slow streams", "marshes"],
+    "key_visual_traits": [
+      "smooth, flattened dark olive to black carapace with red margin markings on the scute edges",
+      "bright yellow stripes on the head and neck with red streaks on the limbs and tail",
+      "yellow plastron (often unmarked in eastern subspecies, with a dark central blotch in midland and western forms)",
+      "webbed feet with clawed toes suited for swimming",
+      "small rounded head with a slightly notched upper jaw"
+    ],
+    "relative_scale_index": 0.4,
+    "enabled": true,
+    "notes": "Most widespread native turtle in North America."
+  },
+  {
+    "common_name": "Red-eared Slider",
+    "slug": "red_eared_slider",
+    "scientific_name": "Trachemys scripta elegans",
+    "category": "turtle",
+    "habitat_tags": ["freshwater", "ponds", "lakes", "slow rivers"],
+    "key_visual_traits": [
+      "oval, moderately domed olive-green carapace with yellow streaks and dark vertical bars on the scutes",
+      "distinctive broad red or orange stripe behind each eye running along the side of the head",
+      "yellow plastron marked with dark blotches in each scute",
+      "yellow and green striped neck, limbs, and tail",
+      "fully webbed hind feet with long foreclaws in adult males"
+    ],
+    "relative_scale_index": 0.6,
+    "enabled": true,
+    "notes": "Red postorbital stripe is the diagnostic field mark."
+  },
+  {
+    "common_name": "Common Snapping Turtle",
+    "slug": "common_snapping_turtle",
+    "scientific_name": "Chelydra serpentina",
+    "category": "turtle",
+    "habitat_tags": ["freshwater", "ponds", "rivers", "muddy bottoms"],
+    "key_visual_traits": [
+      "massive rough brown to olive carapace with three low longitudinal keels, often coated in algae",
+      "greatly reduced cross-shaped plastron leaving the limbs and neck largely exposed",
+      "long, thick, heavily saw-toothed tail nearly as long as the shell",
+      "large pointed head with a strongly hooked upper beak and powerful jaws",
+      "stout muscular legs with heavy claws and tubercles on the neck and limbs"
+    ],
+    "relative_scale_index": 1.2,
+    "enabled": true,
+    "notes": "Long serrated tail and reduced plastron are diagnostic."
+  },
+  {
+    "common_name": "Eastern Box Turtle",
+    "slug": "eastern_box_turtle",
+    "scientific_name": "Terrapene carolina",
+    "category": "turtle",
+    "habitat_tags": ["terrestrial", "deciduous woodland", "meadows", "moist forest"],
+    "key_visual_traits": [
+      "high-domed brown to black carapace with bright yellow or orange radiating blotches on each scute",
+      "hinged plastron that closes tightly against the carapace to fully enclose the body",
+      "short stout limbs with four toes on the hind feet (unlike the three-toed box turtle)",
+      "red to orange eyes in males, brown in females, set in a variably patterned head",
+      "slightly hooked upper jaw and a short tail"
+    ],
+    "relative_scale_index": 0.4,
+    "enabled": true,
+    "notes": "Hinged plastron allows complete shell closure."
+  },
+  {
+    "common_name": "Spiny Softshell Turtle",
+    "slug": "spiny_softshell_turtle",
+    "scientific_name": "Apalone spinifera",
+    "category": "turtle",
+    "habitat_tags": ["freshwater", "rivers", "lakes", "sandy bottoms"],
+    "key_visual_traits": [
+      "flat, round, pancake-like leathery carapace without scutes, olive to tan with dark ocelli or spots",
+      "row of small conical spines along the leading edge of the carapace",
+      "long tubular snorkel-like snout with nostrils at the tip",
+      "fully webbed feet with three clawed toes on each foot",
+      "slender head and long neck with pale stripes bordered by dark lines"
+    ],
+    "relative_scale_index": 0.65,
+    "enabled": true,
+    "notes": "Pliable shell and tubular snout distinguish from hard-shelled turtles."
+  },
+  {
+    "common_name": "Great Blue Heron",
+    "slug": "great_blue_heron",
+    "scientific_name": "Ardea herodias",
+    "category": "bird",
+    "habitat_tags": ["freshwater", "wetlands", "marshes", "shorelines"],
+    "key_visual_traits": [
+      "tall slate blue-gray body with a long S-curved neck and long yellow dagger-like bill",
+      "white face with a bold black plume extending back from above the eye",
+      "rusty-chestnut thighs and shoulder patches with black streaks down the foreneck",
+      "long dark legs trailing well beyond the tail in flight",
+      "shaggy plumes on the lower neck and back during breeding season"
+    ],
+    "relative_scale_index": 2.5,
+    "enabled": true,
+    "notes": "Largest North American heron; neck held in an S-curve at rest."
+  },
+  {
+    "common_name": "Belted Kingfisher",
+    "slug": "belted_kingfisher",
+    "scientific_name": "Megaceryle alcyon",
+    "category": "bird",
+    "habitat_tags": ["freshwater", "rivers", "lakes", "coastal"],
+    "key_visual_traits": [
+      "stocky big-headed body with a shaggy double-pointed crest",
+      "slate blue-gray upperparts with a white collar and white underparts",
+      "broad blue-gray breast band (males) with an additional rusty belly band in females",
+      "heavy, straight, dagger-like black bill",
+      "short legs with small feet and a short square tail"
+    ],
+    "relative_scale_index": 0.75,
+    "enabled": true,
+    "notes": "Females more colorful than males; double-crested silhouette is diagnostic."
+  },
+  {
+    "common_name": "Common Loon",
+    "slug": "common_loon",
+    "scientific_name": "Gavia immer",
+    "category": "bird",
+    "habitat_tags": ["freshwater", "lakes", "boreal", "coastal in winter"],
+    "key_visual_traits": [
+      "large streamlined body with a glossy black head and thick dagger-shaped black bill",
+      "black-and-white checkered back with white rows of spots on the upper wings",
+      "vertical white neck stripes forming a partial collar and a bold black-and-white necklace",
+      "deep red eye in breeding plumage",
+      "legs set far back on the body with fully webbed feet"
+    ],
+    "relative_scale_index": 2.0,
+    "enabled": true,
+    "notes": "Checkered back and white necklace define breeding adults."
+  },
+  {
+    "common_name": "Osprey",
+    "slug": "osprey",
+    "scientific_name": "Pandion haliaetus",
+    "category": "bird",
+    "habitat_tags": ["freshwater", "coastal", "lakes", "rivers"],
+    "key_visual_traits": [
+      "long narrow wings held in a shallow M-shape with dark brown upperparts and white underparts",
+      "white head crossed by a broad dark eyestripe running through a yellow eye",
+      "streaked brown necklace across the upper breast (often heavier in females)",
+      "heavily hooked black bill and long bare grayish legs",
+      "reversible outer toe and spiny foot pads adapted for grasping fish"
+    ],
+    "relative_scale_index": 1.5,
+    "enabled": true,
+    "notes": "Only raptor with a reversible outer toe; specialized fish eater."
+  },
+  {
+    "common_name": "Mallard",
+    "slug": "mallard",
+    "scientific_name": "Anas platyrhynchos",
+    "category": "bird",
+    "habitat_tags": ["freshwater", "ponds", "marshes", "rivers"],
+    "key_visual_traits": [
+      "male with an iridescent green head, white neck ring, chestnut breast, and pale gray body",
+      "female mottled brown with a dark crown and eyestripe and a mottled orange-and-black bill",
+      "bright blue speculum bordered by white bars on the secondaries in both sexes",
+      "yellow bill in males, orange legs in both sexes",
+      "upturned curly black central tail feathers in males"
+    ],
+    "relative_scale_index": 1.5,
+    "enabled": true,
+    "notes": "Ancestral form of most domestic ducks; blue speculum is diagnostic."
+  },
+  {
+    "common_name": "Wood Duck",
+    "slug": "wood_duck",
+    "scientific_name": "Aix sponsa",
+    "category": "bird",
+    "habitat_tags": ["freshwater", "wooded swamps", "ponds", "slow rivers"],
+    "key_visual_traits": [
+      "male with an iridescent green-and-purple crested head marked by bold white facial stripes",
+      "chestnut breast flecked with white spots and buff flanks with fine black-and-white barring",
+      "red eye and a red-and-white bill in breeding males",
+      "female gray-brown with a white teardrop eye-ring and a small head crest",
+      "long square tail and sharp claws on the feet adapted for perching in trees"
+    ],
+    "relative_scale_index": 1.25,
+    "enabled": true,
+    "notes": "One of the few ducks that nests in tree cavities."
+  },
+  {
+    "common_name": "American Bittern",
+    "slug": "american_bittern",
+    "scientific_name": "Botaurus lentiginosus",
+    "category": "bird",
+    "habitat_tags": ["freshwater", "marshes", "reed beds", "wetlands"],
+    "key_visual_traits": [
+      "stocky medium-sized heron with rich brown upperparts streaked in buff and dark brown",
+      "heavily streaked white and brown underparts providing reed-like camouflage",
+      "bold black malar stripe running down the side of the neck",
+      "yellow eye and a long straight yellowish dagger-shaped bill",
+      "greenish-yellow legs and a habit of pointing the bill skyward when alarmed"
+    ],
+    "relative_scale_index": 1.75,
+    "enabled": true,
+    "notes": "Cryptic coloration and sky-pointing posture aid concealment in reeds."
+  }
+]

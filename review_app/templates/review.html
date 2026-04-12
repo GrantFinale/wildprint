@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Review: {{ species.common_name }} &times; {{ style.name }}{% endblock %}
+
+{% block content %}
+  <p class="breadcrumbs">
+    <a class="back-link" href="{{ url_for('style_view', style_slug=style.slug) }}">&larr; {{ style.name }}</a>
+    &middot;
+    <a class="back-link" href="{{ url_for('species_view', species_slug=species.slug) }}">{{ species.common_name }}</a>
+  </p>
+  <h1>Review: {{ species.common_name }} &times; {{ style.name }}</h1>
+  {% if species.scientific_name %}
+    <p class="sci-name subtle">{{ species.scientific_name }}</p>
+  {% endif %}
+
+  {% if not cards %}
+    <div class="empty-state">
+      <p>No variations generated for this (species, style) pair yet.</p>
+    </div>
+  {% else %}
+    <div class="grid review-grid">
+      {% for c in cards %}
+        {% set r = c.record %}
+        <div class="card variation-card {% if c.is_selected %}is-selected{% endif %}">
+          <div class="thumb">
+            {% if c.relpath %}
+              <img src="{{ url_for('image', relpath=c.relpath) }}" alt="v{{ r.variation }}">
+            {% else %}
+              <div class="thumb-placeholder">no image</div>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            <div class="variation-header">
+              <h2>Variation v{{ r.variation }}</h2>
+              {% if c.is_selected %}
+                <span class="badge badge-success">&check; Selected</span>
+              {% endif %}
+            </div>
+            <dl class="meta">
+              {% if r.provider %}<div><dt>Provider</dt><dd>{{ r.provider }}</dd></div>{% endif %}
+              {% if r.model %}<div><dt>Model</dt><dd>{{ r.model }}</dd></div>{% endif %}
+              {% if r.seed_used is not none %}<div><dt>Seed</dt><dd>{{ r.seed_used }}</dd></div>{% endif %}
+              {% if r.generated_at %}<div><dt>Generated</dt><dd>{{ r.generated_at }}</dd></div>{% endif %}
+            </dl>
+            {% if r.prompt %}
+              <details class="prompt">
+                <summary>Prompt</summary>
+                <pre>{{ r.prompt }}</pre>
+              </details>
+            {% endif %}
+            {% if not c.is_selected %}
+              <form method="post" action="{{ url_for('select') }}">
+                <input type="hidden" name="species_slug" value="{{ species.slug }}">
+                <input type="hidden" name="style_slug" value="{{ style.slug }}">
+                <input type="hidden" name="variation" value="{{ r.variation }}">
+                <button type="submit" class="btn btn-primary">Select as master</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}

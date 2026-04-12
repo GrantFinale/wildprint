@@ -1,0 +1,27 @@
+Create a scientifically accurate illustration of a {species_name}.
+
+{style_block}
+
+Composition:
+full body of the bird in a natural standing or perched pose, centered, side profile, horizontal orientation
+
+Background:
+pure white background (#FFFFFF), uniform and edge-to-edge, no shadows, no gradients, no environment, no water, no frame, no paper texture
+
+Lighting:
+flat, even lighting unless otherwise specified by style
+
+Color:
+true-to-life coloration for the species, adjusted only as appropriate for the selected style
+
+Details:
+accurate anatomy including beak shape, feather patterns, leg positioning, eye placement, and proportions
+
+Key features:
+{species_traits}
+
+Output:
+high resolution, crisp edges, isolated subject, print-ready quality
+
+Do not include:
+water, splashes, reflections, shadows unless required by the style, text, labels, logos, perches, branches, multiple birds, artistic backgrounds, or environmental scenery

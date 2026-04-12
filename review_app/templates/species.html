@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}{{ species.common_name }}{% endblock %}
+
+{% block content %}
+  <p><a class="back-link" href="{{ url_for('browse') }}">&larr; All styles</a></p>
+  <h1>{{ species.common_name }}</h1>
+  {% if species.scientific_name %}
+    <p class="sci-name subtle">{{ species.scientific_name }}</p>
+  {% endif %}
+
+  {% if not style_cards %}
+    <div class="empty-state">
+      <p>No styles configured for this species.</p>
+    </div>
+  {% else %}
+    <div class="grid">
+      {% for sc in style_cards %}
+        <a class="card style-card {% if sc.has_selected %}has-selected{% endif %}"
+           href="{{ url_for('review_view', style_slug=sc.style_slug, species_slug=species.slug) }}">
+          <div class="thumb">
+            {% if sc.display_relpath %}
+              <img src="{{ url_for('image', relpath=sc.display_relpath) }}" alt="{{ sc.style_name }}">
+            {% else %}
+              <div class="thumb-placeholder">no image</div>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            <h2>{{ sc.style_name }}</h2>
+            {% if sc.description %}
+              <p class="card-desc">{{ sc.description }}</p>
+            {% endif %}
+            <span class="badge">{{ sc.variation_count }} variation{{ 's' if sc.variation_count != 1 else '' }}</span>
+            {% if sc.has_selected %}
+              <span class="badge badge-success">master set</span>
+            {% endif %}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}

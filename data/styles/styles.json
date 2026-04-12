@@ -1,0 +1,35 @@
+[
+  {
+    "style_name": "Scientific",
+    "slug": "scientific",
+    "description": "Clean naturalist field guide illustration with true-to-life coloration and even lighting.",
+    "reference_artist": "John James Audubon",
+    "recraft_style": "digital_illustration/hand_drawn",
+    "prompt_block": "Style:\nclean naturalist field-guide illustration in the tradition of a John James Audubon 1838 ornithological plate or an Ernst Haeckel natural history lithograph, semi-realistic with fine stippled detail, even flat lighting, true-to-life coloration, no dramatic shadows, museum-plate composition, reference-style consistency",
+    "negative_prompt": "photograph, 3D render, dramatic shadow, environment, water, background, text, watermark, multiple animals",
+    "enabled": true,
+    "notes": "Default reference style for identification-oriented plates."
+  },
+  {
+    "style_name": "Watercolor",
+    "slug": "watercolor",
+    "description": "Delicate watercolor illustration with soft brush strokes and subtle pigment bleeding.",
+    "reference_artist": "Beatrix Potter",
+    "recraft_style": "digital_illustration/watercolor",
+    "prompt_block": "Style:\ndelicate watercolor illustration in the tradition of a Beatrix Potter natural history study or an early 20th-century botanical watercolor, soft brushwork with subtle pigment bleeds and pooling, slightly painterly edges, translucent color washes, anatomically accurate, no heavy paper texture",
+    "negative_prompt": "photograph, 3D render, harsh outlines, oil paint, heavy paper grain, environment, water, background, text, watermark",
+    "enabled": true,
+    "notes": "Softer, more artistic variant while preserving anatomy."
+  },
+  {
+    "style_name": "Vintage Engraving",
+    "slug": "vintage_engraving",
+    "description": "Vintage natural history engraving with fine linework and cross-hatching.",
+    "reference_artist": "Thomas Bewick / 19th-century Encyclopædia Britannica",
+    "recraft_style": "vector_illustration/engraving",
+    "prompt_block": "Style:\nvintage natural history engraving in the tradition of a Thomas Bewick wood engraving or an 1800s Encyclopædia Britannica scientific plate, fine parallel linework and cross-hatching, stippled shadows, anatomically precise, primarily monochrome ink-on-paper aesthetic with optional restrained spot color, classic engraved museum-plate composition",
+    "negative_prompt": "photograph, 3D render, full color gradient, modern digital shading, environment, water, background, text, watermark",
+    "enabled": true,
+    "notes": "Classic scientific plate aesthetic, largely monochrome."
+  }
+]
