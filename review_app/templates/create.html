@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}Create Poster — wildprint{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9/dist/leaflet.js"></script>
+
+<div class="create-page">
+  <aside class="create-sidebar">
+    <!-- Step 1: Water body -->
+    <section class="create-step" id="step-water">
+      <h3>1. Choose a body of water</h3>
+      <input type="text" id="water-name" placeholder="e.g. Lake Michigan">
+      <p class="subtle">Drop a pin on the map &rarr;</p>
+    </section>
+
+    <!-- Step 2: Habitat questions -->
+    <section class="create-step" id="step-habitat">
+      <h3>2. Describe the habitat</h3>
+      <label>Water type
+        <select id="q-water-type">
+          <option value="lake">Lake</option>
+          <option value="pond">Pond</option>
+          <option value="river">River</option>
+          <option value="stream">Stream</option>
+          <option value="reservoir">Reservoir</option>
+          <option value="marsh">Marsh / Wetland</option>
+        </select>
+      </label>
+      <label>Average depth
+        <select id="q-depth">
+          <option value="shallow">Shallow (&lt; 5 ft)</option>
+          <option value="moderate">Moderate (5-20 ft)</option>
+          <option value="deep">Deep (&gt; 20 ft)</option>
+        </select>
+      </label>
+      <label>Water flow
+        <select id="q-flow">
+          <option value="still">Still</option>
+          <option value="slow">Slow</option>
+          <option value="moderate">Moderate</option>
+          <option value="fast">Fast</option>
+        </select>
+      </label>
+      <label>Vegetation
+        <select id="q-vegetation">
+          <option value="heavy">Heavy (weeds, lily pads)</option>
+          <option value="moderate">Moderate</option>
+          <option value="sparse">Sparse</option>
+          <option value="none">None</option>
+        </select>
+      </label>
+      <label>Water clarity
+        <select id="q-clarity">
+          <option value="clear">Clear</option>
+          <option value="moderate">Moderately clear</option>
+          <option value="murky">Murky / Stained</option>
+        </select>
+      </label>
+      <button class="btn btn-primary" id="btn-recommend">Find Species</button>
+    </section>
+
+    <!-- Step 3: Species selection -->
+    <section class="create-step" id="step-species" style="display:none">
+      <h3>3. Select species for your poster</h3>
+      <div id="species-primary" class="species-grid"></div>
+      <h4>Add more species</h4>
+      <div id="species-secondary" class="species-grid"></div>
+    </section>
+
+    <!-- Step 4: Poster options -->
+    <section class="create-step" id="step-options" style="display:none">
+      <h3>4. Customize your poster</h3>
+      <label>Poster title
+        <input type="text" id="poster-title" placeholder="Lake Michigan Wildlife">
+      </label>
+      <label>Subtitle
+        <input type="text" id="poster-subtitle" placeholder="A field guide">
+      </label>
+      <label>Style
+        <select id="poster-style">
+          {% for style in styles %}
+          <option value="{{ style.slug }}">{{ style.style_name or style.name or style.slug }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Background color
+        <input type="color" id="poster-bg" value="#ffffff">
+      </label>
+      <label>Logo (optional)
+        <input type="file" id="logo-upload" accept="image/png,image/jpeg">
+      </label>
+      <div id="logo-preview" style="display:none">
+        <img id="logo-thumb" style="max-height:60px">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-remove-logo">Remove</button>
+      </div>
+      <button class="btn btn-primary" id="btn-generate">Generate Poster</button>
+      <div id="generate-status" class="subtle"></div>
+    </section>
+  </aside>
+
+  <main class="create-main">
+    <!-- Map -->
+    <div id="map" style="height:400px; border-radius:8px; margin-bottom:1rem"></div>
+    <!-- Poster preview -->
+    <div id="poster-preview" style="display:none">
+      <h3>Your Poster</h3>
+      <img id="poster-img" style="max-width:100%; border:1px solid #ddd; border-radius:8px">
+      <div style="margin-top:1rem">
+        <a id="poster-download" class="btn btn-primary" download>Download PNG</a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// --- Map initialization ---
+const map = L.map('map').setView([43.0, -85.0], 6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap'
+}).addTo(map);
+
+let marker = null;
+map.on('click', function(e) {
+  if (marker) marker.remove();
+  marker = L.marker(e.latlng).addTo(map);
+  document.getElementById('water-name').focus();
+});
+
+// --- Recommend button handler ---
+document.getElementById('btn-recommend').addEventListener('click', async () => {
+  const answers = {
+    water_type: document.getElementById('q-water-type').value,
+    depth: document.getElementById('q-depth').value,
+    flow: document.getElementById('q-flow').value,
+    vegetation: document.getElementById('q-vegetation').value,
+    clarity: document.getElementById('q-clarity').value,
+  };
+  const resp = await fetch('/api/recommend', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(answers),
+  });
+  const data = await resp.json();
+  renderSpeciesCards(data.primary, 'species-primary', true);
+  renderSpeciesCards(data.secondary, 'species-secondary', false);
+  document.getElementById('step-species').style.display = '';
+  document.getElementById('step-options').style.display = '';
+  // Auto-fill poster title from water body name
+  const name = document.getElementById('water-name').value;
+  if (name) {
+    document.getElementById('poster-title').value = name + ' Wildlife';
+  }
+});
+
+// --- Species card renderer ---
+function renderSpeciesCards(speciesList, containerId, checked) {
+  const container = document.getElementById(containerId);
+  const style = document.getElementById('poster-style').value || 'scientific';
+  container.innerHTML = speciesList.map(sp => `
+    <label class="species-card ${checked ? 'selected' : ''}">
+      <input type="checkbox" data-slug="${sp.slug}" ${checked ? 'checked' : ''}>
+      <div class="species-thumb">
+        <img src="/image/output/master/${style}/${sp.slug}.png" loading="lazy"
+             onerror="this.style.display='none'">
+      </div>
+      <div class="species-info">
+        <strong>${sp.common_name}</strong>
+        <em>${sp.scientific_name || ''}</em>
+        <span class="score-badge">Score: ${sp.score}</span>
+      </div>
+    </label>
+  `).join('');
+  // Toggle .selected class on checkbox change
+  container.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.closest('.species-card').classList.toggle('selected', cb.checked);
+    });
+  });
+}
+
+// --- Logo upload handler ---
+let uploadedLogoFilename = null;
+document.getElementById('logo-upload').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('logo', file);
+  const resp = await fetch('/api/upload-logo', {method: 'POST', body: fd});
+  const data = await resp.json();
+  if (data.logo_filename) {
+    uploadedLogoFilename = data.logo_filename;
+    document.getElementById('logo-thumb').src = data.logo_url;
+    document.getElementById('logo-preview').style.display = '';
+  }
+});
+document.getElementById('btn-remove-logo').addEventListener('click', () => {
+  uploadedLogoFilename = null;
+  document.getElementById('logo-preview').style.display = 'none';
+  document.getElementById('logo-upload').value = '';
+});
+
+// --- Generate poster handler ---
+document.getElementById('btn-generate').addEventListener('click', async () => {
+  const status = document.getElementById('generate-status');
+  status.textContent = 'Generating poster...';
+  // Collect selected species
+  const slugs = [];
+  document.querySelectorAll('#species-primary input:checked, #species-secondary input:checked')
+    .forEach(cb => slugs.push(cb.dataset.slug));
+  if (slugs.length < 5) {
+    status.textContent = 'Please select at least 5 species.';
+    return;
+  }
+  const body = {
+    species_slugs: slugs,
+    style: document.getElementById('poster-style').value,
+    title: document.getElementById('poster-title').value || 'Wildlife Poster',
+    subtitle: document.getElementById('poster-subtitle').value || '',
+    background: document.getElementById('poster-bg').value,
+    water_body_name: document.getElementById('water-name').value,
+    logo_filename: uploadedLogoFilename,
+  };
+  const resp = await fetch('/api/generate-poster', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+  const data = await resp.json();
+  if (data.poster_url) {
+    document.getElementById('poster-img').src = data.poster_url + '?t=' + Date.now();
+    document.getElementById('poster-download').href = data.poster_url;
+    document.getElementById('poster-download').download = data.filename;
+    document.getElementById('poster-preview').style.display = '';
+    status.textContent = 'Poster generated!';
+  } else {
+    status.textContent = 'Error: ' + (data.error || 'unknown');
+  }
+});
+</script>
+{% endblock %}

@@ -22,6 +22,7 @@ output/raw/
 output/normalized/
 output/master/
 output/posters/
+output/uploads/
 metadata/manifest.json
 metadata/generation.log
 

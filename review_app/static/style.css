@@ -382,3 +382,87 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
   .status-bar { gap: 0.5rem; }
   .status-card { flex: 1 1 140px; }
 }
+
+/* ---------------------------------------------------------------------------
+ * Create Poster page
+ * ------------------------------------------------------------------------ */
+
+.create-page {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+.create-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.create-step {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+.create-step h3 { margin: 0 0 1rem; font-size: 1.1rem; }
+.create-step h4 { margin: 1rem 0 0.5rem; font-size: 0.95rem; color: var(--fg-muted); }
+.create-step label { display: block; margin-bottom: 0.75rem; font-size: 0.9rem; }
+.create-step select,
+.create-step input[type=text],
+.create-step input[type=file] {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border, #ccc);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--fg);
+  background: var(--bg);
+}
+.create-step input[type=color] {
+  display: block;
+  margin-top: 0.25rem;
+  width: 60px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--border, #ccc);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.species-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.species-card {
+  display: grid;
+  grid-template-columns: auto 48px 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.species-card.selected {
+  border-color: var(--accent, #4a8);
+  background: #f0faf4;
+}
+.species-thumb { width: 48px; height: 32px; overflow: hidden; }
+.species-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.species-info strong { display: block; font-size: 0.85rem; }
+.species-info em { font-size: 0.75rem; color: #888; }
+.score-badge { font-size: 0.7rem; color: #666; }
+#poster-preview { text-align: center; }
+#poster-img { max-height: 600px; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
+@media (max-width: 900px) {
+  .create-page { grid-template-columns: 1fr; }
+}

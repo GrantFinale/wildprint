@@ -42,12 +42,21 @@ from config.settings import (
     RAW_DIR,
     NORMALIZED_DIR,
     MASTER_DIR,
+    OUTPUT_DIR,
     SPECIES_JSON,
     STYLES_JSON,
     MANIFEST_PATH,
 )
 from scripts.build_manifest import load_manifest, save_manifest, find_record
 from scripts.select_master import mark_selected, copy_masters
+from webapp.habitat_engine import recommend as habitat_recommend, get_species_by_slugs
+from poster_layout import (
+    EditorialMultiRenderer,
+    FileSystemMasterImageLoader,
+    PosterSpec,
+    SpeciesRef,
+    select_layout_engine,
+)
 
 
 app = Flask(__name__)
@@ -886,6 +895,163 @@ def image(relpath: str):
         abort(404)
 
     return send_file(str(requested))
+
+
+# ---------------------------------------------------------------------------
+# Poster creator routes
+# ---------------------------------------------------------------------------
+
+
+@app.route("/create")
+def create():
+    """Render the poster creator page."""
+    species = load_species()
+    styles = load_styles()
+    return render_template("create.html", species=species, styles=styles)
+
+
+@app.route("/api/recommend", methods=["POST"])
+def api_recommend():
+    """Return habitat-scored species recommendations as JSON."""
+    data = request.get_json(force=True)
+    answers = {
+        "water_type": data.get("water_type", "lake"),
+        "depth": data.get("depth", "moderate"),
+        "flow": data.get("flow", "still"),
+        "vegetation": data.get("vegetation", "moderate"),
+        "clarity": data.get("clarity", "clear"),
+    }
+    result = habitat_recommend(answers)
+    return jsonify(result)
+
+
+@app.route("/api/upload-logo", methods=["POST"])
+def api_upload_logo():
+    """Accept a logo image upload (PNG/JPEG, max 5 MB)."""
+    if "logo" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    file = request.files["logo"]
+    if not file.filename:
+        return jsonify({"error": "No file selected"}), 400
+
+    # Validate extension
+    ext = Path(file.filename).suffix.lower()
+    if ext not in (".png", ".jpg", ".jpeg"):
+        return jsonify({"error": "Only PNG and JPEG files are allowed"}), 400
+
+    # Validate size (read into memory, check, then save)
+    file_bytes = file.read()
+    if len(file_bytes) > 5 * 1024 * 1024:
+        return jsonify({"error": "File exceeds 5 MB limit"}), 400
+
+    uploads_dir = Path(PROJECT_ROOT) / "output" / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_name = re.sub(r"[^\w.\-]", "_", Path(file.filename).name)
+    filename = f"{uuid.uuid4().hex}_{safe_name}"
+    dest = uploads_dir / filename
+    dest.write_bytes(file_bytes)
+
+    logo_url = f"/image/output/uploads/{filename}"
+    return jsonify({"logo_filename": filename, "logo_url": logo_url})
+
+
+@app.route("/api/generate-poster", methods=["POST"])
+def api_generate_poster():
+    """Generate a poster from selected species and options."""
+    data = request.get_json(force=True)
+    species_slugs = data.get("species_slugs", [])
+    style_slug = data.get("style", "scientific")
+    title = data.get("title", "Wildlife Poster")
+    subtitle = data.get("subtitle", "") or None
+    background = data.get("background", "#FFFFFF")
+    logo_filename = data.get("logo_filename")
+
+    if not species_slugs:
+        return jsonify({"error": "No species selected"}), 400
+
+    # Load species records and build SpeciesRef objects
+    all_species = load_species()
+    species_by_slug = {sp["slug"]: sp for sp in all_species}
+
+    species_refs = []
+    for slug in species_slugs:
+        rec = species_by_slug.get(slug)
+        if rec is None:
+            continue
+        species_refs.append(
+            SpeciesRef(
+                slug=rec["slug"],
+                common_name=rec["common_name"],
+                scientific_name=rec.get("scientific_name", ""),
+                category=rec.get("category", ""),
+                relative_scale_index=float(rec.get("relative_scale_index", 1.0)),
+                habitat_tags=list(rec.get("habitat_tags", [])),
+            )
+        )
+
+    if not species_refs:
+        return jsonify({"error": "No valid species found"}), 400
+
+    # Build PosterSpec — landscape 5100x3300
+    spec = PosterSpec(
+        title=title,
+        subtitle=subtitle,
+        style_slug=style_slug,
+        species_slugs=[ref.slug for ref in species_refs],
+        layout_style="hero",
+        canvas_width=5100,
+        canvas_height=3300,
+        background_color=background,
+        show_labels=True,
+    )
+
+    # Layout
+    loader = FileSystemMasterImageLoader(masters_dir=MASTER_DIR)
+
+    # Filter to species that have masters
+    present_refs = [ref for ref in species_refs if loader.exists(ref.slug, style_slug)]
+    if not present_refs:
+        return jsonify({"error": "No master images found for the selected species and style"}), 400
+
+    # Re-build spec with only present slugs
+    spec = PosterSpec(
+        title=title,
+        subtitle=subtitle,
+        style_slug=style_slug,
+        species_slugs=[ref.slug for ref in present_refs],
+        layout_style="hero",
+        canvas_width=5100,
+        canvas_height=3300,
+        background_color=background,
+        show_labels=True,
+    )
+
+    engine = select_layout_engine(present_refs, spec)
+    result = engine.layout(spec, present_refs, loader)
+
+    if not result.placements:
+        return jsonify({"error": "Layout produced zero placements"}), 500
+
+    # Render
+    renderer = EditorialMultiRenderer()
+    if logo_filename:
+        logo_path = Path(PROJECT_ROOT) / "output" / "uploads" / logo_filename
+        if logo_path.exists():
+            renderer._logo_path = logo_path
+
+    poster_id = f"custom_{uuid.uuid4().hex}"
+    posters_dir = Path(PROJECT_ROOT) / "output" / "posters"
+    posters_dir.mkdir(parents=True, exist_ok=True)
+    output_path = posters_dir / f"{poster_id}.png"
+
+    try:
+        renderer.render(result, output_path)
+    except Exception as exc:
+        return jsonify({"error": f"Render failed: {exc}"}), 500
+
+    poster_url = f"/image/output/posters/{poster_id}.png"
+    return jsonify({"poster_url": poster_url, "filename": f"{poster_id}.png"})
 
 
 # ---------------------------------------------------------------------------
