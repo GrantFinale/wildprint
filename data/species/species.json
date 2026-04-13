@@ -4291,5 +4291,1989 @@
     ],
     "enabled": true,
     "notes": "Largest North American softshell."
+  },
+  {
+    "common_name": "Lesser Scaup",
+    "slug": "lesser_scaup",
+    "scientific_name": "Aythya affinis",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "lakes",
+      "ponds",
+      "open water"
+    ],
+    "key_visual_traits": [
+      "compact diving duck, body slightly longer than wide, proportions roughly 1.3:1 landscape",
+      "male: black head with slight purple sheen, white sides, black chest and tail",
+      "female: dark brown overall with white patch at base of bill",
+      "distinctive peaked crown shape at the rear of the head",
+      "pale blue-gray bill with a small black nail at the tip"
+    ],
+    "relative_scale_index": 1.1,
+    "enabled": true,
+    "notes": "Most abundant diving duck in North America.",
+    "target_aspect_ratio": 1.4,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Greater Scaup",
+    "slug": "greater_scaup",
+    "scientific_name": "Aythya marila",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "saltwater",
+      "lakes",
+      "coastal"
+    ],
+    "key_visual_traits": [
+      "stocky diving duck, body length about 1.4 times width, broad landscape profile",
+      "male: black head with green sheen, white sides, black chest",
+      "female: dark brown with bold white patch at bill base",
+      "rounded head shape (not peaked like lesser scaup)",
+      "broader blue-gray bill with black nail"
+    ],
+    "relative_scale_index": 1.2,
+    "enabled": true,
+    "notes": "Slightly larger than lesser scaup; prefers larger, often coastal waters.",
+    "target_aspect_ratio": 1.4,
+    "geographic_range": [
+      "alaska",
+      "pacific_northwest",
+      "northeast",
+      "midwest"
+    ]
+  },
+  {
+    "common_name": "Long-tailed Duck",
+    "slug": "long_tailed_duck",
+    "scientific_name": "Clangula hyemalis",
+    "category": "bird",
+    "habitat_tags": [
+      "saltwater",
+      "coastal",
+      "open water"
+    ],
+    "key_visual_traits": [
+      "slender sea duck, body proportions about 1.5:1 (excluding tail), elongated landscape profile with trailing tail streamers",
+      "breeding male: bold black, white, and gray pattern with extremely long black tail plumes",
+      "winter male: mostly white head and body with dark chest and back",
+      "short stubby bill, pink band on male's bill",
+      "small rounded head and compact body"
+    ],
+    "relative_scale_index": 1.0,
+    "enabled": true,
+    "notes": "Deep-diving sea duck of coastal and arctic waters.",
+    "target_aspect_ratio": 1.8,
+    "geographic_range": [
+      "alaska",
+      "pacific_northwest",
+      "northeast"
+    ]
+  },
+  {
+    "common_name": "Harlequin Duck",
+    "slug": "harlequin_duck",
+    "scientific_name": "Histrionicus histrionicus",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "saltwater",
+      "rocky",
+      "fast rivers"
+    ],
+    "key_visual_traits": [
+      "small compact diving duck, body about 1.3:1 landscape, rounded profile",
+      "male: slate blue body with bold white crescents and stripes outlined in black, chestnut flanks",
+      "female: dark brown with three white spots on each side of the face",
+      "small rounded head with short stubby bill",
+      "short tail often held slightly cocked"
+    ],
+    "relative_scale_index": 0.9,
+    "enabled": true,
+    "notes": "Breeds on fast mountain streams, winters on rocky coasts.",
+    "target_aspect_ratio": 1.3,
+    "geographic_range": [
+      "pacific_northwest",
+      "alaska",
+      "northeast"
+    ]
+  },
+  {
+    "common_name": "Surf Scoter",
+    "slug": "surf_scoter",
+    "scientific_name": "Melanitta perspicillata",
+    "category": "bird",
+    "habitat_tags": [
+      "saltwater",
+      "coastal",
+      "open water"
+    ],
+    "key_visual_traits": [
+      "stocky heavy-bodied sea duck, proportions about 1.4:1 landscape",
+      "male: all black body with bold white patches on forehead and nape",
+      "female: dark brown with two pale patches on each side of the face",
+      "large swollen orange, white, and black bill on male",
+      "thick neck and heavy build"
+    ],
+    "relative_scale_index": 1.3,
+    "enabled": true,
+    "notes": "Coastal sea duck; feeds on mollusks in surf zone.",
+    "target_aspect_ratio": 1.4,
+    "geographic_range": [
+      "alaska",
+      "pacific_northwest",
+      "northeast"
+    ]
+  },
+  {
+    "common_name": "White-winged Scoter",
+    "slug": "white_winged_scoter",
+    "scientific_name": "Melanitta deglandi",
+    "category": "bird",
+    "habitat_tags": [
+      "saltwater",
+      "coastal",
+      "open water",
+      "lakes"
+    ],
+    "key_visual_traits": [
+      "large heavy sea duck, body proportions about 1.5:1 landscape",
+      "male: black body with distinctive white wing patch (speculum), white comma under eye",
+      "female: dark brown with pale cheek patches and same white wing patch",
+      "sloping forehead blending into a knobbed bill",
+      "orange or yellowish bill with black base"
+    ],
+    "relative_scale_index": 1.4,
+    "enabled": true,
+    "notes": "Largest scoter; white wing patches are diagnostic in flight and at rest.",
+    "target_aspect_ratio": 1.5,
+    "geographic_range": [
+      "alaska",
+      "pacific_northwest",
+      "northeast"
+    ]
+  },
+  {
+    "common_name": "Black Scoter",
+    "slug": "black_scoter",
+    "scientific_name": "Melanitta americana",
+    "category": "bird",
+    "habitat_tags": [
+      "saltwater",
+      "coastal",
+      "open water"
+    ],
+    "key_visual_traits": [
+      "compact round-bodied sea duck, proportions about 1.3:1 landscape",
+      "male: entirely glossy black with bright yellow-orange knob at base of bill",
+      "female: dark brown with pale cheeks contrasting with dark cap",
+      "rounded head profile with steep forehead",
+      "relatively small bill compared to other scoters"
+    ],
+    "relative_scale_index": 1.2,
+    "enabled": true,
+    "notes": "Only all-black North American duck; vocal on the water.",
+    "target_aspect_ratio": 1.3,
+    "geographic_range": [
+      "alaska",
+      "pacific_northwest",
+      "northeast"
+    ]
+  },
+  {
+    "common_name": "Common Eider",
+    "slug": "common_eider",
+    "scientific_name": "Somateria mollissima",
+    "category": "bird",
+    "habitat_tags": [
+      "saltwater",
+      "coastal",
+      "rocky"
+    ],
+    "key_visual_traits": [
+      "very large heavy-bodied sea duck, body proportions about 1.6:1 landscape, bulky profile",
+      "male: white back and chest, black belly and sides, black crown, pale green nape",
+      "female: warm brown barred with black throughout",
+      "long wedge-shaped bill extending smoothly from sloping forehead",
+      "thick neck and heavy, goose-like build"
+    ],
+    "relative_scale_index": 1.6,
+    "enabled": true,
+    "notes": "Largest duck in North America; breeds on arctic and north Atlantic coasts.",
+    "target_aspect_ratio": 1.5,
+    "geographic_range": [
+      "alaska",
+      "northeast"
+    ]
+  },
+  {
+    "common_name": "Red-breasted Merganser",
+    "slug": "red_breasted_merganser",
+    "scientific_name": "Mergus serrator",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "saltwater",
+      "lakes",
+      "coastal"
+    ],
+    "key_visual_traits": [
+      "slender elongated diving duck, body proportions about 1.8:1 landscape, long-bodied",
+      "male: dark green shaggy-crested head, rusty streaked breast, gray sides, white collar",
+      "female: rusty-brown head with shaggy crest blending gradually into gray neck",
+      "long thin serrated red-orange bill (sawbill)",
+      "spiky double crest drooping from back of head"
+    ],
+    "relative_scale_index": 1.2,
+    "enabled": true,
+    "notes": "Fish-eating sawbill; winters on coasts, breeds on northern lakes.",
+    "target_aspect_ratio": 1.7,
+    "geographic_range": [
+      "alaska",
+      "pacific_northwest",
+      "northeast",
+      "midwest"
+    ]
+  },
+  {
+    "common_name": "Horned Grebe",
+    "slug": "horned_grebe",
+    "scientific_name": "Podiceps auritus",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "saltwater",
+      "lakes",
+      "marshes"
+    ],
+    "key_visual_traits": [
+      "small compact diving bird, body proportions about 1.3:1 landscape, no visible tail",
+      "breeding: rufous neck and sides, black head with golden-yellow ear tufts (horns)",
+      "winter: crisp black-and-white, white cheek sharply defined against black crown",
+      "short straight dark bill with pale tip",
+      "red eye visible at close range"
+    ],
+    "relative_scale_index": 0.7,
+    "enabled": true,
+    "notes": "Small grebe with dramatic breeding 'horns'.",
+    "target_aspect_ratio": 1.3,
+    "geographic_range": [
+      "alaska",
+      "pacific_northwest",
+      "mountain_west",
+      "midwest",
+      "northeast"
+    ]
+  },
+  {
+    "common_name": "Eared Grebe",
+    "slug": "eared_grebe",
+    "scientific_name": "Podiceps nigricollis",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "lakes",
+      "marshes"
+    ],
+    "key_visual_traits": [
+      "small slim diving bird, body proportions about 1.3:1 landscape",
+      "breeding: black head and neck with wispy golden ear fans fanning back from eye",
+      "winter: dusky cheek blending into dark crown (less crisp than horned grebe)",
+      "slender slightly upturned thin dark bill",
+      "peaked crown and red eye"
+    ],
+    "relative_scale_index": 0.6,
+    "enabled": true,
+    "notes": "Most abundant grebe worldwide; forms huge staging flocks on alkaline lakes.",
+    "target_aspect_ratio": 1.3,
+    "geographic_range": [
+      "mountain_west",
+      "california",
+      "southwest",
+      "pacific_northwest"
+    ]
+  },
+  {
+    "common_name": "Western Grebe",
+    "slug": "western_grebe",
+    "scientific_name": "Aechmophorus occidentalis",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "lakes",
+      "open water"
+    ],
+    "key_visual_traits": [
+      "long-necked elegant diving bird, body proportions about 1.7:1 landscape including neck",
+      "crisp black-and-white: black crown extends below red eye",
+      "long slender swan-like neck, black above and white below",
+      "long thin greenish-yellow dagger bill",
+      "black back contrasting sharply with white flanks"
+    ],
+    "relative_scale_index": 1.3,
+    "enabled": true,
+    "notes": "Performs famous rushing courtship ceremony across water.",
+    "target_aspect_ratio": 1.7,
+    "geographic_range": [
+      "pacific_northwest",
+      "california",
+      "mountain_west"
+    ]
+  },
+  {
+    "common_name": "Clark's Grebe",
+    "slug": "clarks_grebe",
+    "scientific_name": "Aechmophorus clarkii",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "lakes",
+      "open water"
+    ],
+    "key_visual_traits": [
+      "long-necked elegant diving bird, body proportions about 1.7:1 landscape including neck",
+      "near-identical to western grebe but black crown stops above eye (eye surrounded by white)",
+      "bright orange-yellow bill (vs greenish-yellow in western)",
+      "long slender neck white on the sides",
+      "paler gray-black flanks"
+    ],
+    "relative_scale_index": 1.3,
+    "enabled": true,
+    "notes": "Formerly considered same species as western grebe.",
+    "target_aspect_ratio": 1.7,
+    "geographic_range": [
+      "pacific_northwest",
+      "california",
+      "mountain_west"
+    ]
+  },
+  {
+    "common_name": "Red-necked Grebe",
+    "slug": "red_necked_grebe",
+    "scientific_name": "Podiceps grisegena",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "saltwater",
+      "lakes",
+      "coastal"
+    ],
+    "key_visual_traits": [
+      "medium stocky diving bird, body proportions about 1.4:1 landscape, thick-necked",
+      "breeding: chestnut-red neck, pale gray cheek, black cap",
+      "winter: dusky neck and crown, pale throat, yellowish bill base",
+      "heavy straight yellow-based bill",
+      "thicker neck than other grebes"
+    ],
+    "relative_scale_index": 1.0,
+    "enabled": true,
+    "notes": "Largest grebe besides western/Clark's; migratory across northern latitudes.",
+    "target_aspect_ratio": 1.4,
+    "geographic_range": [
+      "alaska",
+      "pacific_northwest",
+      "northeast"
+    ]
+  },
+  {
+    "common_name": "American Coot",
+    "slug": "american_coot",
+    "scientific_name": "Fulica americana",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "lakes",
+      "ponds",
+      "marshes"
+    ],
+    "key_visual_traits": [
+      "plump dark waterbird, body proportions about 1.4:1 landscape, chicken-like build",
+      "slate-gray to blackish body with darker head",
+      "bright white chicken-like bill with small red spot near tip",
+      "red eye and greenish lobed (not webbed) toes",
+      "white undertail patches visible when tail is cocked"
+    ],
+    "relative_scale_index": 1.0,
+    "enabled": true,
+    "notes": "Abundant; often mistaken for a duck but is a rail.",
+    "target_aspect_ratio": 1.4,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Common Gallinule",
+    "slug": "common_gallinule",
+    "scientific_name": "Gallinula galeata",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "ponds",
+      "weedy"
+    ],
+    "key_visual_traits": [
+      "slim marsh bird with chicken-like body, proportions about 1.3:1 landscape",
+      "slate-gray body with brownish back and bold white stripe along flank",
+      "bright red frontal shield and red bill with yellow tip",
+      "long yellow-green legs with unlobed long toes",
+      "white undertail coverts flashing as tail flicks"
+    ],
+    "relative_scale_index": 0.8,
+    "enabled": true,
+    "notes": "Walks on floating vegetation in marshes.",
+    "target_aspect_ratio": 1.3,
+    "geographic_range": [
+      "southeast",
+      "midwest",
+      "northeast",
+      "southwest",
+      "california"
+    ]
+  },
+  {
+    "common_name": "Sora",
+    "slug": "sora",
+    "scientific_name": "Porzana carolina",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "wetlands"
+    ],
+    "key_visual_traits": [
+      "small compact rail, body proportions about 1.2:1, short-bodied with held-up tail",
+      "grayish-brown body with black face mask and throat",
+      "short stubby bright yellow bill",
+      "barred black-and-white flanks and undertail",
+      "greenish legs and long unwebbed toes"
+    ],
+    "relative_scale_index": 0.5,
+    "enabled": true,
+    "notes": "Most common rail in North America; secretive.",
+    "target_aspect_ratio": 1.2,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Virginia Rail",
+    "slug": "virginia_rail",
+    "scientific_name": "Rallus limicola",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "wetlands"
+    ],
+    "key_visual_traits": [
+      "small slender rail, body proportions about 1.4:1 landscape, laterally compressed",
+      "rusty-rufous breast, gray face, brown back streaked with black",
+      "long slightly down-curved orange-red bill",
+      "barred black-and-white flanks",
+      "long reddish legs with unwebbed toes"
+    ],
+    "relative_scale_index": 0.5,
+    "enabled": true,
+    "notes": "Thin body lets it slip through dense cattails.",
+    "target_aspect_ratio": 1.3,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "King Rail",
+    "slug": "king_rail",
+    "scientific_name": "Rallus elegans",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "wetlands"
+    ],
+    "key_visual_traits": [
+      "large elongated rail, body proportions about 1.5:1 landscape, laterally compressed",
+      "rich rusty breast and face, heavily striped brown-and-black back",
+      "long slightly decurved yellowish bill",
+      "bold black-and-white barred flanks",
+      "long legs for wading through dense marsh"
+    ],
+    "relative_scale_index": 0.9,
+    "enabled": true,
+    "notes": "Largest freshwater rail in North America.",
+    "target_aspect_ratio": 1.4,
+    "geographic_range": [
+      "southeast",
+      "midwest",
+      "northeast",
+      "southwest"
+    ]
+  },
+  {
+    "common_name": "Purple Gallinule",
+    "slug": "purple_gallinule",
+    "scientific_name": "Porphyrio martinica",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "swamps",
+      "weedy"
+    ],
+    "key_visual_traits": [
+      "slim marsh bird with long toes, body proportions about 1.3:1 landscape",
+      "iridescent purple head, neck, and breast with bronze-green back",
+      "pale blue frontal shield, red bill with yellow tip",
+      "extraordinarily long yellow toes for walking on lily pads",
+      "white undertail coverts and yellow legs"
+    ],
+    "relative_scale_index": 0.7,
+    "enabled": true,
+    "notes": "Tropical-looking marsh bird of southern wetlands.",
+    "target_aspect_ratio": 1.3,
+    "geographic_range": [
+      "southeast",
+      "southwest"
+    ]
+  },
+  {
+    "common_name": "Sandhill Crane",
+    "slug": "sandhill_crane",
+    "scientific_name": "Antigone canadensis",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "grasslands",
+      "wetlands"
+    ],
+    "key_visual_traits": [
+      "very tall slender crane, standing body proportions about 0.4:1 portrait, extremely long legs and neck",
+      "gray body often stained rusty from iron-rich mud preening",
+      "bare red crown patch from bill to behind eye",
+      "long straight gray bill and white cheek patch",
+      "bustle of drooping tertial feathers over the tail"
+    ],
+    "relative_scale_index": 2.8,
+    "enabled": true,
+    "notes": "Widely distributed; massive migratory staging on the Platte River.",
+    "target_aspect_ratio": 0.4,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Whooping Crane",
+    "slug": "whooping_crane",
+    "scientific_name": "Grus americana",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "wetlands",
+      "coastal"
+    ],
+    "key_visual_traits": [
+      "very tall white crane, standing body proportions about 0.4:1 portrait, extremely long legs and neck",
+      "pure white plumage with black wingtips visible in flight",
+      "bare red crown and face mask with dark mustache stripe",
+      "long yellowish bill",
+      "black legs, tallest bird in North America"
+    ],
+    "relative_scale_index": 3.5,
+    "enabled": true,
+    "notes": "Endangered; single wild flock migrates Wood Buffalo to Aransas.",
+    "target_aspect_ratio": 0.4,
+    "geographic_range": [
+      "southwest",
+      "midwest"
+    ]
+  },
+  {
+    "common_name": "Wood Stork",
+    "slug": "wood_stork",
+    "scientific_name": "Mycteria americana",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "swamps",
+      "marshes",
+      "coastal"
+    ],
+    "key_visual_traits": [
+      "large heavy wading bird, standing proportions about 0.5:1 portrait, bulky body on long legs",
+      "white body with black flight feathers and tail",
+      "bald dark gray scaly-skinned head and upper neck",
+      "long heavy slightly down-curved dark bill",
+      "pinkish feet contrasting with dark legs"
+    ],
+    "relative_scale_index": 2.5,
+    "enabled": true,
+    "notes": "Only native US stork; forages by tactile feeding in shallow water.",
+    "target_aspect_ratio": 0.5,
+    "geographic_range": [
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Limpkin",
+    "slug": "limpkin",
+    "scientific_name": "Aramus guarauna",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "swamps"
+    ],
+    "key_visual_traits": [
+      "tall brown wading bird, body proportions about 0.7:1 portrait, long-legged and long-necked",
+      "warm chocolate-brown with bold white streaks and spots throughout",
+      "long slightly down-curved grayish bill with slight gap near tip",
+      "long dark legs and neck",
+      "shaggy look from loose body feathers"
+    ],
+    "relative_scale_index": 1.5,
+    "enabled": true,
+    "notes": "Specializes on apple snails; loud wailing call at night.",
+    "target_aspect_ratio": 0.7,
+    "geographic_range": [
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Roseate Spoonbill",
+    "slug": "roseate_spoonbill",
+    "scientific_name": "Platalea ajaja",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "saltwater",
+      "marshes",
+      "coastal"
+    ],
+    "key_visual_traits": [
+      "medium-large wading bird, body proportions about 0.6:1 portrait, long legs, medium neck",
+      "brilliant pink body with deeper pink wing patches and orange tail",
+      "bald pale green head with dark band across nape",
+      "long flattened gray spoon-shaped bill",
+      "red legs and red shoulder patch"
+    ],
+    "relative_scale_index": 1.7,
+    "enabled": true,
+    "notes": "Unique spatulate bill swept side-to-side to catch prey.",
+    "target_aspect_ratio": 0.6,
+    "geographic_range": [
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Anhinga",
+    "slug": "anhinga",
+    "scientific_name": "Anhinga anhinga",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "swamps",
+      "marshes",
+      "lakes"
+    ],
+    "key_visual_traits": [
+      "long slender waterbird, body proportions about 0.8:1 portrait, extremely long neck and tail",
+      "male: glossy black with silvery-white streaks on wings and back",
+      "female: buffy tan neck and breast, dark belly",
+      "long pointed yellow dagger bill (no hook)",
+      "long fan-shaped tail, often perches with wings spread to dry"
+    ],
+    "relative_scale_index": 1.7,
+    "enabled": true,
+    "notes": "Snakebird; swims with only neck above water.",
+    "target_aspect_ratio": 0.8,
+    "geographic_range": [
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Brown Pelican",
+    "slug": "brown_pelican",
+    "scientific_name": "Pelecanus occidentalis",
+    "category": "bird",
+    "habitat_tags": [
+      "saltwater",
+      "coastal",
+      "open water"
+    ],
+    "key_visual_traits": [
+      "massive heavy-bodied bird, body proportions about 1.2:1 landscape, enormous bill pouch",
+      "gray-brown body with white head and neck (breeding: dark chestnut nape)",
+      "enormous gray bill with expandable throat pouch",
+      "short dark legs with fully webbed feet",
+      "plunge-dives from the air (unlike white pelican)"
+    ],
+    "relative_scale_index": 2.5,
+    "enabled": true,
+    "notes": "Atlantic and Gulf Coast specialist; plunge-diver.",
+    "target_aspect_ratio": 1.2,
+    "geographic_range": [
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Reddish Egret",
+    "slug": "reddish_egret",
+    "scientific_name": "Egretta rufescens",
+    "category": "bird",
+    "habitat_tags": [
+      "saltwater",
+      "coastal",
+      "marshes"
+    ],
+    "key_visual_traits": [
+      "slender medium heron, standing proportions about 0.5:1 portrait, long legs and neck",
+      "dark morph: slate-gray body with rusty shaggy head and neck",
+      "white morph: all white plumage",
+      "pink bill with black tip, blue-gray legs",
+      "active 'dancing' foraging style with canopy feeding"
+    ],
+    "relative_scale_index": 1.4,
+    "enabled": true,
+    "notes": "Least common US heron; famous for active erratic foraging.",
+    "target_aspect_ratio": 0.5,
+    "geographic_range": [
+      "southeast",
+      "southwest"
+    ]
+  },
+  {
+    "common_name": "Trumpeter Swan",
+    "slug": "trumpeter_swan",
+    "scientific_name": "Cygnus buccinator",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "lakes",
+      "marshes",
+      "rivers"
+    ],
+    "key_visual_traits": [
+      "huge long-necked waterbird, body proportions about 1.5:1 landscape, extremely long neck",
+      "pure white plumage with black bill and black facial skin",
+      "straight black bill extending in a straight line from the forehead",
+      "thick, heavy black legs",
+      "largest native waterfowl in North America"
+    ],
+    "relative_scale_index": 3.5,
+    "enabled": true,
+    "notes": "Largest waterfowl in US; recovered from near-extinction.",
+    "target_aspect_ratio": 1.5,
+    "geographic_range": [
+      "alaska",
+      "pacific_northwest",
+      "mountain_west",
+      "midwest"
+    ]
+  },
+  {
+    "common_name": "Tundra Swan",
+    "slug": "tundra_swan",
+    "scientific_name": "Cygnus columbianus",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "lakes",
+      "marshes"
+    ],
+    "key_visual_traits": [
+      "large long-necked waterbird, body proportions about 1.4:1 landscape",
+      "pure white plumage with black bill",
+      "black bill usually with a small yellow spot in front of the eye",
+      "slightly concave profile between forehead and bill",
+      "smaller than trumpeter, more rounded head"
+    ],
+    "relative_scale_index": 2.8,
+    "enabled": true,
+    "notes": "Whistling swan; breeds in arctic, winters south.",
+    "target_aspect_ratio": 1.4,
+    "geographic_range": [
+      "alaska",
+      "pacific_northwest",
+      "northeast",
+      "midwest"
+    ]
+  },
+  {
+    "common_name": "Mute Swan",
+    "slug": "mute_swan",
+    "scientific_name": "Cygnus olor",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "lakes",
+      "ponds"
+    ],
+    "key_visual_traits": [
+      "large long-necked waterbird, body proportions about 1.4:1 landscape, often holds neck in S-curve",
+      "pure white plumage with orange bill",
+      "orange bill with prominent black basal knob (larger in males)",
+      "often holds wings arched over back in display",
+      "neck typically held in graceful S-curve"
+    ],
+    "relative_scale_index": 2.8,
+    "enabled": true,
+    "notes": "Introduced from Europe; aggressive and locally invasive.",
+    "target_aspect_ratio": 1.4,
+    "geographic_range": [
+      "northeast",
+      "midwest",
+      "pacific_northwest"
+    ]
+  },
+  {
+    "common_name": "Killdeer",
+    "slug": "killdeer",
+    "scientific_name": "Charadrius vociferus",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "shorelines",
+      "grasslands",
+      "mudflats"
+    ],
+    "key_visual_traits": [
+      "compact plover with long tail for its family, body proportions about 1.3:1 landscape",
+      "brown back, white underparts, two bold black breast bands",
+      "bright orange-red rump visible in flight and display",
+      "large dark eye with red eyering",
+      "long wings and tail compared to other plovers"
+    ],
+    "relative_scale_index": 0.5,
+    "enabled": true,
+    "notes": "Most familiar plover; performs broken-wing distraction display.",
+    "target_aspect_ratio": 1.2,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Spotted Sandpiper",
+    "slug": "spotted_sandpiper",
+    "scientific_name": "Actitis macularius",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "shorelines",
+      "streams",
+      "mudflats"
+    ],
+    "key_visual_traits": [
+      "small compact sandpiper, body proportions about 1.3:1 landscape, constantly teetering",
+      "breeding: bold round dark spots across white underparts",
+      "winter: plain white underparts, olive-brown back",
+      "orange-pink bill with dark tip (breeding)",
+      "white 'shoulder' notch where wing meets breast"
+    ],
+    "relative_scale_index": 0.3,
+    "enabled": true,
+    "notes": "Constantly bobs and teeters along shorelines.",
+    "target_aspect_ratio": 1.2,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Wilson's Snipe",
+    "slug": "wilsons_snipe",
+    "scientific_name": "Gallinago delicata",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "wetlands"
+    ],
+    "key_visual_traits": [
+      "stocky compact shorebird, body proportions about 1.3:1 landscape, very long bill",
+      "cryptic brown, buff, and black striped and barred plumage",
+      "extremely long straight bill (about 1.5x head length)",
+      "bold buff stripes on head and back",
+      "short orange legs, often crouched low"
+    ],
+    "relative_scale_index": 0.5,
+    "enabled": true,
+    "notes": "Cryptic marsh bird; aerial 'winnowing' courtship display.",
+    "target_aspect_ratio": 1.3,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "American Woodcock",
+    "slug": "american_woodcock",
+    "scientific_name": "Scolopax minor",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "wet woodlands",
+      "thickets"
+    ],
+    "key_visual_traits": [
+      "plump football-shaped shorebird, body proportions about 1.2:1 landscape, almost no tail",
+      "cryptic mottled rusty, brown, and black woodland camouflage",
+      "very long straight bill (flexible-tipped for probing)",
+      "large dark eyes set high and far back on head",
+      "very short legs and short tail"
+    ],
+    "relative_scale_index": 0.5,
+    "enabled": true,
+    "notes": "Timberdoodle; twilight sky-dance courtship.",
+    "target_aspect_ratio": 1.1,
+    "geographic_range": [
+      "northeast",
+      "midwest",
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Greater Yellowlegs",
+    "slug": "greater_yellowlegs",
+    "scientific_name": "Tringa melanoleuca",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "saltwater",
+      "marshes",
+      "mudflats"
+    ],
+    "key_visual_traits": [
+      "slender tall sandpiper, body proportions about 1.1:1, long-legged with long neck",
+      "gray-brown finely streaked upperparts, white underparts with streaked breast",
+      "long bright yellow legs",
+      "long slightly upturned bill (longer than head)",
+      "white rump visible in flight"
+    ],
+    "relative_scale_index": 0.7,
+    "enabled": true,
+    "notes": "Noisy 'tattler' of open wetlands during migration.",
+    "target_aspect_ratio": 1.1,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Ring-billed Gull",
+    "slug": "ring_billed_gull",
+    "scientific_name": "Larus delawarensis",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "saltwater",
+      "lakes",
+      "coastal"
+    ],
+    "key_visual_traits": [
+      "medium gull, body proportions about 1.5:1 landscape",
+      "pale gray back, white head and underparts (winter: streaked nape)",
+      "yellow bill with distinct black ring near the tip",
+      "yellow legs and pale eye",
+      "black wingtips with small white spots (mirrors)"
+    ],
+    "relative_scale_index": 1.0,
+    "enabled": true,
+    "notes": "Most common inland gull across continent.",
+    "target_aspect_ratio": 1.5,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Common Tern",
+    "slug": "common_tern",
+    "scientific_name": "Sterna hirundo",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "saltwater",
+      "lakes",
+      "coastal"
+    ],
+    "key_visual_traits": [
+      "slender graceful tern, body proportions about 1.7:1 landscape",
+      "pale gray back and wings, white underparts",
+      "black cap extending to nape, red-orange bill with black tip",
+      "deeply forked white tail",
+      "orange-red legs"
+    ],
+    "relative_scale_index": 0.7,
+    "enabled": true,
+    "notes": "Widespread tern of lakes and coasts.",
+    "target_aspect_ratio": 1.6,
+    "geographic_range": [
+      "northeast",
+      "midwest",
+      "pacific_northwest",
+      "california"
+    ]
+  },
+  {
+    "common_name": "Forster's Tern",
+    "slug": "forsters_tern",
+    "scientific_name": "Sterna forsteri",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "saltwater",
+      "marshes",
+      "coastal"
+    ],
+    "key_visual_traits": [
+      "slender graceful tern, body proportions about 1.7:1 landscape",
+      "pale gray back, very pale silvery-white primaries",
+      "black cap (breeding) or black ear patch only (winter)",
+      "orange bill with black tip (breeding)",
+      "longer deeply forked white tail"
+    ],
+    "relative_scale_index": 0.7,
+    "enabled": true,
+    "notes": "Marsh tern of North America; winter has diagnostic black eye patch.",
+    "target_aspect_ratio": 1.6,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Black Tern",
+    "slug": "black_tern",
+    "scientific_name": "Chlidonias niger",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "lakes"
+    ],
+    "key_visual_traits": [
+      "small slender tern, body proportions about 1.6:1 landscape, buoyant flight",
+      "breeding: black head and underparts with gray back and wings",
+      "non-breeding: white underparts with black ear patch and crown",
+      "thin black bill",
+      "short slightly forked tail and dark legs"
+    ],
+    "relative_scale_index": 0.5,
+    "enabled": true,
+    "notes": "Marsh-nesting tern; only small dark tern in North America.",
+    "target_aspect_ratio": 1.5,
+    "geographic_range": [
+      "midwest",
+      "mountain_west",
+      "northeast",
+      "pacific_northwest"
+    ]
+  },
+  {
+    "common_name": "Caspian Tern",
+    "slug": "caspian_tern",
+    "scientific_name": "Hydroprogne caspia",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "saltwater",
+      "lakes",
+      "coastal"
+    ],
+    "key_visual_traits": [
+      "large gull-sized tern, body proportions about 1.5:1 landscape",
+      "pale gray back, white underparts",
+      "huge thick blood-red bill (largest tern bill)",
+      "black cap (breeding) or streaked black crown (winter)",
+      "shallowly forked tail and black legs"
+    ],
+    "relative_scale_index": 1.1,
+    "enabled": true,
+    "notes": "Largest tern in the world; harsh grating call.",
+    "target_aspect_ratio": 1.5,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Red-winged Blackbird",
+    "slug": "red_winged_blackbird",
+    "scientific_name": "Agelaius phoeniceus",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "wetlands"
+    ],
+    "key_visual_traits": [
+      "medium blackbird, body proportions about 1.3:1 landscape",
+      "male: glossy black with brilliant red shoulder patch bordered with yellow",
+      "female: streaky brown sparrow-like appearance",
+      "pointed conical black bill",
+      "often perches on cattails and reeds singing 'conk-a-ree'"
+    ],
+    "relative_scale_index": 0.3,
+    "enabled": true,
+    "notes": "One of the most abundant birds in North America.",
+    "target_aspect_ratio": 1.2,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Yellow-headed Blackbird",
+    "slug": "yellow_headed_blackbird",
+    "scientific_name": "Xanthocephalus xanthocephalus",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "wetlands"
+    ],
+    "key_visual_traits": [
+      "medium blackbird, body proportions about 1.3:1 landscape",
+      "male: bold yellow head and breast on black body with white wing patch",
+      "female: duskier brown with pale yellow throat and face",
+      "sharp black conical bill",
+      "nests in deep-water marshes west of Mississippi"
+    ],
+    "relative_scale_index": 0.4,
+    "enabled": true,
+    "notes": "Displaces red-winged blackbirds from best marsh territories.",
+    "target_aspect_ratio": 1.3,
+    "geographic_range": [
+      "midwest",
+      "mountain_west",
+      "southwest",
+      "california",
+      "pacific_northwest"
+    ]
+  },
+  {
+    "common_name": "Marsh Wren",
+    "slug": "marsh_wren",
+    "scientific_name": "Cistothorus palustris",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "cattails"
+    ],
+    "key_visual_traits": [
+      "tiny compact wren, body proportions about 1.1:1, stubby and rounded",
+      "rich rusty-brown back with bold white streaks on upper back",
+      "warm buffy flanks, whitish throat and belly",
+      "bold white eyebrow stripe over dark crown",
+      "short tail often cocked up over back"
+    ],
+    "relative_scale_index": 0.2,
+    "enabled": true,
+    "notes": "Tiny but loud; males build many dummy nests.",
+    "target_aspect_ratio": 1.1,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Prothonotary Warbler",
+    "slug": "prothonotary_warbler",
+    "scientific_name": "Protonotaria citrea",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "swamps",
+      "wet forests"
+    ],
+    "key_visual_traits": [
+      "small compact warbler, body proportions about 1.2:1 landscape",
+      "brilliant golden-yellow head and underparts",
+      "blue-gray wings and tail with no wing bars",
+      "olive-green back",
+      "relatively long sharp black bill and dark eye"
+    ],
+    "relative_scale_index": 0.2,
+    "enabled": true,
+    "notes": "Only cavity-nesting warbler in the east; swamp specialist.",
+    "target_aspect_ratio": 1.1,
+    "geographic_range": [
+      "southeast",
+      "midwest",
+      "northeast"
+    ]
+  },
+  {
+    "common_name": "Tree Swallow",
+    "slug": "tree_swallow",
+    "scientific_name": "Tachycineta bicolor",
+    "category": "bird",
+    "habitat_tags": [
+      "freshwater",
+      "marshes",
+      "open water"
+    ],
+    "key_visual_traits": [
+      "small streamlined swallow, body proportions about 1.6:1 landscape, long pointed wings",
+      "iridescent blue-green upperparts, clean white underparts",
+      "short notched tail",
+      "short flat triangular black bill",
+      "white extends just above the eye (not through it)"
+    ],
+    "relative_scale_index": 0.2,
+    "enabled": true,
+    "notes": "Hawks insects low over water; nests in tree cavities and boxes.",
+    "target_aspect_ratio": 1.5,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Northern Water Snake",
+    "slug": "northern_water_snake",
+    "scientific_name": "Nerodia sipedon",
+    "category": "reptile",
+    "habitat_tags": [
+      "freshwater",
+      "lakes",
+      "rivers",
+      "marshes"
+    ],
+    "key_visual_traits": [
+      "long slender nonvenomous snake, body length about 15-20 times body width, elongated tube profile",
+      "dark brown to gray with reddish-brown crossbands on the neck that break into blotches behind",
+      "pattern becomes darker and more obscured with age",
+      "keeled scales giving a rough appearance",
+      "round pupils and no facial pit (unlike cottonmouth)"
+    ],
+    "relative_scale_index": 2.0,
+    "enabled": true,
+    "notes": "Most widespread water snake; often confused with cottonmouth.",
+    "target_aspect_ratio": 5.5,
+    "geographic_range": [
+      "northeast",
+      "midwest",
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Brown Water Snake",
+    "slug": "brown_water_snake",
+    "scientific_name": "Nerodia taxispilota",
+    "category": "reptile",
+    "habitat_tags": [
+      "freshwater",
+      "rivers",
+      "swamps",
+      "lakes"
+    ],
+    "key_visual_traits": [
+      "heavy-bodied nonvenomous snake, body length about 14-18 times body width, thick elongated profile",
+      "rich brown with three rows of darker square blotches alternating along the back and sides",
+      "pale belly heavily marked with dark blotches",
+      "narrow neck contrasting with thick body and squarish head",
+      "keeled scales and round pupils"
+    ],
+    "relative_scale_index": 2.0,
+    "enabled": true,
+    "notes": "Large heavy southern river specialist; excellent basker.",
+    "target_aspect_ratio": 5.5,
+    "geographic_range": [
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Banded Water Snake",
+    "slug": "banded_water_snake",
+    "scientific_name": "Nerodia fasciata",
+    "category": "reptile",
+    "habitat_tags": [
+      "freshwater",
+      "swamps",
+      "marshes",
+      "ponds"
+    ],
+    "key_visual_traits": [
+      "long slender nonvenomous snake, body length about 15-20 times body width, elongated tube profile",
+      "tan to gray background with dark reddish-brown to black complete crossbands down the back",
+      "dark stripe from eye to angle of jaw",
+      "yellowish belly with dark squarish spots",
+      "round pupils and keeled scales"
+    ],
+    "relative_scale_index": 1.8,
+    "enabled": true,
+    "notes": "Often confused with cottonmouth; harmless but bites when handled.",
+    "target_aspect_ratio": 5.5,
+    "geographic_range": [
+      "southeast",
+      "southwest"
+    ]
+  },
+  {
+    "common_name": "Diamondback Water Snake",
+    "slug": "diamondback_water_snake",
+    "scientific_name": "Nerodia rhombifer",
+    "category": "reptile",
+    "habitat_tags": [
+      "freshwater",
+      "rivers",
+      "swamps",
+      "lakes"
+    ],
+    "key_visual_traits": [
+      "heavy-bodied nonvenomous snake, body length about 14-18 times body width, thick elongated profile",
+      "brown to olive with a dark chain-like diamond pattern down the back",
+      "yellow belly with half-moon-shaped dark markings",
+      "heavily keeled scales and squarish head",
+      "largest water snake in the genus Nerodia"
+    ],
+    "relative_scale_index": 2.1,
+    "enabled": true,
+    "notes": "Largest North American water snake; often seen dangling from branches.",
+    "target_aspect_ratio": 5.5,
+    "geographic_range": [
+      "southwest",
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Plain-bellied Water Snake",
+    "slug": "plain_bellied_water_snake",
+    "scientific_name": "Nerodia erythrogaster",
+    "category": "reptile",
+    "habitat_tags": [
+      "freshwater",
+      "swamps",
+      "ponds",
+      "rivers"
+    ],
+    "key_visual_traits": [
+      "long slender nonvenomous snake, body length about 15-20 times body width, elongated tube profile",
+      "uniform olive, gray, brown, or greenish-black dorsum with no dorsal pattern in adults",
+      "unmarked plain yellow, orange, or red belly (diagnostic)",
+      "round pupils and keeled scales",
+      "juveniles have reddish crossbands that fade with age"
+    ],
+    "relative_scale_index": 1.9,
+    "enabled": true,
+    "notes": "Wanders widely overland between wetlands.",
+    "target_aspect_ratio": 5.5,
+    "geographic_range": [
+      "southeast",
+      "southwest",
+      "midwest"
+    ]
+  },
+  {
+    "common_name": "Cottonmouth",
+    "slug": "cottonmouth",
+    "scientific_name": "Agkistrodon piscivorus",
+    "category": "reptile",
+    "habitat_tags": [
+      "freshwater",
+      "swamps",
+      "marshes",
+      "slow rivers"
+    ],
+    "key_visual_traits": [
+      "heavy thick-bodied venomous pit viper, body length about 8-10 times body width, stout elongated profile",
+      "dark olive-brown to black with obscure dark crossbands that fade with age",
+      "broad angular triangular head distinctly wider than neck",
+      "vertical cat-like pupils and heat-sensing pit between eye and nostril",
+      "gapes to show stark white mouth lining as threat display"
+    ],
+    "relative_scale_index": 2.5,
+    "enabled": true,
+    "notes": "Only venomous water snake in US; sluggish but will stand its ground.",
+    "target_aspect_ratio": 5.0,
+    "geographic_range": [
+      "southeast",
+      "southwest"
+    ]
+  },
+  {
+    "common_name": "Queen Snake",
+    "slug": "queen_snake",
+    "scientific_name": "Regina septemvittata",
+    "category": "reptile",
+    "habitat_tags": [
+      "freshwater",
+      "streams",
+      "rivers",
+      "rocky"
+    ],
+    "key_visual_traits": [
+      "slender small nonvenomous snake, body length about 18-22 times body width, very elongated profile",
+      "olive-brown to gray-brown dorsum with a pale yellow stripe low on each side",
+      "cream-yellow belly with four brown stripes down its length",
+      "keeled scales and round pupils",
+      "narrow head, specializes on freshly molted crayfish"
+    ],
+    "relative_scale_index": 1.0,
+    "enabled": true,
+    "notes": "Crayfish specialist of clean rocky streams.",
+    "target_aspect_ratio": 6.0,
+    "geographic_range": [
+      "midwest",
+      "northeast",
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "American Eel",
+    "slug": "american_eel",
+    "scientific_name": "Anguilla rostrata",
+    "category": "fish",
+    "habitat_tags": [
+      "freshwater",
+      "brackish",
+      "rivers",
+      "streams"
+    ],
+    "key_visual_traits": [
+      "extremely elongated snake-like fish, body length about 15-20 times body depth, nearly cylindrical",
+      "yellow-brown to olive back fading to yellowish belly (yellow phase) or silvery (migratory silver phase)",
+      "long dorsal fin continuous with caudal and anal fins forming a single fringe along posterior half",
+      "no pelvic fins, small rounded pectoral fins just behind gill",
+      "lower jaw projects slightly beyond upper"
+    ],
+    "relative_scale_index": 2.0,
+    "enabled": true,
+    "notes": "Catadromous; spawns in Sargasso Sea, matures in freshwater.",
+    "target_aspect_ratio": 10.0,
+    "geographic_range": [
+      "northeast",
+      "southeast",
+      "midwest"
+    ]
+  },
+  {
+    "common_name": "Chum Salmon",
+    "slug": "chum_salmon",
+    "scientific_name": "Oncorhynchus keta",
+    "category": "fish",
+    "habitat_tags": [
+      "freshwater",
+      "saltwater",
+      "rivers",
+      "ocean"
+    ],
+    "key_visual_traits": [
+      "robust elongated salmon, body length about 4-5 times body depth, classic torpedo profile",
+      "ocean phase: silver with small black speckles on back, no spots on tail",
+      "spawning male: olive-green with purplish vertical bars ('calico' pattern) and hooked jaw",
+      "spawning female: duller with dark horizontal stripe",
+      "large pupil nearly filling the eye"
+    ],
+    "relative_scale_index": 2.3,
+    "enabled": true,
+    "notes": "Dog salmon; second-largest Pacific salmon by size.",
+    "target_aspect_ratio": 3.5,
+    "geographic_range": [
+      "alaska",
+      "pacific_northwest"
+    ]
+  },
+  {
+    "common_name": "Redfin Pickerel",
+    "slug": "redfin_pickerel",
+    "scientific_name": "Esox americanus americanus",
+    "category": "fish",
+    "habitat_tags": [
+      "freshwater",
+      "swamps",
+      "backwaters",
+      "weedy"
+    ],
+    "key_visual_traits": [
+      "elongated pike-shaped body, body length about 5-6 times body depth, narrow streamlined profile",
+      "olive back with golden flanks marked with dark wavy vertical bars",
+      "distinctive red-orange lower fins (redfin)",
+      "duckbill-shaped snout shorter than grass pickerel's",
+      "dark vertical teardrop bar below the eye"
+    ],
+    "relative_scale_index": 0.6,
+    "enabled": true,
+    "notes": "Small colorful pickerel of eastern blackwater streams.",
+    "target_aspect_ratio": 4.5,
+    "geographic_range": [
+      "northeast",
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Grass Pickerel",
+    "slug": "grass_pickerel",
+    "scientific_name": "Esox americanus vermiculatus",
+    "category": "fish",
+    "habitat_tags": [
+      "freshwater",
+      "ponds",
+      "backwaters",
+      "weedy"
+    ],
+    "key_visual_traits": [
+      "elongated pike-shaped body, body length about 5-6 times body depth, narrow streamlined profile",
+      "olive-brown back with golden sides marked with chain-like dark wavy bars",
+      "pale yellow-green lower fins (not red)",
+      "dark vertical teardrop bar below eye",
+      "short duckbill snout with many sharp teeth"
+    ],
+    "relative_scale_index": 0.6,
+    "enabled": true,
+    "notes": "Western subspecies of redfin pickerel; drab fin colors.",
+    "target_aspect_ratio": 4.5,
+    "geographic_range": [
+      "midwest",
+      "northeast",
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Johnny Darter",
+    "slug": "johnny_darter",
+    "scientific_name": "Etheostoma nigrum",
+    "category": "fish",
+    "habitat_tags": [
+      "freshwater",
+      "streams",
+      "rivers",
+      "rocky"
+    ],
+    "key_visual_traits": [
+      "small slender darter, body length about 5-6 times body depth, elongated cigar profile",
+      "pale sand-colored body with dark W-, X-, or M-shaped marks along sides",
+      "large eyes high on head",
+      "two dorsal fins (spiny and soft) close together",
+      "rests on bottom propped up on large pectoral fins"
+    ],
+    "relative_scale_index": 0.2,
+    "enabled": true,
+    "notes": "Most widespread darter; clean gravel streams.",
+    "target_aspect_ratio": 4.5,
+    "geographic_range": [
+      "midwest",
+      "northeast",
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Rainbow Darter",
+    "slug": "rainbow_darter",
+    "scientific_name": "Etheostoma caeruleum",
+    "category": "fish",
+    "habitat_tags": [
+      "freshwater",
+      "streams",
+      "rocky"
+    ],
+    "key_visual_traits": [
+      "small slender darter, body length about 5-6 times body depth, elongated profile",
+      "breeding male: brilliant alternating bright blue and red-orange vertical bars on sides",
+      "female: pale olive with subtle brownish bars",
+      "orange belly in breeding males",
+      "two dorsal fins and bold-eyed profile"
+    ],
+    "relative_scale_index": 0.2,
+    "enabled": true,
+    "notes": "Among the most colorful freshwater fish in North America.",
+    "target_aspect_ratio": 4.5,
+    "geographic_range": [
+      "midwest",
+      "southeast",
+      "northeast"
+    ]
+  },
+  {
+    "common_name": "Common Shiner",
+    "slug": "common_shiner",
+    "scientific_name": "Luxilus cornutus",
+    "category": "fish",
+    "habitat_tags": [
+      "freshwater",
+      "streams",
+      "rivers"
+    ],
+    "key_visual_traits": [
+      "slender streamlined minnow, body length about 3.5-4 times body depth, laterally compressed",
+      "silvery sides with dusky olive back and faint dark lateral line",
+      "breeding male: rosy pink fins and head with prominent tubercles (bumps)",
+      "large scales on flanks with dark crescent edges",
+      "terminal slightly upturned mouth"
+    ],
+    "relative_scale_index": 0.3,
+    "enabled": true,
+    "notes": "Common stream minnow; males become gaudy in spring.",
+    "target_aspect_ratio": 3.8,
+    "geographic_range": [
+      "northeast",
+      "midwest",
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Golden Shiner",
+    "slug": "golden_shiner",
+    "scientific_name": "Notemigonus crysoleucas",
+    "category": "fish",
+    "habitat_tags": [
+      "freshwater",
+      "ponds",
+      "lakes",
+      "weedy"
+    ],
+    "key_visual_traits": [
+      "deep-bodied slab-sided minnow, body length about 2.5-3 times body depth, laterally compressed",
+      "golden or brassy sides with olive back",
+      "small upturned mouth and arched back",
+      "scaleless keel along belly between pelvic fins and anus (diagnostic)",
+      "deeply forked tail"
+    ],
+    "relative_scale_index": 0.3,
+    "enabled": true,
+    "notes": "Widely used as a bait minnow; tolerant of poor water.",
+    "target_aspect_ratio": 3.0,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Fathead Minnow",
+    "slug": "fathead_minnow",
+    "scientific_name": "Pimephales promelas",
+    "category": "fish",
+    "habitat_tags": [
+      "freshwater",
+      "ponds",
+      "streams",
+      "weedy"
+    ],
+    "key_visual_traits": [
+      "small chubby minnow, body length about 3.5-4 times body depth, stout profile",
+      "olive-brown back fading to pale silvery belly",
+      "dusky mid-lateral stripe and dark blotch at front of dorsal fin",
+      "blunt rounded head with small upturned mouth",
+      "breeding male: jet black head with white tubercles and fleshy back pad"
+    ],
+    "relative_scale_index": 0.2,
+    "enabled": true,
+    "notes": "Ubiquitous baitfish and toxicity-testing model organism.",
+    "target_aspect_ratio": 3.5,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Banded Killifish",
+    "slug": "banded_killifish",
+    "scientific_name": "Fundulus diaphanus",
+    "category": "fish",
+    "habitat_tags": [
+      "freshwater",
+      "brackish",
+      "ponds",
+      "weedy"
+    ],
+    "key_visual_traits": [
+      "elongated cylindrical topminnow, body length about 4-5 times body depth, slightly flattened above",
+      "silvery-olive body with 12-20 thin dark vertical bars along the sides",
+      "flat-topped head and upturned mouth for surface feeding",
+      "dorsal fin set far back on the body",
+      "rounded caudal fin"
+    ],
+    "relative_scale_index": 0.3,
+    "enabled": true,
+    "notes": "Only native freshwater killifish in much of the Northeast.",
+    "target_aspect_ratio": 4.0,
+    "geographic_range": [
+      "northeast",
+      "midwest"
+    ]
+  },
+  {
+    "common_name": "Mummichog",
+    "slug": "mummichog",
+    "scientific_name": "Fundulus heteroclitus",
+    "category": "fish",
+    "habitat_tags": [
+      "brackish",
+      "saltwater",
+      "marshes",
+      "estuaries"
+    ],
+    "key_visual_traits": [
+      "stocky stout topminnow, body length about 3.5-4 times body depth, chunky profile",
+      "male: olive-green with silvery vertical bars and yellow belly in breeding season",
+      "female: plain olive-brown with faint darker mottling",
+      "flat-topped head and upturned mouth",
+      "rounded caudal fin and blunt body shape"
+    ],
+    "relative_scale_index": 0.25,
+    "enabled": true,
+    "notes": "Tolerant estuarine killifish; survives extreme salinity and temperature.",
+    "target_aspect_ratio": 3.5,
+    "geographic_range": [
+      "northeast",
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Pickerel Frog",
+    "slug": "pickerel_frog",
+    "scientific_name": "Lithobates palustris",
+    "category": "amphibian",
+    "habitat_tags": [
+      "freshwater",
+      "streams",
+      "marshes",
+      "wet forests"
+    ],
+    "key_visual_traits": [
+      "medium slim true frog, body proportions about 1.5:1 landscape when sitting, long legs folded",
+      "tan to bronze dorsum with two parallel rows of squarish dark brown spots (chocolate bars)",
+      "bright yellow or orange wash on the underside of thighs (flash colors)",
+      "prominent dorsolateral ridges running length of back",
+      "pointed snout and bronze-colored eye"
+    ],
+    "relative_scale_index": 0.3,
+    "enabled": true,
+    "notes": "Skin secretions toxic to other amphibians; clean cool water.",
+    "target_aspect_ratio": 1.4,
+    "geographic_range": [
+      "northeast",
+      "midwest",
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Mink Frog",
+    "slug": "mink_frog",
+    "scientific_name": "Lithobates septentrionalis",
+    "category": "amphibian",
+    "habitat_tags": [
+      "freshwater",
+      "lakes",
+      "bogs"
+    ],
+    "key_visual_traits": [
+      "medium stocky true frog, body proportions about 1.4:1 landscape when sitting",
+      "green to olive-brown dorsum irregularly mottled with dark blotches (not bars)",
+      "skin smells like mink or rotten onions when handled",
+      "fully webbed hind feet (more webbed than bullfrog)",
+      "no dorsolateral ridges; dark spots spill onto yellowish belly"
+    ],
+    "relative_scale_index": 0.4,
+    "enabled": true,
+    "notes": "Northernmost US ranid; bogs and northern lakes.",
+    "target_aspect_ratio": 1.4,
+    "geographic_range": [
+      "northeast"
+    ]
+  },
+  {
+    "common_name": "Barking Treefrog",
+    "slug": "barking_treefrog",
+    "scientific_name": "Hyla gratiosa",
+    "category": "amphibian",
+    "habitat_tags": [
+      "freshwater",
+      "ponds",
+      "swamps"
+    ],
+    "key_visual_traits": [
+      "large chunky treefrog, body proportions about 1.2:1 landscape, granular skin",
+      "bright green to brownish with many dark round spots scattered over the back",
+      "white to yellow stripe along upper lip and side",
+      "largest native US treefrog (up to 7 cm)",
+      "large sticky toe pads and granular bumpy skin"
+    ],
+    "relative_scale_index": 0.2,
+    "enabled": true,
+    "notes": "Loud dog-like barking call from high in trees.",
+    "target_aspect_ratio": 1.2,
+    "geographic_range": [
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Greater Siren",
+    "slug": "greater_siren",
+    "scientific_name": "Siren lacertina",
+    "category": "amphibian",
+    "habitat_tags": [
+      "freshwater",
+      "swamps",
+      "marshes",
+      "weedy"
+    ],
+    "key_visual_traits": [
+      "enormous eel-like salamander, body length about 15-20 times body depth, extremely elongated",
+      "olive-gray to dark brown with faint greenish or yellowish flecks",
+      "external feathery red gills behind head (neotenic, kept for life)",
+      "only two small front legs with four toes; no hind legs",
+      "long laterally compressed tail with a dorsal fin"
+    ],
+    "relative_scale_index": 1.5,
+    "enabled": true,
+    "notes": "One of largest salamanders in the world; fully aquatic.",
+    "target_aspect_ratio": 10.0,
+    "geographic_range": [
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Two-toed Amphiuma",
+    "slug": "two_toed_amphiuma",
+    "scientific_name": "Amphiuma means",
+    "category": "amphibian",
+    "habitat_tags": [
+      "freshwater",
+      "swamps",
+      "marshes",
+      "muddy"
+    ],
+    "key_visual_traits": [
+      "long eel-like salamander, body length about 18-25 times body depth, extremely elongated cylindrical",
+      "uniform dark slate-gray to blackish above, slightly paler below",
+      "four vestigial tiny legs, each with two toes (diagnostic)",
+      "no external gills; has gill slit but breathes air",
+      "small eyes without eyelids and broad flattened head"
+    ],
+    "relative_scale_index": 1.8,
+    "enabled": true,
+    "notes": "Congo eel; can inflict serious bite when handled.",
+    "target_aspect_ratio": 12.0,
+    "geographic_range": [
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Watershield",
+    "slug": "watershield",
+    "scientific_name": "Brasenia schreberi",
+    "category": "plant",
+    "habitat_tags": [
+      "freshwater",
+      "ponds",
+      "lakes",
+      "still water"
+    ],
+    "key_visual_traits": [
+      "small floating-leaved aquatic plant, leaves about 1.5:1 oval landscape",
+      "small oval floating leaves 5-10 cm with central petiole attachment (like miniature lily)",
+      "leaves dark green above, reddish-purple below",
+      "entire plant (underside of leaves, stems, buds) coated in thick clear jelly",
+      "small dull purple flowers held just above water"
+    ],
+    "relative_scale_index": 0.1,
+    "enabled": true,
+    "notes": "Floating leaves in soft-water ponds; characteristic gelatinous coating.",
+    "target_aspect_ratio": 1.5,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Water Willow",
+    "slug": "water_willow",
+    "scientific_name": "Justicia americana",
+    "category": "plant",
+    "habitat_tags": [
+      "freshwater",
+      "streams",
+      "rivers",
+      "rocky"
+    ],
+    "key_visual_traits": [
+      "emergent streamside herb, colonies about 0.4:1 portrait with erect stems",
+      "lance-shaped opposite willow-like leaves along erect stems",
+      "grows in dense colonies from rhizomes in shallow flowing water",
+      "small orchid-like white flowers with purple markings in compact clusters",
+      "stems 30-80 cm tall emergent above water"
+    ],
+    "relative_scale_index": 0.4,
+    "enabled": true,
+    "notes": "Dominant emergent plant of rocky stream margins in the east.",
+    "target_aspect_ratio": 0.5,
+    "geographic_range": [
+      "midwest",
+      "northeast",
+      "southeast"
+    ]
+  },
+  {
+    "common_name": "Yellow Water Lily",
+    "slug": "yellow_water_lily",
+    "scientific_name": "Nuphar advena",
+    "category": "plant",
+    "habitat_tags": [
+      "freshwater",
+      "ponds",
+      "slow rivers",
+      "marshes"
+    ],
+    "key_visual_traits": [
+      "large floating-leaved aquatic, leaves about 1.2:1 nearly round",
+      "large heart-shaped to oval floating (or sometimes emergent) leaves 20-40 cm",
+      "bright yellow cup-shaped flowers held above water on stout stalks",
+      "leaves notched at base with rounded lobes",
+      "thick rhizome anchored in bottom mud"
+    ],
+    "relative_scale_index": 0.3,
+    "enabled": true,
+    "notes": "Spatterdock or cow lily; more tolerant of current than white water lilies.",
+    "target_aspect_ratio": 1.2,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Horsetail",
+    "slug": "horsetail",
+    "scientific_name": "Equisetum hyemale",
+    "category": "plant",
+    "habitat_tags": [
+      "freshwater",
+      "wet banks",
+      "marshes"
+    ],
+    "key_visual_traits": [
+      "emergent colonial plant, colonies about 0.15:1 extremely vertical portrait",
+      "hollow segmented bamboo-like unbranched green stems",
+      "each stem joint marked by a dark band of tiny tooth-like leaves",
+      "cone-like spore-bearing structure at tip of fertile stems",
+      "rough silica-impregnated stems (scouring rush)"
+    ],
+    "relative_scale_index": 0.3,
+    "enabled": true,
+    "notes": "Living fossil; unbranched evergreen stems on wet banks.",
+    "target_aspect_ratio": 0.2,
+    "geographic_range": [
+      "nationwide"
+    ]
+  },
+  {
+    "common_name": "Cardinal Flower",
+    "slug": "cardinal_flower",
+    "scientific_name": "Lobelia cardinalis",
+    "category": "plant",
+    "habitat_tags": [
+      "freshwater",
+      "wet banks",
+      "streamsides"
+    ],
+    "key_visual_traits": [
+      "tall slender streamside herb, colonies about 0.3:1 vertical portrait",
+      "unbranched leafy stem 60-150 cm tall",
+      "spike of brilliant scarlet-red tubular flowers at top",
+      "lance-shaped toothed alternate leaves along the stem",
+      "hummingbird-pollinated; flowers late summer"
+    ],
+    "relative_scale_index": 0.4,
+    "enabled": true,
+    "notes": "Among the most vivid native wildflowers; streamside and wet meadows.",
+    "target_aspect_ratio": 0.35,
+    "geographic_range": [
+      "nationwide"
+    ]
   }
 ]
