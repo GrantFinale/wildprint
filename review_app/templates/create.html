@@ -88,6 +88,14 @@
       <label>Background color
         <input type="color" id="poster-bg" value="#ffffff">
       </label>
+      <label>Background image (optional)
+        <input type="file" id="bg-upload" accept="image/png,image/jpeg">
+        <p class="subtle" style="font-size:0.75rem">Upload a landscape photo for your poster background. Leave blank for a solid color.</p>
+      </label>
+      <div id="bg-preview" style="display:none">
+        <img id="bg-thumb" style="max-height:80px; border-radius:4px">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-remove-bg">Remove</button>
+      </div>
       <label>Logo (optional)
         <input type="file" id="logo-upload" accept="image/png,image/jpeg">
       </label>
@@ -254,6 +262,29 @@ document.getElementById('btn-remove-logo').addEventListener('click', () => {
   document.getElementById('logo-upload').value = '';
 });
 
+// --- Background image upload handler ---
+let uploadedBackgroundFilename = null;
+document.getElementById('bg-upload').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('background', file);
+  const resp = await fetch('/api/upload-background', {method: 'POST', body: fd});
+  const data = await resp.json();
+  if (data.background_filename) {
+    uploadedBackgroundFilename = data.background_filename;
+    document.getElementById('bg-thumb').src = data.background_url;
+    document.getElementById('bg-preview').style.display = '';
+  } else if (data.error) {
+    alert('Background upload failed: ' + data.error);
+  }
+});
+document.getElementById('btn-remove-bg').addEventListener('click', () => {
+  uploadedBackgroundFilename = null;
+  document.getElementById('bg-preview').style.display = 'none';
+  document.getElementById('bg-upload').value = '';
+});
+
 // --- Generate poster handler ---
 document.getElementById('btn-generate').addEventListener('click', async () => {
   const status = document.getElementById('generate-status');
@@ -274,6 +305,7 @@ document.getElementById('btn-generate').addEventListener('click', async () => {
     background: document.getElementById('poster-bg').value,
     water_body_name: document.getElementById('water-name').value,
     logo_filename: uploadedLogoFilename,
+    background_image_filename: uploadedBackgroundFilename,
   };
   const resp = await fetch('/api/generate-poster', {
     method: 'POST',

@@ -27,6 +27,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -1067,6 +1068,243 @@ class PackedLayoutEngine(LayoutEngine):
                     )
 
         # 11. Return result.
+        return LayoutResult(
+            poster=spec,
+            placements=placements,
+            warnings=warnings,
+        )
+
+
+# --- SilhouettePackedLayoutEngine --------------------------------------------
+
+
+class SilhouettePackedLayoutEngine(LayoutEngine):
+    """Pack species using their actual alpha silhouettes, not bounding boxes.
+
+    Species can overlap at the bbox level if their alpha pixels don't
+    conflict. Produces tight organic compositions like ranger-station
+    wildlife posters where animals nest together.
+    """
+
+    def __init__(
+        self,
+        title_band_fraction: float = 0.10,
+        caption_band_fraction: float = 0.07,
+        side_margin_fraction: float = 0.03,
+        packing_target: float = 0.85,
+        scale_clamp_ratio: float = 4.0,
+        min_visible_fraction: float = 0.25,
+        overlap_tolerance: float = 0.02,
+        mask_resolution: int = 120,
+        label_height_px: int = 100,
+    ) -> None:
+        self.title_band_fraction = title_band_fraction
+        self.caption_band_fraction = caption_band_fraction
+        self.side_margin_fraction = side_margin_fraction
+        self.packing_target = packing_target
+        self.scale_clamp_ratio = scale_clamp_ratio
+        self.min_visible_fraction = min_visible_fraction
+        self.overlap_tolerance = overlap_tolerance
+        self.mask_resolution = mask_resolution
+        self.label_height_px = label_height_px
+
+    def layout(
+        self,
+        spec: PosterSpec,
+        species: list[SpeciesRef],
+        loader: MasterImageLoader,
+    ) -> LayoutResult:
+        import numpy as np
+        from PIL import Image
+
+        warnings: list[str] = []
+
+        # 1. Filter to species with masters.
+        present: list[SpeciesRef] = []
+        for ref in species:
+            if loader.exists(ref.slug, spec.style_slug):
+                present.append(ref)
+            else:
+                warnings.append(
+                    f"Missing master for species '{ref.slug}' in style "
+                    f"'{spec.style_slug}' — skipped."
+                )
+        if not present:
+            return LayoutResult(poster=spec, placements=[], warnings=warnings)
+
+        # 2. Sort largest-first.
+        species_sorted = sorted(
+            present, key=lambda r: r.relative_scale_index, reverse=True
+        )
+
+        # 3. Clamp scales.
+        largest_scale = species_sorted[0].relative_scale_index
+        floor = max(
+            largest_scale * self.min_visible_fraction,
+            largest_scale / self.scale_clamp_ratio,
+        )
+        effective: dict[str, float] = {}
+        for s in species_sorted:
+            effective[s.slug] = max(s.relative_scale_index, floor)
+
+        # 4. Geometry.
+        canvas_w = spec.canvas_width
+        canvas_h = spec.canvas_height
+        title_h = int(round(canvas_h * self.title_band_fraction))
+        caption_h = int(round(canvas_h * self.caption_band_fraction))
+        side_margin_px = int(round(canvas_w * self.side_margin_fraction))
+        content_w = canvas_w - 2 * side_margin_px
+        content_h = canvas_h - title_h - caption_h
+        content_x0 = side_margin_px
+        content_y0 = title_h
+
+        # 5. Load masters, compute tight-cropped aspect from alpha bbox.
+        masters: dict[str, MasterImage] = {}
+        cropped_aspects: dict[str, float] = {}
+        alpha_crops: dict[str, Image.Image] = {}
+        for s in species_sorted:
+            master = loader.get(s.slug, spec.style_slug)
+            masters[s.slug] = master
+            try:
+                with Image.open(master.image_path) as img:
+                    alpha = img.convert("RGBA").split()[3]
+                    bbox = alpha.getbbox()
+                    if bbox:
+                        alpha = alpha.crop(bbox)
+                    alpha_crops[s.slug] = alpha.copy()
+                    w_c, h_c = alpha.size
+                    cropped_aspects[s.slug] = max(1, w_c) / max(1, h_c)
+            except Exception as exc:  # noqa: BLE001
+                warnings.append(
+                    f"SilhouettePackedLayoutEngine: alpha load failed for "
+                    f"'{s.slug}' ({exc}) — skipped."
+                )
+                continue
+
+        # 6. Target draw sizes via area budget.
+        total_weight = sum(effective[s.slug] ** 2 for s in species_sorted if s.slug in alpha_crops)
+        if total_weight <= 0:
+            return LayoutResult(poster=spec, placements=[], warnings=warnings)
+        target_area = content_w * content_h * self.packing_target
+
+        draws: dict[str, tuple[int, int]] = {}
+        for s in species_sorted:
+            if s.slug not in alpha_crops:
+                continue
+            weight = effective[s.slug] ** 2
+            area = weight / total_weight * target_area
+            aspect = cropped_aspects[s.slug]
+            w = math.sqrt(area * aspect)
+            h = w / aspect
+            draws[s.slug] = (max(1, int(round(w))), max(1, int(round(h))))
+
+        # 7. Mask resolution for occupancy grid — scale content area so
+        # the longest axis equals (roughly) mask_resolution * aspect.
+        if content_w >= content_h:
+            mask_w = int(self.mask_resolution * 1.6)
+            mask_h = int(mask_w * content_h / max(1, content_w))
+        else:
+            mask_h = int(self.mask_resolution * 1.6)
+            mask_w = int(mask_h * content_w / max(1, content_h))
+        mask_w = max(32, mask_w)
+        mask_h = max(32, mask_h)
+        px_per_mask_x = content_w / mask_w
+        px_per_mask_y = content_h / mask_h
+
+        occupancy = np.zeros((mask_h, mask_w), dtype=bool)
+
+        placements: list[PlacedItem] = []
+        pixels_checked_total = 0
+
+        for s in species_sorted:
+            if s.slug not in draws:
+                continue
+            dw, dh = draws[s.slug]
+            alpha_cropped = alpha_crops[s.slug]
+
+            # Resize the alpha crop to fit within mask coordinates
+            # proportional to this species' draw size.
+            sm_w = max(2, int(round(dw / px_per_mask_x)))
+            sm_h = max(2, int(round(dh / px_per_mask_y)))
+            # Clamp to occupancy size.
+            sm_w = min(sm_w, mask_w)
+            sm_h = min(sm_h, mask_h)
+
+            mask_small = alpha_cropped.resize(
+                (sm_w, sm_h), Image.LANCZOS
+            )
+            target_mask = np.array(mask_small) > 64
+            species_pixels = int(target_mask.sum())
+            if species_pixels <= 0:
+                continue
+
+            # Walk candidate positions with coarse step.
+            step = max(2, sm_w // 24)
+            cx_mask = mask_w // 2
+            cy_mask = mask_h // 2
+
+            def _find_position(tolerance: float) -> tuple[int, int, int] | None:
+                nonlocal pixels_checked_total
+                best: tuple[float, int, int, int] | None = None
+                y = 0
+                while y <= mask_h - sm_h:
+                    x = 0
+                    while x <= mask_w - sm_w:
+                        region = occupancy[y:y + sm_h, x:x + sm_w]
+                        overlap_count = int(np.logical_and(target_mask, region).sum())
+                        pixels_checked_total += target_mask.size
+                        frac = overlap_count / species_pixels
+                        if frac <= tolerance:
+                            # center of placed bbox
+                            px_center = x + sm_w / 2
+                            py_center = y + sm_h / 2
+                            dist = (px_center - cx_mask) ** 2 + (
+                                py_center - cy_mask
+                            ) ** 2
+                            cand = (dist, overlap_count, x, y)
+                            if best is None or cand < best:
+                                best = cand
+                        x += step
+                    y += step
+                if best is None:
+                    return None
+                return best[2], best[3], best[1]
+
+            pos = _find_position(self.overlap_tolerance)
+            if pos is None:
+                pos = _find_position(0.15)
+            if pos is None:
+                warnings.append(
+                    f"SilhouettePackedLayoutEngine: no valid position for "
+                    f"'{s.slug}' — placing at top-left fallback."
+                )
+                pos = (0, 0, 0)
+
+            mx, my, _ov = pos
+            # Update occupancy.
+            occupancy[my:my + sm_h, mx:mx + sm_w] |= target_mask
+
+            # Convert mask coords to canvas pixels.
+            canvas_x = int(round(content_x0 + mx * px_per_mask_x))
+            canvas_y = int(round(content_y0 + my * px_per_mask_y))
+
+            placements.append(
+                PlacedItem(
+                    species_ref=s,
+                    master=masters[s.slug],
+                    x=canvas_x,
+                    y=canvas_y,
+                    draw_width=dw,
+                    draw_height=dh,
+                )
+            )
+
+        logger.info(
+            "SilhouettePackedLayoutEngine: placed %d species; mask=%dx%d; "
+            "alpha pixels evaluated ~%d",
+            len(placements), mask_w, mask_h, pixels_checked_total,
+        )
+
         return LayoutResult(
             poster=spec,
             placements=placements,

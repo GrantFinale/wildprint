@@ -154,6 +154,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Do not render species labels beneath illustrations.",
     )
     parser.add_argument(
+        "--background-image",
+        default=None,
+        help=(
+            "Path to a background image (PNG/JPEG). When set, the poster "
+            "renders onto this image instead of a solid color. Applies only "
+            "to the editorial multi-species renderer."
+        ),
+    )
+    parser.add_argument(
         "--logo",
         default=None,
         help=(
@@ -423,6 +432,13 @@ def main(argv: list[str] | None = None) -> int:
         # Pass logo path through for editorial renderers.
         if args.logo:
             renderer._logo_path = Path(args.logo)  # type: ignore[attr-defined]
+        if args.background_image:
+            bg_img_path = Path(args.background_image)
+            if not bg_img_path.is_file():
+                parser.error(
+                    f"--background-image '{bg_img_path}' does not exist"
+                )
+            renderer._background_image_path = bg_img_path  # type: ignore[attr-defined]
     else:
         renderer = PillowPosterRenderer()
     logger.info("Rendering poster to %s ...", output_path)

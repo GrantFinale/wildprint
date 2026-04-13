@@ -923,12 +923,71 @@ class EditorialMultiRenderer(PosterRenderer):
         self.caption_letter_spacing = caption_letter_spacing
         self.label_letter_spacing = label_letter_spacing
         self.border_plants: bool = False
+        self._background_image_path: Path | None = None
+        self.background_dim: float = 0.15
 
     def render(self, result: LayoutResult, output_path: Path) -> None:
         spec = result.poster
 
         bg = spec.background_color or self.DEFAULT_BACKGROUND
-        title_c, sci_c, rule_c, caption_c = _adaptive_palette(bg)
+
+        # If a background image is supplied, build the canvas from it
+        # (object-fit: cover), then derive the text palette from the
+        # sampled luminance of the title band so Didot stays legible.
+        bg_image_canvas: Image.Image | None = None
+        sampled_luminance: float | None = None
+        if getattr(self, "_background_image_path", None):
+            try:
+                with Image.open(self._background_image_path) as src:
+                    src = src.convert("RGB")
+                    src_w, src_h = src.size
+                    canvas_w0, canvas_h0 = spec.canvas_width, spec.canvas_height
+                    scale = max(canvas_w0 / src_w, canvas_h0 / src_h)
+                    new_w = max(1, int(round(src_w * scale)))
+                    new_h = max(1, int(round(src_h * scale)))
+                    resized = src.resize((new_w, new_h), Image.LANCZOS)
+                    left = (new_w - canvas_w0) // 2
+                    top = (new_h - canvas_h0) // 2
+                    bg_image_canvas = resized.crop(
+                        (left, top, left + canvas_w0, top + canvas_h0)
+                    )
+                    dim = max(0.0, min(1.0, float(self.background_dim)))
+                    if dim > 0:
+                        overlay = Image.new(
+                            "RGB", bg_image_canvas.size, (255, 255, 255)
+                        )
+                        bg_image_canvas = Image.blend(
+                            bg_image_canvas, overlay, dim * 0.3
+                        )
+                    import numpy as _np
+                    top_slice = _np.asarray(
+                        bg_image_canvas.crop(
+                            (0, 0, canvas_w0, max(1, int(canvas_h0 * 0.15)))
+                        )
+                    )
+                    r = top_slice[..., 0].astype("float32")
+                    g = top_slice[..., 1].astype("float32")
+                    b = top_slice[..., 2].astype("float32")
+                    sampled_luminance = float(
+                        (0.2126 * r + 0.7152 * g + 0.0722 * b).mean()
+                    )
+                    logger.info(
+                        "background image: %s sampled title luminance=%.0f",
+                        self._background_image_path, sampled_luminance,
+                    )
+            except (OSError, Image.UnidentifiedImageError) as exc:
+                logger.warning(
+                    "Could not load background image %s: %s",
+                    self._background_image_path, exc,
+                )
+                bg_image_canvas = None
+
+        if sampled_luminance is not None:
+            grey = max(0, min(255, int(round(sampled_luminance))))
+            synth = f"#{grey:02x}{grey:02x}{grey:02x}"
+            title_c, sci_c, rule_c, caption_c = _adaptive_palette(synth)
+        else:
+            title_c, sci_c, rule_c, caption_c = _adaptive_palette(bg)
         self.title_color = title_c
         self.scientific_color = sci_c
         self.rule_color = rule_c
@@ -940,9 +999,12 @@ class EditorialMultiRenderer(PosterRenderer):
             title_c,
         )
 
-        canvas = Image.new(
-            "RGB", (spec.canvas_width, spec.canvas_height), color=bg
-        )
+        if bg_image_canvas is not None:
+            canvas = bg_image_canvas.copy()
+        else:
+            canvas = Image.new(
+                "RGB", (spec.canvas_width, spec.canvas_height), color=bg
+            )
         draw = ImageDraw.Draw(canvas)
 
         if not result.placements:

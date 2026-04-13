@@ -214,6 +214,11 @@
         <label>Background color
           <input type="color" name="background" value="#ffffff" title="Click to pick a background color for the poster">
         </label>
+        <label>Background image (optional)
+          <input type="file" id="console-bg-upload" accept="image/png,image/jpeg">
+          <input type="hidden" name="background_image_filename" id="console-bg-filename">
+          <span id="console-bg-status" class="subtle" style="font-size:0.75rem"></span>
+        </label>
         <label>Max per row fraction
           <input type="number" step="0.05" name="max_per_row_fraction" placeholder="optional">
         </label>
@@ -464,6 +469,37 @@
 
   refreshRecent();
   refreshPosters();
+
+  // Background image upload for render-poster form.
+  var bgInput = document.getElementById("console-bg-upload");
+  if (bgInput) {
+    bgInput.addEventListener("change", function (e) {
+      var file = e.target.files[0];
+      var statusEl = document.getElementById("console-bg-status");
+      var hidden = document.getElementById("console-bg-filename");
+      if (!file) {
+        hidden.value = "";
+        statusEl.textContent = "";
+        return;
+      }
+      statusEl.textContent = "uploading...";
+      var fd = new FormData();
+      fd.append("background", file);
+      fetch("/api/upload-background", {method: "POST", body: fd})
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.background_filename) {
+            hidden.value = data.background_filename;
+            statusEl.textContent = "uploaded: " + data.background_filename;
+          } else {
+            statusEl.textContent = "error: " + (data.error || "upload failed");
+          }
+        })
+        .catch(function (err) {
+          statusEl.textContent = "error: " + err;
+        });
+    });
+  }
 })();
 </script>
 {% endblock %}

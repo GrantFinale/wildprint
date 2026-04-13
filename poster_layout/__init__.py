@@ -20,6 +20,7 @@ from poster_layout.engines import (
     HeroLayoutEngine,
     PackedLayoutEngine,
     ScaledRowLayoutEngine,
+    SilhouettePackedLayoutEngine,
     SmallEnsembleLayoutEngine,
 )
 from poster_layout.renderer import (
@@ -44,6 +45,7 @@ __all__ = [
     "GridLayoutEngine",
     "HeroLayoutEngine",
     "PackedLayoutEngine",
+    "SilhouettePackedLayoutEngine",
     "SmallEnsembleLayoutEngine",
     "PillowPosterRenderer",
     "EditorialPosterRenderer",

@@ -433,6 +433,18 @@ def _build_argv(cmd_id: str, form: dict) -> list[str]:
             argv += ["--max-per-row-fraction", mprf]
         if _truthy(form.get("no_labels")):
             argv += ["--no-labels"]
+        bg_image_filename = (form.get("background_image_filename") or "").strip()
+        if bg_image_filename:
+            if not re.fullmatch(r"[\w.\-]+", bg_image_filename):
+                raise ValueError("invalid background_image_filename")
+            bg_path = (
+                Path(PROJECT_ROOT) / "output" / "uploads" / bg_image_filename
+            )
+            if not bg_path.is_file():
+                raise ValueError(
+                    f"background image not found: {bg_image_filename}"
+                )
+            argv += ["--background-image", str(bg_path)]
         output = (form.get("output") or "").strip()
         if output:
             argv += ["--output", _validate_output_path(output)]
@@ -974,6 +986,50 @@ def api_upload_logo():
     return jsonify({"logo_filename": filename, "logo_url": logo_url})
 
 
+@app.route("/api/upload-background", methods=["POST"])
+def api_upload_background():
+    """Accept a background image upload (PNG/JPEG, min 1536x1024, max 15 MB)."""
+    if "background" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    file = request.files["background"]
+    if not file.filename:
+        return jsonify({"error": "No file selected"}), 400
+
+    ext = Path(file.filename).suffix.lower()
+    if ext not in (".png", ".jpg", ".jpeg"):
+        return jsonify({"error": "Only PNG and JPEG files are allowed"}), 400
+
+    file_bytes = file.read()
+    if len(file_bytes) > 15 * 1024 * 1024:
+        return jsonify({"error": "File exceeds 15 MB limit"}), 400
+
+    # Validate minimum dimensions.
+    import io as _io
+    try:
+        from PIL import Image as _PILImage
+        with _PILImage.open(_io.BytesIO(file_bytes)) as probe:
+            pw, ph = probe.size
+    except Exception:  # noqa: BLE001
+        return jsonify({"error": "Could not read image"}), 400
+    if pw < 1536 or ph < 1024:
+        return jsonify(
+            {"error": f"Image must be at least 1536x1024 (got {pw}x{ph})"}
+        ), 400
+
+    uploads_dir = Path(PROJECT_ROOT) / "output" / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_name = re.sub(r"[^\w.\-]", "_", Path(file.filename).name)
+    filename = f"bg_{uuid.uuid4().hex}_{safe_name}"
+    dest = uploads_dir / filename
+    dest.write_bytes(file_bytes)
+
+    background_url = f"/image/output/uploads/{filename}"
+    return jsonify(
+        {"background_filename": filename, "background_url": background_url}
+    )
+
+
 @app.route("/api/generate-poster", methods=["POST"])
 def api_generate_poster():
     """Generate a poster from selected species and options."""
@@ -984,6 +1040,7 @@ def api_generate_poster():
     subtitle = data.get("subtitle", "") or None
     background = data.get("background", "#FFFFFF")
     logo_filename = data.get("logo_filename")
+    background_image_filename = data.get("background_image_filename")
 
     if not species_slugs:
         return jsonify({"error": "No species selected"}), 400
@@ -1057,6 +1114,12 @@ def api_generate_poster():
         logo_path = Path(PROJECT_ROOT) / "output" / "uploads" / logo_filename
         if logo_path.exists():
             renderer._logo_path = logo_path
+    if background_image_filename:
+        bg_path = (
+            Path(PROJECT_ROOT) / "output" / "uploads" / background_image_filename
+        )
+        if bg_path.exists():
+            renderer._background_image_path = bg_path
 
     poster_id = f"custom_{uuid.uuid4().hex}"
     posters_dir = Path(PROJECT_ROOT) / "output" / "posters"
