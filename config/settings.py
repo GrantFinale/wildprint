@@ -88,6 +88,7 @@ BASE_PROMPT_BY_CATEGORY: dict[str, Path] = {
 
 # Provider / model settings ----------------------------------------------------
 OPENAI_API_KEY: str | None = os.getenv("OPENAI_API_KEY")
+REPLICATE_API_TOKEN: str | None = os.getenv("REPLICATE_API_TOKEN")
 RECRAFT_API_KEY: str | None = os.getenv("RECRAFT_API_KEY")
 DEFAULT_PROVIDER: str = os.getenv("WILDPRINT_DEFAULT_PROVIDER", "mock")
 DEFAULT_MODEL: str = os.getenv("WILDPRINT_DEFAULT_MODEL", "gpt-image-1")

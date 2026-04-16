@@ -925,6 +925,11 @@ class EditorialMultiRenderer(PosterRenderer):
         self.border_plants: bool = False
         self._background_image_path: Path | None = None
         self.background_dim: float = 0.15
+        # Leader-line mode: place labels in whitespace with thin connector
+        # lines. When False, labels sit directly below species (original).
+        self.leader_line_labels: bool = True
+        self.leader_line_width: int = 1
+        self.leader_max_length: float = 0.12
 
     def render(self, result: LayoutResult, output_path: Path) -> None:
         spec = result.poster
@@ -1085,18 +1090,33 @@ class EditorialMultiRenderer(PosterRenderer):
 
         for placed in result.placements:
             self._paste_item(canvas, placed)
-            bucket = placed.y // 80 * 80
-            is_dense = len(shelves.get(bucket, [])) > 4
-            _draw_species_label(
+
+        if self.leader_line_labels:
+            self._draw_labels_with_leaders(
+                canvas=canvas,
                 draw=draw,
-                placed=placed,
-                common_font=dense_common if is_dense else label_common_regular,
-                scientific_font=dense_italic if is_dense else label_italic_font,
-                common_color=self.title_color,
-                sci_color=self.scientific_color,
-                label_gap_px=self.label_gap_px,
-                common_letter_spacing=dense_spacing if is_dense else self.label_letter_spacing,
+                result=result,
+                common_font=label_common_regular,
+                scientific_font=label_italic_font,
+                label_color=self.title_color,
+                scientific_color=self.scientific_color,
+                title_band_h=title_band_h,
+                caption_band_h=caption_band_h,
             )
+        else:
+            for placed in result.placements:
+                bucket = placed.y // 80 * 80
+                is_dense = len(shelves.get(bucket, [])) > 4
+                _draw_species_label(
+                    draw=draw,
+                    placed=placed,
+                    common_font=dense_common if is_dense else label_common_regular,
+                    scientific_font=dense_italic if is_dense else label_italic_font,
+                    common_color=self.title_color,
+                    sci_color=self.scientific_color,
+                    label_gap_px=self.label_gap_px,
+                    common_letter_spacing=dense_spacing if is_dense else self.label_letter_spacing,
+                )
 
         # 2b. Border plants — decorative waterline strip above caption band.
         if self.border_plants:
@@ -1276,3 +1296,212 @@ class EditorialMultiRenderer(PosterRenderer):
             canvas.paste(resized, (placed.x, placed.y), mask=alpha)
         else:
             canvas.paste(resized.convert("RGB"), (placed.x, placed.y))
+
+    # -------------------------------------------------- leader-line labels
+    def _draw_labels_with_leaders(
+        self,
+        canvas: Image.Image,
+        draw: ImageDraw.ImageDraw,
+        result: LayoutResult,
+        common_font: ImageFont.ImageFont,
+        scientific_font: ImageFont.ImageFont,
+        label_color: str,
+        scientific_color: str,
+        title_band_h: int,
+        caption_band_h: int,
+    ) -> None:
+        """Place each species label in nearby whitespace with a leader line.
+
+        Approximate occupancy via a down-scaled alpha mask for speed. For
+        each species (largest first), try a prioritized list of candidate
+        anchor positions; the first candidate that clears the mask wins.
+        Fall back to inline-below on failure so we never crash.
+        """
+        import numpy as np
+
+        spec = result.poster
+        canvas_w = spec.canvas_width
+        canvas_h = spec.canvas_height
+        scale = 0.25
+        mask_w = max(1, int(canvas_w * scale))
+        mask_h = max(1, int(canvas_h * scale))
+        occupancy = np.zeros((mask_h, mask_w), dtype=bool)
+
+        # Seed occupancy with title + caption bands (labels must not intrude).
+        band_top = min(mask_h, int(title_band_h * scale))
+        occupancy[:band_top, :] = True
+        band_bottom_start = max(0, mask_h - int(caption_band_h * scale))
+        occupancy[band_bottom_start:, :] = True
+
+        # Seed with each species silhouette (alpha > 64).
+        for p in result.placements:
+            try:
+                with Image.open(p.master.image_path) as img:
+                    alpha = img.convert("RGBA").split()[3]
+                    bbox = alpha.getbbox()
+                    if bbox:
+                        alpha = alpha.crop(bbox)
+                        # Map bbox in source to draw rect via proportional scale.
+                        src_w, src_h = img.size
+                    ew = max(1, int(p.draw_width * scale))
+                    eh = max(1, int(p.draw_height * scale))
+                    a = alpha.resize((ew, eh), Image.LANCZOS)
+                    arr = np.array(a) > 64
+            except Exception:  # noqa: BLE001
+                continue
+            ex = int(p.x * scale)
+            ey = int(p.y * scale)
+            ex2 = min(mask_w, ex + ew)
+            ey2 = min(mask_h, ey + eh)
+            ex_c = max(0, ex)
+            ey_c = max(0, ey)
+            if ex_c >= ex2 or ey_c >= ey2:
+                continue
+            sub = arr[
+                ey_c - ey : ey_c - ey + (ey2 - ey_c),
+                ex_c - ex : ex_c - ex + (ex2 - ex_c),
+            ]
+            occupancy[ey_c:ey2, ex_c:ex2] |= sub
+
+        def _fits(lx: int, ly: int, lw: int, lh: int) -> bool:
+            if lx < 0 or ly < 0 or lx + lw > canvas_w or ly + lh > canvas_h:
+                return False
+            mx = int(lx * scale)
+            my = int(ly * scale)
+            mx2 = int((lx + lw) * scale)
+            my2 = int((ly + lh) * scale)
+            mx = max(0, mx); my = max(0, my)
+            mx2 = min(mask_w, mx2); my2 = min(mask_h, my2)
+            if mx >= mx2 or my >= my2:
+                return False
+            region = occupancy[my:my2, mx:mx2]
+            if region.size == 0:
+                return False
+            return (region.sum() / region.size) < 0.05
+
+        def _mark(lx: int, ly: int, lw: int, lh: int) -> None:
+            mx = max(0, int(lx * scale))
+            my = max(0, int(ly * scale))
+            mx2 = min(mask_w, int((lx + lw) * scale))
+            my2 = min(mask_h, int((ly + lh) * scale))
+            if mx < mx2 and my < my2:
+                occupancy[my:my2, mx:mx2] = True
+
+        def _measure_label(sp: SpeciesRef) -> tuple[int, int, int, int]:
+            """Return (label_w, label_h, common_w, common_h)."""
+            common = (sp.common_name or "").upper()
+            sci = sp.scientific_name or ""
+            spacing = self.label_letter_spacing
+            common_w = 0
+            common_h = 0
+            if common:
+                advances = [_text_size(draw, ch, common_font)[0] for ch in common]
+                common_w = sum(advances) + spacing * max(0, len(common) - 1)
+                _, common_h = _text_size(draw, common, common_font)
+            sci_w = sci_h = 0
+            if sci:
+                sci_w, sci_h = _text_size(draw, sci, scientific_font)
+            gap = max(6, common_h // 4) if common and sci else 0
+            lw = max(common_w, sci_w)
+            lh = common_h + gap + sci_h
+            return lw, lh, common_w, common_h
+
+        def _draw_label_block(
+            lx: int, ly: int, lw: int, sp: SpeciesRef, common_w: int, common_h: int
+        ) -> None:
+            common = (sp.common_name or "").upper()
+            spacing = self.label_letter_spacing
+            cx = lx + lw // 2
+            if common:
+                advances = [_text_size(draw, ch, common_font)[0] for ch in common]
+                cursor = cx - common_w // 2
+                for ch, adv in zip(common, advances):
+                    draw.text((cursor, ly), ch, font=common_font, fill=label_color)
+                    cursor += adv + spacing
+                next_top = ly + common_h + max(6, common_h // 4)
+            else:
+                next_top = ly
+            sci = sp.scientific_name or ""
+            if sci:
+                sw, _sh = _text_size(draw, sci, scientific_font)
+                draw.text(
+                    (cx - sw // 2, next_top), sci, font=scientific_font,
+                    fill=scientific_color,
+                )
+
+        # Place labels largest-first (so tiny species get the leftover whitespace).
+        ordered = sorted(
+            result.placements,
+            key=lambda p: p.draw_width * p.draw_height,
+            reverse=True,
+        )
+
+        gap = 20
+        max_leader = int(canvas_w * self.leader_max_length)
+        leader_count = 0
+        fallback_count = 0
+
+        for placed in ordered:
+            sp = placed.species_ref
+            lw, lh, common_w, common_h = _measure_label(sp)
+            if lw <= 0 or lh <= 0:
+                continue
+            sx, sy = placed.x, placed.y
+            sw, sh = placed.draw_width, placed.draw_height
+            scx = sx + sw // 2
+            scy = sy + sh // 2
+
+            candidates: list[tuple[str, int, int]] = [
+                ("below_center", sx + sw // 2 - lw // 2, sy + sh + gap),
+                ("right_middle", sx + sw + gap, sy + sh // 2 - lh // 2),
+                ("left_middle", sx - lw - gap, sy + sh // 2 - lh // 2),
+                ("above_center", sx + sw // 2 - lw // 2, sy - lh - gap),
+                ("below_right", sx + sw - lw, sy + sh + gap),
+                ("below_left", sx, sy + sh + gap),
+            ]
+
+            chosen: tuple[int, int] | None = None
+            for _name, cx0, cy0 in candidates:
+                if _fits(cx0, cy0, lw, lh):
+                    chosen = (cx0, cy0)
+                    break
+
+            if chosen is None:
+                # Fallback: inline below, accept overlap.
+                inline_x = sx + sw // 2 - lw // 2
+                inline_y = sy + sh + self.label_gap_px
+                _draw_label_block(inline_x, inline_y, lw, sp, common_w, common_h)
+                _mark(inline_x, inline_y, lw, lh)
+                fallback_count += 1
+                continue
+
+            lx, ly = chosen
+            _draw_label_block(lx, ly, lw, sp, common_w, common_h)
+            _mark(lx, ly, lw, lh)
+
+            # Draw leader from species-edge nearest point to label-edge nearest point.
+            # Pick nearest points on each rect toward the other's center.
+            lcx = lx + lw // 2
+            lcy = ly + lh // 2
+            # Species anchor: clamp label-center against species bbox.
+            sp_ax = min(max(lcx, sx), sx + sw)
+            sp_ay = min(max(lcy, sy), sy + sh)
+            # Label anchor: clamp species-center against label bbox.
+            lb_ax = min(max(scx, lx), lx + lw)
+            lb_ay = min(max(scy, ly), ly + lh)
+            # Skip leader if endpoints coincide (label overlaps species — shouldn't happen here).
+            dx = lb_ax - sp_ax
+            dy = lb_ay - sp_ay
+            dist = (dx * dx + dy * dy) ** 0.5
+            if dist > 2 and dist <= max_leader * 2:
+                draw.line(
+                    [(sp_ax, sp_ay), (lb_ax, lb_ay)],
+                    fill=self.caption_color,
+                    width=max(1, int(self.leader_line_width)),
+                )
+            leader_count += 1
+
+        logger.info(
+            "Leader-line labels: %d placed with leaders, %d fell back to inline.",
+            leader_count, fallback_count,
+        )

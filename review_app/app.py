@@ -1030,6 +1030,63 @@ def api_upload_background():
     )
 
 
+@app.route("/api/list-backgrounds")
+def api_list_backgrounds():
+    """Return a list of available generated backgrounds."""
+    bg_dir = Path(PROJECT_ROOT) / "output" / "backgrounds"
+    if not bg_dir.exists():
+        return jsonify({"backgrounds": []})
+    items = []
+    for p in sorted(bg_dir.glob("*.png"), key=lambda x: x.stat().st_mtime, reverse=True):
+        rel = p.relative_to(Path(PROJECT_ROOT))
+        items.append({
+            "filename": p.name,
+            "path": str(rel),
+            "url": f"/image/{rel}",
+            "size_mb": round(p.stat().st_size / 1024 / 1024, 1),
+            "mtime_iso": datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc).isoformat(),
+        })
+    return jsonify({"backgrounds": items[:24]})
+
+
+@app.route("/api/generate-background", methods=["POST"])
+def api_generate_background():
+    """Trigger a background image generation via Replicate."""
+    from webapp.background_generator import generate_landscape, PRESET_LANDSCAPES
+    data = request.get_json(force=True)
+    preset = data.get("preset")
+    custom_prompt = data.get("prompt")
+    aspect_ratio = data.get("aspect_ratio", "3:2")
+
+    if preset and preset in PRESET_LANDSCAPES:
+        prompt = PRESET_LANDSCAPES[preset]
+    elif custom_prompt:
+        prompt = custom_prompt.strip()
+    else:
+        return jsonify({"error": "Must provide 'preset' or 'prompt'"}), 400
+
+    try:
+        final_path = generate_landscape(prompt, aspect_ratio=aspect_ratio)
+    except Exception as exc:
+        import logging as _logging
+        _logging.getLogger(__name__).exception("Background generation failed")
+        return jsonify({"error": str(exc)}), 500
+
+    rel = final_path.relative_to(Path(PROJECT_ROOT))
+    return jsonify({
+        "filename": final_path.name,
+        "path": str(rel),
+        "url": f"/image/{rel}",
+    })
+
+
+@app.route("/api/background-presets")
+def api_background_presets():
+    """Return the list of named preset landscapes."""
+    from webapp.background_generator import PRESET_LANDSCAPES
+    return jsonify({"presets": list(PRESET_LANDSCAPES.keys())})
+
+
 @app.route("/api/generate-poster", methods=["POST"])
 def api_generate_poster():
     """Generate a poster from selected species and options."""

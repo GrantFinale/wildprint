@@ -154,6 +154,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Do not render species labels beneath illustrations.",
     )
     parser.add_argument(
+        "--inline-labels",
+        action="store_true",
+        help=(
+            "Use inline labels below each species (legacy). Default is "
+            "leader-line labels placed in whitespace."
+        ),
+    )
+    parser.add_argument(
         "--background-image",
         default=None,
         help=(
@@ -432,6 +440,8 @@ def main(argv: list[str] | None = None) -> int:
         # Pass logo path through for editorial renderers.
         if args.logo:
             renderer._logo_path = Path(args.logo)  # type: ignore[attr-defined]
+        if args.inline_labels and isinstance(renderer, EditorialMultiRenderer):
+            renderer.leader_line_labels = False
         if args.background_image:
             bg_img_path = Path(args.background_image)
             if not bg_img_path.is_file():
