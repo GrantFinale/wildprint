@@ -1,0 +1,23 @@
+.git
+.gitignore
+.env
+.env.example
+.venv
+__pycache__
+*.pyc
+*.pyo
+.DS_Store
+*.log
+
+# Don't ship runtime-generated artifacts to the image; they live on the volume
+output/raw
+output/normalized
+output/posters
+output/uploads
+output/backgrounds
+metadata/manifest.json
+metadata/generation.log
+
+# Dev-only
+.vscode
+.idea

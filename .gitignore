@@ -20,7 +20,6 @@ env/
 # Generated output (regeneratable; not source of truth)
 output/raw/
 output/normalized/
-output/master/
 output/posters/
 output/uploads/
 metadata/manifest.json
