@@ -60,7 +60,94 @@ from poster_layout import (
 
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("WILDPRINT_SECRET_KEY", "dev-only-wildprint-secret")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or os.environ.get(
+    "WILDPRINT_SECRET_KEY", "dev-only-wildprint-secret"
+)
+
+# ---------------------------------------------------------------------------
+# Auth (HTTP Basic) for admin-only routes
+# ---------------------------------------------------------------------------
+
+import base64
+import hmac
+from functools import wraps
+
+_ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
+_ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
+
+def _check_basic_auth(header_value: str) -> bool:
+    """Verify HTTP Basic auth header against ADMIN_USER/ADMIN_PASSWORD."""
+    if not _ADMIN_PASSWORD:
+        # Auth is disabled (no password set) — dev mode
+        return True
+    if not header_value or not header_value.startswith("Basic "):
+        return False
+    try:
+        decoded = base64.b64decode(header_value[6:]).decode("utf-8")
+        user, _, pw = decoded.partition(":")
+    except Exception:  # noqa: BLE001
+        return False
+    return hmac.compare_digest(user, _ADMIN_USER) and hmac.compare_digest(
+        pw, _ADMIN_PASSWORD
+    )
+
+
+def admin_required(view):
+    """Require HTTP Basic auth when ADMIN_PASSWORD is set."""
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if not _check_basic_auth(request.headers.get("Authorization", "")):
+            return Response(
+                "Authentication required.",
+                401,
+                {"WWW-Authenticate": 'Basic realm="wildprint admin"'},
+            )
+        return view(*args, **kwargs)
+    return wrapper
+
+
+# ---------------------------------------------------------------------------
+# Simple in-memory rate limiter for expensive public endpoints
+# ---------------------------------------------------------------------------
+
+_RATE_BUCKET: dict[tuple[str, str], list[float]] = {}
+_RATE_LOCK = threading.Lock()
+
+
+def rate_limit(max_calls: int, window_seconds: int = 3600):
+    """Allow at most ``max_calls`` calls to this endpoint per client IP per window."""
+    def decorator(view):
+        @wraps(view)
+        def wrapper(*args, **kwargs):
+            client_ip = (
+                request.headers.get("X-Forwarded-For", "")
+                .split(",")[0]
+                .strip()
+                or request.remote_addr
+                or "unknown"
+            )
+            key = (view.__name__, client_ip)
+            now = time.time()
+            with _RATE_LOCK:
+                bucket = _RATE_BUCKET.setdefault(key, [])
+                # prune old entries
+                cutoff = now - window_seconds
+                bucket[:] = [t for t in bucket if t > cutoff]
+                if len(bucket) >= max_calls:
+                    retry_after = int(bucket[0] + window_seconds - now)
+                    return (
+                        jsonify({
+                            "error": f"Rate limit exceeded ({max_calls} per hour). "
+                                     f"Try again in {retry_after}s.",
+                        }),
+                        429,
+                        {"Retry-After": str(retry_after)},
+                    )
+                bucket.append(now)
+            return view(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 # ---------------------------------------------------------------------------
@@ -182,6 +269,7 @@ def _find_species(species: list[dict], slug: str) -> Optional[dict]:
 
 
 @app.route("/browse")
+@admin_required
 def browse():
     records = safe_load_manifest()
     styles = load_styles()
@@ -550,6 +638,13 @@ def _iter_job_lines(job_id: str) -> Iterator[str]:
 
 
 @app.route("/")
+def landing():
+    """Public landing — redirect to the poster creator."""
+    return redirect(url_for("create"))
+
+
+@app.route("/console")
+@admin_required
 def console():
     """Render the command console with status bar, forms, log, and gallery."""
     species = load_species()
@@ -592,6 +687,7 @@ def console():
 
 
 @app.route("/run/<cmd_id>", methods=["POST"])
+@admin_required
 def run_command(cmd_id: str):
     try:
         argv = _build_argv(cmd_id, request.form.to_dict())
@@ -605,6 +701,7 @@ def run_command(cmd_id: str):
 
 
 @app.route("/stream/<job_id>")
+@admin_required
 def stream_job(job_id: str):
     if job_id not in JOBS:
         abort(404)
@@ -617,6 +714,7 @@ def stream_job(job_id: str):
 
 
 @app.route("/job/<job_id>")
+@admin_required
 def job_status(job_id: str):
     job = JOBS.get(job_id)
     if job is None:
@@ -636,6 +734,7 @@ def job_status(job_id: str):
 
 
 @app.route("/recent-images")
+@admin_required
 def recent_images():
     """Return the 24 most recent raw PNGs across all species/styles."""
     project_root = Path(PROJECT_ROOT).resolve()
@@ -697,6 +796,7 @@ def recent_images():
 
 
 @app.route("/recent-posters")
+@admin_required
 def recent_posters():
     """Return the 12 most recent rendered posters from output/posters/."""
     project_root = Path(PROJECT_ROOT).resolve()
@@ -743,6 +843,7 @@ def recent_posters():
 
 
 @app.route("/style/<style_slug>")
+@admin_required
 def style_view(style_slug: str):
     records = safe_load_manifest()
     styles = load_styles()
@@ -781,6 +882,7 @@ def style_view(style_slug: str):
 
 
 @app.route("/species/<species_slug>")
+@admin_required
 def species_view(species_slug: str):
     records = safe_load_manifest()
     styles = load_styles()
@@ -818,6 +920,7 @@ def species_view(species_slug: str):
 
 
 @app.route("/review/<style_slug>/<species_slug>")
+@admin_required
 def review_view(style_slug: str, species_slug: str):
     records = safe_load_manifest()
     styles = load_styles()
@@ -853,6 +956,7 @@ def review_view(style_slug: str, species_slug: str):
 
 
 @app.route("/select", methods=["POST"])
+@admin_required
 def select():
     species_slug = request.form.get("species_slug", "").strip()
     style_slug = request.form.get("style_slug", "").strip()
@@ -884,6 +988,7 @@ def select():
 
 
 @app.route("/copy-masters", methods=["POST"])
+@admin_required
 def copy_masters_route():
     try:
         copy_masters()
@@ -923,6 +1028,7 @@ def create():
 
 
 @app.route("/api/recommend", methods=["POST"])
+@rate_limit(60)
 def api_recommend():
     """Return habitat-scored species recommendations as JSON."""
     import logging
@@ -956,6 +1062,7 @@ def api_recommend():
 
 
 @app.route("/api/upload-logo", methods=["POST"])
+@rate_limit(10)
 def api_upload_logo():
     """Accept a logo image upload (PNG/JPEG, max 5 MB)."""
     if "logo" not in request.files:
@@ -987,6 +1094,7 @@ def api_upload_logo():
 
 
 @app.route("/api/upload-background", methods=["POST"])
+@admin_required
 def api_upload_background():
     """Accept a background image upload (PNG/JPEG, min 1536x1024, max 15 MB)."""
     if "background" not in request.files:
@@ -1031,6 +1139,7 @@ def api_upload_background():
 
 
 @app.route("/api/list-backgrounds")
+@admin_required
 def api_list_backgrounds():
     """Return a list of available generated backgrounds."""
     bg_dir = Path(PROJECT_ROOT) / "output" / "backgrounds"
@@ -1050,6 +1159,7 @@ def api_list_backgrounds():
 
 
 @app.route("/api/generate-background", methods=["POST"])
+@admin_required
 def api_generate_background():
     """Trigger a background image generation via Replicate."""
     from webapp.background_generator import generate_landscape, PRESET_LANDSCAPES
@@ -1081,6 +1191,7 @@ def api_generate_background():
 
 
 @app.route("/api/background-presets")
+@admin_required
 def api_background_presets():
     """Return the list of named preset landscapes."""
     from webapp.background_generator import PRESET_LANDSCAPES
@@ -1088,6 +1199,7 @@ def api_background_presets():
 
 
 @app.route("/api/generate-poster", methods=["POST"])
+@rate_limit(20)
 def api_generate_poster():
     """Generate a poster from selected species and options."""
     data = request.get_json(force=True)
@@ -1198,12 +1310,14 @@ def api_generate_poster():
 
 
 @app.route("/admin")
+@admin_required
 def admin():
     """Render the admin dashboard for species catalog management."""
     return render_template("admin.html")
 
 
 @app.route("/admin/data")
+@admin_required
 def admin_data():
     """JSON endpoint returning species catalog with master image status."""
     species = load_species()
