@@ -45,7 +45,7 @@ ENV FLASK_SECRET_KEY=change-me-in-prod
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
-    CMD curl -fsS http://localhost:8080/admin/data >/dev/null || exit 1
+    CMD curl -fsS http://localhost:8080/create >/dev/null || exit 1
 
 # Gunicorn with 2 workers, 4 threads each. Masters load fast; most work is
 # subprocess-bound (batch_generate) or network-bound (Replicate), so threaded
