@@ -609,3 +609,389 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
   .admin-filters { flex-direction: column; align-items: stretch; }
   .admin-table { font-size: 0.75rem; }
 }
+
+/* Create page v2 */
+
+.cp-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem 3rem;
+  background: #FAFAF8;
+}
+
+/* --- Section headers --- */
+.cp-section-header { margin-bottom: 1.5rem; }
+.cp-hero-heading {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 2.4rem;
+  color: #1A1612;
+  margin: 0 0 0.3rem;
+  letter-spacing: -0.01em;
+}
+.cp-hero-sub {
+  font-size: 1rem;
+  color: #8A8477;
+  margin: 0;
+}
+.cp-heading {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 1.8rem;
+  color: #1A1612;
+  margin: 0 0 0.25rem;
+}
+.cp-subheading {
+  font-size: 0.9rem;
+  color: #8A8477;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+/* --- Phase containers --- */
+.cp-phase { margin-bottom: 2.5rem; }
+.cp-hidden {
+  display: none !important;
+}
+.cp-fade-in {
+  animation: cpFadeIn 0.4s ease-out both;
+}
+@keyframes cpFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Phase 1: Water layout --- */
+.cp-water-layout {
+  display: grid;
+  grid-template-columns: 55% 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+.cp-map {
+  height: 350px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+.cp-form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+/* --- Fields --- */
+.cp-field { display: flex; flex-direction: column; }
+.cp-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #3D3830;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.25rem;
+}
+.cp-input, .cp-select {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #E8E4DD;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: #1A1612;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+.cp-input:focus, .cp-select:focus {
+  outline: none;
+  border-color: #2D5F4A;
+  box-shadow: 0 0 0 3px rgba(45,95,74,0.1);
+}
+.cp-color {
+  width: 60px;
+  height: 36px;
+  padding: 2px;
+  border: 1px solid #E8E4DD;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.cp-input-file {
+  font-size: 0.85rem;
+  color: #3D3830;
+}
+.cp-location-pill {
+  display: inline-block;
+  font-size: 0.8rem;
+  color: #2D5F4A;
+  margin-top: 0.2rem;
+}
+
+/* --- Buttons --- */
+.cp-btn {
+  display: inline-block;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  text-align: center;
+  transition: background 0.15s, transform 0.1s;
+}
+.cp-btn:active { transform: scale(0.98); }
+.cp-btn-primary {
+  background: #2D5F4A;
+  color: #fff;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.95rem;
+}
+.cp-btn-primary:hover { background: #1F4435; }
+.cp-btn-find {
+  width: 100%;
+  height: 48px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-top: 0.4rem;
+}
+.cp-btn-generate {
+  width: 100%;
+  height: 56px;
+  background: #2D5F4A;
+  color: #fff;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  border-radius: 8px;
+}
+.cp-btn-generate:hover { background: #1F4435; }
+.cp-btn-secondary {
+  background: #fff;
+  color: #2D5F4A;
+  border: 2px solid #2D5F4A;
+  padding: 0.6rem 2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 8px;
+}
+.cp-btn-secondary:hover { background: #F0F5F2; text-decoration: none; }
+.cp-btn-text {
+  background: none;
+  border: none;
+  color: #2D5F4A;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0.5rem 0;
+}
+.cp-btn-text:hover { text-decoration: underline; }
+.cp-btn-remove {
+  background: none;
+  border: none;
+  color: #8A8477;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: inherit;
+  padding: 0.2rem 0.5rem;
+}
+.cp-btn-remove:hover { color: #1A1612; }
+
+/* --- Species grid --- */
+.cp-species-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+.cp-species-secondary .cp-species-card:not(:hover) {
+  opacity: 0.7;
+}
+.cp-more-toggle {
+  text-align: center;
+  margin: 1.25rem 0;
+}
+
+/* --- Species card --- */
+.cp-species-card {
+  background: #FFFFFF;
+  border: 1px solid #E8E4DD;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s, background 0.15s;
+  outline: none;
+  overflow: hidden;
+}
+.cp-species-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+}
+.cp-species-card:focus-visible {
+  box-shadow: 0 0 0 3px rgba(45,95,74,0.25);
+}
+.cp-species-card.cp-selected {
+  border: 2px solid #2D5F4A;
+  background: #F0F5F2;
+  box-shadow: 0 2px 8px rgba(45,95,74,0.12);
+}
+
+/* Card image area */
+.cp-card-image {
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: #fff;
+}
+.cp-card-image img {
+  max-height: 140px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.cp-no-image {
+  background: linear-gradient(135deg, #E8E4DD 0%, #D8D2C8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cp-no-image::after {
+  content: '\U0001f43e';
+  font-size: 2.5rem;
+  opacity: 0.3;
+}
+.cp-no-image img { display: none; }
+
+/* Card body */
+.cp-card-body {
+  padding: 10px 14px 14px;
+}
+.cp-card-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #1A1612;
+  line-height: 1.3;
+}
+.cp-card-sci {
+  font-style: italic;
+  font-size: 0.75rem;
+  color: #8A8477;
+  margin-top: 1px;
+}
+.cp-card-score {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.cp-score-label {
+  font-size: 0.7rem;
+  color: #8A8477;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.cp-score-bar {
+  width: 40px;
+  height: 4px;
+  background: #E8E4DD;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.cp-score-fill {
+  height: 100%;
+  background: #C4B99A;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+.cp-card-action {
+  margin-top: 8px;
+}
+.cp-badge-selected {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #2D5F4A;
+  background: rgba(45,95,74,0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.cp-badge-add {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: #8A8477;
+}
+
+/* --- Phase 3: Design --- */
+.cp-design-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 2rem;
+  margin-bottom: 1.5rem;
+}
+.cp-file-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+.cp-file-thumb {
+  max-height: 60px;
+  border-radius: 4px;
+}
+.cp-generate-wrap {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.cp-status-text {
+  font-size: 0.9rem;
+  color: #8A8477;
+  margin-top: 0.75rem;
+  text-align: center;
+}
+
+/* --- Poster preview --- */
+.cp-poster-preview {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+.cp-poster-img {
+  max-width: 900px;
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+}
+.cp-poster-preview.cp-fade-in .cp-poster-img {
+  animation: cpPosterReveal 0.6s ease-out both;
+}
+@keyframes cpPosterReveal {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.cp-poster-actions {
+  margin-top: 1.25rem;
+}
+
+/* --- Responsive --- */
+@media (max-width: 1100px) {
+  .cp-water-layout {
+    grid-template-columns: 1fr;
+  }
+  .cp-map { height: 300px; }
+}
+@media (max-width: 700px) {
+  .cp-page { padding: 0 1rem 2rem; }
+  .cp-hero-heading { font-size: 1.8rem; }
+  .cp-heading { font-size: 1.4rem; }
+  .cp-species-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  .cp-design-grid {
+    grid-template-columns: 1fr;
+  }
+  .cp-card-image { height: 130px; padding: 8px; }
+  .cp-card-image img { max-height: 115px; }
+}

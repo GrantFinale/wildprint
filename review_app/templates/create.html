@@ -4,125 +4,155 @@
 {% block content %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
-<div class="create-page">
-  <aside class="create-sidebar">
-    <!-- Step 1: Water body -->
-    <section class="create-step" id="step-water">
-      <h3>1. Choose a body of water</h3>
-      <input type="text" id="water-name" placeholder="e.g. Lake Michigan">
-      <span id="water-location" class="subtle"></span>
-      <p class="subtle">Drop a pin on the map &rarr;</p>
-    </section>
+<div class="cp-page">
 
-    <!-- Step 2: Habitat questions -->
-    <section class="create-step" id="step-habitat">
-      <h3>2. Describe the habitat</h3>
-      <label>Water type
-        <select id="q-water-type">
-          <option value="lake">Lake</option>
-          <option value="pond">Pond</option>
-          <option value="river">River</option>
-          <option value="stream">Stream</option>
-          <option value="reservoir">Reservoir</option>
-          <option value="marsh">Marsh / Wetland</option>
-        </select>
-      </label>
-      <label>Average depth
-        <select id="q-depth">
-          <option value="shallow">Shallow (&lt; 5 ft)</option>
-          <option value="moderate">Moderate (5-20 ft)</option>
-          <option value="deep">Deep (&gt; 20 ft)</option>
-        </select>
-      </label>
-      <label>Water flow
-        <select id="q-flow">
-          <option value="still">Still</option>
-          <option value="slow">Slow</option>
-          <option value="moderate">Moderate</option>
-          <option value="fast">Fast</option>
-        </select>
-      </label>
-      <label>Vegetation
-        <select id="q-vegetation">
-          <option value="heavy">Heavy (weeds, lily pads)</option>
-          <option value="moderate">Moderate</option>
-          <option value="sparse">Sparse</option>
-          <option value="none">None</option>
-        </select>
-      </label>
-      <label>Water clarity
-        <select id="q-clarity">
-          <option value="clear">Clear</option>
-          <option value="moderate">Moderately clear</option>
-          <option value="murky">Murky / Stained</option>
-        </select>
-      </label>
-      <button class="btn btn-primary" id="btn-recommend">Find Species</button>
-    </section>
+  <!-- Phase 1: Choose your water -->
+  <section class="cp-phase cp-phase-water">
+    <div class="cp-section-header">
+      <h1 class="cp-hero-heading">Create Your Wildlife Poster</h1>
+      <p class="cp-hero-sub">Discover the species that inhabit your local waters.</p>
+    </div>
 
-    <!-- Step 3: Species selection -->
-    <section class="create-step" id="step-species" style="display:none">
-      <h3>3. Select species for your poster</h3>
-      <div id="species-primary" class="species-grid"></div>
-      <h4>Add more species</h4>
-      <div id="species-secondary" class="species-grid"></div>
-    </section>
+    <div class="cp-water-layout">
+      <div class="cp-map-col">
+        <div id="map" class="cp-map"></div>
+      </div>
+      <div class="cp-form-col">
+        <div class="cp-field">
+          <label class="cp-label" for="water-name">Water body name</label>
+          <input type="text" id="water-name" class="cp-input" placeholder="e.g. Lake Michigan">
+          <span id="water-location" class="cp-location-pill"></span>
+        </div>
+        <div class="cp-field">
+          <label class="cp-label" for="q-water-type">Water type</label>
+          <select id="q-water-type" class="cp-select">
+            <option value="lake">Lake</option>
+            <option value="pond">Pond</option>
+            <option value="river">River</option>
+            <option value="stream">Stream</option>
+            <option value="reservoir">Reservoir</option>
+            <option value="marsh">Marsh / Wetland</option>
+          </select>
+        </div>
+        <div class="cp-field">
+          <label class="cp-label" for="q-depth">Average depth</label>
+          <select id="q-depth" class="cp-select">
+            <option value="shallow">Shallow (&lt; 5 ft)</option>
+            <option value="moderate">Moderate (5-20 ft)</option>
+            <option value="deep">Deep (&gt; 20 ft)</option>
+          </select>
+        </div>
+        <div class="cp-field">
+          <label class="cp-label" for="q-flow">Water flow</label>
+          <select id="q-flow" class="cp-select">
+            <option value="still">Still</option>
+            <option value="slow">Slow</option>
+            <option value="moderate">Moderate</option>
+            <option value="fast">Fast</option>
+          </select>
+        </div>
+        <div class="cp-field">
+          <label class="cp-label" for="q-vegetation">Vegetation</label>
+          <select id="q-vegetation" class="cp-select">
+            <option value="heavy">Heavy (weeds, lily pads)</option>
+            <option value="moderate">Moderate</option>
+            <option value="sparse">Sparse</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div class="cp-field">
+          <label class="cp-label" for="q-clarity">Water clarity</label>
+          <select id="q-clarity" class="cp-select">
+            <option value="clear">Clear</option>
+            <option value="moderate">Moderately clear</option>
+            <option value="murky">Murky / Stained</option>
+          </select>
+        </div>
+        <button class="cp-btn cp-btn-primary cp-btn-find" id="btn-recommend">Find Species</button>
+      </div>
+    </div>
+  </section>
 
-    <!-- Step 4: Poster options -->
-    <section class="create-step" id="step-options" style="display:none">
-      <h3>4. Customize your poster</h3>
-      <label>Poster title
-        <input type="text" id="poster-title" placeholder="Wildlife of Lake Michigan">
-      </label>
-      <label>Subtitle
-        <input type="text" id="poster-subtitle" placeholder="A field guide">
-      </label>
-      <label>Style
-        <select id="poster-style">
+  <!-- Phase 2: Select your species -->
+  <section class="cp-phase cp-phase-species cp-hidden" id="step-species">
+    <div class="cp-section-header">
+      <h2 class="cp-heading">Recommended Species for <span id="cp-water-label">Your Water</span></h2>
+      <p class="cp-subheading"><span id="cp-species-count">0</span> species found &middot; Tap to add or remove</p>
+    </div>
+    <div id="species-primary" class="cp-species-grid"></div>
+    <div class="cp-more-toggle" id="cp-more-toggle" style="display:none">
+      <button class="cp-btn-text" id="btn-show-more">&#9660; Show <span id="cp-secondary-count">0</span> more species you could add</button>
+    </div>
+    <div id="species-secondary" class="cp-species-grid cp-species-secondary cp-hidden"></div>
+  </section>
+
+  <!-- Phase 3: Design your poster -->
+  <section class="cp-phase cp-phase-design cp-hidden" id="step-options">
+    <div class="cp-section-header">
+      <h2 class="cp-heading">Design Your Poster</h2>
+    </div>
+    <div class="cp-design-grid">
+      <div class="cp-field">
+        <label class="cp-label" for="poster-title">Title</label>
+        <input type="text" id="poster-title" class="cp-input" placeholder="Wildlife of Lake Michigan">
+      </div>
+      <div class="cp-field">
+        <label class="cp-label" for="cp-poster-style">Style</label>
+        <select id="cp-poster-style" class="cp-select">
           {% for style in styles %}
           <option value="{{ style.slug }}">{{ style.style_name or style.name or style.slug }}</option>
           {% endfor %}
         </select>
-      </label>
-      <label>Background color
-        <input type="color" id="poster-bg" value="#ffffff">
-      </label>
-      <label>Background image (optional)
-        <input type="file" id="bg-upload" accept="image/png,image/jpeg">
-        <p class="subtle" style="font-size:0.75rem">Upload a landscape photo for your poster background. Leave blank for a solid color.</p>
-      </label>
-      <div id="bg-preview" style="display:none">
-        <img id="bg-thumb" style="max-height:80px; border-radius:4px">
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-remove-bg">Remove</button>
       </div>
-      <label>Logo (optional)
-        <input type="file" id="logo-upload" accept="image/png,image/jpeg">
-      </label>
-      <div id="logo-preview" style="display:none">
-        <img id="logo-thumb" style="max-height:60px">
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-remove-logo">Remove</button>
+      <div class="cp-field">
+        <label class="cp-label" for="poster-subtitle">Subtitle</label>
+        <input type="text" id="poster-subtitle" class="cp-input" placeholder="A field guide">
       </div>
-      <button class="btn btn-primary" id="btn-generate">Generate Poster</button>
-      <div id="generate-status" class="subtle"></div>
-    </section>
-  </aside>
-
-  <main class="create-main">
-    <!-- Map -->
-    <div id="map" style="height:400px; border-radius:8px; margin-bottom:1rem"></div>
-    <!-- Poster preview -->
-    <div id="poster-preview" style="display:none">
-      <h3>Your Poster</h3>
-      <img id="poster-img" style="max-width:100%; border:1px solid #ddd; border-radius:8px">
-      <div style="margin-top:1rem">
-        <a id="poster-download" class="btn btn-primary" download>Download PNG</a>
+      <div class="cp-field">
+        <label class="cp-label" for="poster-bg">Background color</label>
+        <input type="color" id="poster-bg" class="cp-color" value="#ffffff">
+      </div>
+      <div class="cp-field">
+        <label class="cp-label" for="logo-upload">Logo (optional)</label>
+        <input type="file" id="logo-upload" class="cp-input-file" accept="image/png,image/jpeg">
+        <div id="logo-preview" class="cp-file-preview" style="display:none">
+          <img id="logo-thumb" class="cp-file-thumb">
+          <button type="button" class="cp-btn-remove" id="btn-remove-logo">&times; Remove</button>
+        </div>
+      </div>
+      <div class="cp-field">
+        <label class="cp-label" for="bg-upload">Background image (optional)</label>
+        <input type="file" id="bg-upload" class="cp-input-file" accept="image/png,image/jpeg">
+        <div id="bg-preview" class="cp-file-preview" style="display:none">
+          <img id="bg-thumb" class="cp-file-thumb">
+          <button type="button" class="cp-btn-remove" id="btn-remove-bg">&times; Remove</button>
+        </div>
       </div>
     </div>
-  </main>
+    <div class="cp-generate-wrap">
+      <button class="cp-btn cp-btn-generate" id="btn-generate">Generate Your Poster</button>
+      <div id="generate-status" class="cp-status-text"></div>
+    </div>
+    <div id="poster-preview" class="cp-poster-preview" style="display:none">
+      <img id="poster-img" class="cp-poster-img">
+      <div class="cp-poster-actions">
+        <a id="poster-download" class="cp-btn cp-btn-secondary" download>Download PNG</a>
+      </div>
+    </div>
+  </section>
+
 </div>
 
 <script>
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
 // --- Map initialization ---
 const map = L.map('map').setView([43.0, -85.0], 6);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -133,7 +163,7 @@ let marker = null;
 let currentState = null;
 
 const stateNameToCode = (function() {
-  const map = {
+  const m = {
     'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
     'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
     'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
@@ -148,17 +178,12 @@ const stateNameToCode = (function() {
     'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
     'Wisconsin': 'WI', 'Wyoming': 'WY'
   };
-  return function(name) {
-    if (!name) return null;
-    return map[name] || null;
-  };
+  return function(name) { return name ? m[name] || null : null; };
 })();
 
 map.on('click', async function(e) {
   if (marker) marker.remove();
   marker = L.marker(e.latlng).addTo(map);
-
-  // Reverse geocode to find the state
   try {
     const resp = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${e.latlng.lat}&lon=${e.latlng.lng}&format=json&zoom=5`,
@@ -168,8 +193,7 @@ map.on('click', async function(e) {
     const state = geo.address?.state;
     const stateCode = stateNameToCode(state);
     if (stateCode) {
-      document.getElementById('water-location').textContent =
-        '\ud83d\udccd ' + state + ' (' + stateCode + ')';
+      document.getElementById('water-location').textContent = '\ud83d\udccd ' + state + ' (' + stateCode + ')';
       currentState = stateCode;
     } else {
       document.getElementById('water-location').textContent = '';
@@ -179,7 +203,6 @@ map.on('click', async function(e) {
     console.warn('Reverse geocoding failed:', err);
     currentState = null;
   }
-
   document.getElementById('water-name').focus();
 });
 
@@ -204,39 +227,102 @@ document.getElementById('btn-recommend').addEventListener('click', async () => {
     body: JSON.stringify(body),
   });
   const data = await resp.json();
-  renderSpeciesCards(data.primary, 'species-primary', true);
-  renderSpeciesCards(data.secondary, 'species-secondary', false);
-  document.getElementById('step-species').style.display = '';
-  document.getElementById('step-options').style.display = '';
-  // Auto-fill poster title from water body name
-  const name = document.getElementById('water-name').value;
-  if (name) {
-    document.getElementById('poster-title').value = 'Wildlife of ' + name;
+  renderSpeciesGrid(data.primary, 'species-primary', true);
+  renderSpeciesGrid(data.secondary, 'species-secondary', false);
+
+  // Update counts and labels
+  const waterName = document.getElementById('water-name').value || 'Your Water';
+  document.getElementById('cp-water-label').textContent = waterName;
+  document.getElementById('cp-species-count').textContent = data.primary.length + data.secondary.length;
+  document.getElementById('cp-secondary-count').textContent = data.secondary.length;
+
+  // Show phases with animation
+  const phaseSpecies = document.getElementById('step-species');
+  const phaseDesign = document.getElementById('step-options');
+  phaseSpecies.classList.remove('cp-hidden');
+  phaseSpecies.classList.add('cp-fade-in');
+  setTimeout(() => {
+    phaseDesign.classList.remove('cp-hidden');
+    phaseDesign.classList.add('cp-fade-in');
+  }, 200);
+
+  // Show more toggle if secondary has items
+  if (data.secondary.length > 0) {
+    document.getElementById('cp-more-toggle').style.display = '';
+  }
+
+  // Auto-fill poster title
+  if (waterName && waterName !== 'Your Water') {
+    document.getElementById('poster-title').value = 'Wildlife of ' + waterName;
+  }
+
+  // Scroll to species
+  setTimeout(() => {
+    phaseSpecies.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }, 100);
+});
+
+// --- Show more toggle ---
+document.getElementById('btn-show-more').addEventListener('click', () => {
+  const sec = document.getElementById('species-secondary');
+  sec.classList.toggle('cp-hidden');
+  const btn = document.getElementById('btn-show-more');
+  if (sec.classList.contains('cp-hidden')) {
+    btn.innerHTML = '&#9660; Show <span id="cp-secondary-count">' + document.querySelectorAll('#species-secondary .cp-species-card').length + '</span> more species you could add';
+  } else {
+    btn.innerHTML = '&#9650; Hide additional species';
   }
 });
 
 // --- Species card renderer ---
-function renderSpeciesCards(speciesList, containerId, checked) {
+function renderSpeciesGrid(speciesList, containerId, isChecked) {
+  const style = document.getElementById('cp-poster-style').value || 'scientific';
   const container = document.getElementById(containerId);
-  const style = document.getElementById('poster-style').value || 'scientific';
-  container.innerHTML = speciesList.map(sp => `
-    <label class="species-card ${checked ? 'selected' : ''}">
-      <input type="checkbox" data-slug="${sp.slug}" ${checked ? 'checked' : ''}>
-      <div class="species-thumb">
-        <img src="/image/output/master/${style}/${sp.slug}.png" loading="lazy"
-             onerror="this.style.display='none'">
+  container.innerHTML = speciesList.map(sp => {
+    const scoreWidth = Math.min(100, Math.round((sp.score / 50) * 100));
+    return `
+      <div class="cp-species-card ${isChecked ? 'cp-selected' : ''}"
+           data-slug="${esc(sp.slug)}" tabindex="0">
+        <div class="cp-card-image">
+          <img src="/image/output/master/${style}/${esc(sp.slug)}.png"
+               alt="${esc(sp.common_name)}" loading="lazy"
+               onerror="this.parentElement.classList.add('cp-no-image')">
+        </div>
+        <div class="cp-card-body">
+          <div class="cp-card-name">${esc(sp.common_name)}</div>
+          <div class="cp-card-sci">${esc(sp.scientific_name || '')}</div>
+          <div class="cp-card-score">
+            <span class="cp-score-label">Match</span>
+            <div class="cp-score-bar">
+              <div class="cp-score-fill" style="width:${scoreWidth}%"></div>
+            </div>
+          </div>
+          <div class="cp-card-action">
+            ${isChecked
+              ? '<span class="cp-badge-selected">\u2713 Selected</span>'
+              : '<span class="cp-badge-add">+ Add to poster</span>'}
+          </div>
+        </div>
       </div>
-      <div class="species-info">
-        <strong>${sp.common_name}</strong>
-        <em>${sp.scientific_name || ''}</em>
-        <span class="score-badge">Score: ${sp.score}</span>
-      </div>
-    </label>
-  `).join('');
-  // Toggle .selected class on checkbox change
-  container.querySelectorAll('input[type=checkbox]').forEach(cb => {
-    cb.addEventListener('change', () => {
-      cb.closest('.species-card').classList.toggle('selected', cb.checked);
+    `;
+  }).join('');
+
+  // Click to toggle
+  container.querySelectorAll('.cp-species-card').forEach(card => {
+    card.addEventListener('click', () => {
+      card.classList.toggle('cp-selected');
+      const badge = card.querySelector('.cp-card-action');
+      if (card.classList.contains('cp-selected')) {
+        badge.innerHTML = '<span class="cp-badge-selected">\u2713 Selected</span>';
+      } else {
+        badge.innerHTML = '<span class="cp-badge-add">+ Add to poster</span>';
+      }
+      // Subtle click animation
+      card.style.transform = 'scale(0.97)';
+      setTimeout(() => { card.style.transform = ''; }, 100);
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
     });
   });
 }
@@ -288,18 +374,19 @@ document.getElementById('btn-remove-bg').addEventListener('click', () => {
 // --- Generate poster handler ---
 document.getElementById('btn-generate').addEventListener('click', async () => {
   const status = document.getElementById('generate-status');
-  status.textContent = 'Generating poster...';
+  status.textContent = 'Generating poster\u2026';
   // Collect selected species
   const slugs = [];
-  document.querySelectorAll('#species-primary input:checked, #species-secondary input:checked')
-    .forEach(cb => slugs.push(cb.dataset.slug));
+  document.querySelectorAll('.cp-species-card.cp-selected').forEach(card => {
+    slugs.push(card.dataset.slug);
+  });
   if (slugs.length < 5) {
     status.textContent = 'Please select at least 5 species.';
     return;
   }
   const body = {
     species_slugs: slugs,
-    style: document.getElementById('poster-style').value,
+    style: document.getElementById('cp-poster-style').value,
     title: document.getElementById('poster-title').value || 'Wildlife of This Water',
     subtitle: document.getElementById('poster-subtitle').value || '',
     background: document.getElementById('poster-bg').value,
@@ -318,7 +405,11 @@ document.getElementById('btn-generate').addEventListener('click', async () => {
     document.getElementById('poster-download').href = data.poster_url;
     document.getElementById('poster-download').download = data.filename;
     document.getElementById('poster-preview').style.display = '';
+    document.getElementById('poster-preview').classList.add('cp-fade-in');
     status.textContent = 'Poster generated!';
+    setTimeout(() => {
+      document.getElementById('poster-preview').scrollIntoView({behavior: 'smooth', block: 'center'});
+    }, 200);
   } else {
     status.textContent = 'Error: ' + (data.error || 'unknown');
   }
