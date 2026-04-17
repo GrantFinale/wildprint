@@ -665,6 +665,31 @@ def console():
     # API key probe — only emit boolean, never the key
     api_key_loaded = bool(os.getenv("OPENAI_API_KEY"))
 
+    # Master image status per species (for the Missing Masters panel)
+    master_dir = Path(MASTER_DIR)
+    style_slugs = [s.get("slug") for s in enabled_styles]
+    species_master_status = []
+    missing_count = 0
+    has_all_count = 0
+    for sp in enabled_species:
+        slug = sp.get("slug", "")
+        cat = sp.get("category", "")
+        has = {st: (master_dir / st / f"{slug}.png").exists() for st in style_slugs}
+        has_any = any(has.values())
+        has_all = all(has.values())
+        if has_all:
+            has_all_count += 1
+        if not has_all:
+            missing_count += 1
+        species_master_status.append({
+            "slug": slug,
+            "common_name": sp.get("common_name", slug),
+            "category": cat,
+            "has_master": has,
+            "has_any": has_any,
+            "has_all": has_all,
+        })
+
     status = {
         "species_total": len(enabled_species),
         "category_counts": category_counts,
@@ -676,6 +701,8 @@ def console():
         "masters_count": masters_count,
         "manifest_count": len(records),
         "api_key_loaded": api_key_loaded,
+        "has_all_masters": has_all_count,
+        "missing_masters": missing_count,
     }
 
     return render_template(
@@ -683,6 +710,7 @@ def console():
         status=status,
         species=enabled_species,
         styles=enabled_styles,
+        species_master_status=species_master_status,
     )
 
 

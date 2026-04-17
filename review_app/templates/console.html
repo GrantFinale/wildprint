@@ -51,10 +51,58 @@
     </div>
   </div>
 
+  <!-- Missing Masters Panel -->
+  <div class="cmd-card" style="margin-bottom:1.5rem">
+    <h2>Species Image Status</h2>
+    <p class="subtle">{{ status.has_all_masters }} of {{ status.species_total }} species have all master images. {{ status.missing_masters }} need generation.</p>
+    <div style="display:flex; gap:0.75rem; align-items:center; margin:0.75rem 0; flex-wrap:wrap">
+      <select id="mm-category-filter" style="padding:0.4rem; border-radius:4px; border:1px solid #ccc">
+        <option value="">All categories</option>
+        {% for cat in status.category_counts %}
+        <option value="{{ cat }}">{{ cat }} ({{ status.category_counts[cat] }})</option>
+        {% endfor %}
+      </select>
+      <label style="font-size:0.85rem"><input type="checkbox" id="mm-missing-only" checked> Missing only</label>
+      <button type="button" class="btn btn-secondary" id="mm-select-all" style="font-size:0.8rem">Select all visible</button>
+      <button type="button" class="btn btn-secondary" id="mm-select-none" style="font-size:0.8rem">Select none</button>
+      <span id="mm-selected-count" class="subtle" style="font-size:0.85rem">0 selected</span>
+    </div>
+    <div id="mm-grid" style="max-height:400px; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:0.5rem; padding:0.25rem">
+      {% for sp in species_master_status %}
+      <label class="mm-item{% if sp.has_all %} mm-complete{% endif %}" data-slug="{{ sp.slug }}" data-category="{{ sp.category }}" data-has-all="{{ sp.has_all|lower }}" style="display:flex; align-items:center; gap:0.5rem; padding:0.4rem 0.6rem; border:1px solid #ddd; border-radius:6px; cursor:pointer; font-size:0.8rem; transition:border-color 0.15s{% if sp.has_all %}; opacity:0.5{% endif %}">
+        <input type="checkbox" class="mm-check" value="{{ sp.slug }}"{% if not sp.has_all %} checked{% endif %}>
+        <span style="flex:1">
+          <strong>{{ sp.common_name }}</strong>
+          <span class="subtle" style="display:block; font-size:0.7rem">{{ sp.category }}
+            {% for st, has in sp.has_master.items() %}
+              {% if has %}<span style="color:#2a6">✓{{ st[:3] }}</span>{% else %}<span style="color:#c44">✗{{ st[:3] }}</span>{% endif %}
+            {% endfor %}
+          </span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+    <div style="margin-top:0.75rem; display:flex; gap:0.75rem; align-items:center">
+      <select id="mm-provider" style="padding:0.4rem; border-radius:4px; border:1px solid #ccc">
+        <option value="openai" selected>openai</option>
+        <option value="mock">mock</option>
+        <option value="recraft">recraft</option>
+      </select>
+      <select id="mm-quality" style="padding:0.4rem; border-radius:4px; border:1px solid #ccc">
+        <option value="medium" selected>medium</option>
+        <option value="low">low</option>
+        <option value="high">high</option>
+      </select>
+      <input type="number" id="mm-variations" value="2" min="1" max="6" style="width:60px; padding:0.4rem; border-radius:4px; border:1px solid #ccc" title="Variations per species per style">
+      <button type="button" class="btn btn-primary" id="mm-generate-btn">Generate Selected</button>
+    </div>
+    <div id="mm-status" class="subtle" style="margin-top:0.5rem; font-size:0.85rem"></div>
+  </div>
+
   <div class="cmd-panel">
 
     <form class="cmd-form cmd-card" action="{{ url_for('run_command', cmd_id='generate') }}" method="post">
-      <h2>Generate</h2>
+      <h2>Generate (manual)</h2>
       <p class="subtle">Run <code>scripts.batch_generate</code>.</p>
       <div class="fields">
         <label>Species
@@ -500,6 +548,120 @@
         });
     });
   }
+  // --- Missing Masters panel ---
+  var mmGrid = document.getElementById("mm-grid");
+  var mmCatFilter = document.getElementById("mm-category-filter");
+  var mmMissingOnly = document.getElementById("mm-missing-only");
+  var mmCountEl = document.getElementById("mm-selected-count");
+
+  function mmUpdateVisibility() {
+    var cat = mmCatFilter.value;
+    var missingOnly = mmMissingOnly.checked;
+    var items = mmGrid.querySelectorAll(".mm-item");
+    items.forEach(function (el) {
+      var matchCat = !cat || el.dataset.category === cat;
+      var matchMissing = !missingOnly || el.dataset.hasAll === "false";
+      el.style.display = (matchCat && matchMissing) ? "" : "none";
+    });
+    mmUpdateCount();
+  }
+
+  function mmUpdateCount() {
+    var checked = mmGrid.querySelectorAll(".mm-check:checked");
+    var visible = 0;
+    checked.forEach(function (cb) {
+      if (cb.closest(".mm-item").style.display !== "none") visible++;
+    });
+    mmCountEl.textContent = visible + " selected";
+  }
+
+  mmCatFilter.addEventListener("change", mmUpdateVisibility);
+  mmMissingOnly.addEventListener("change", mmUpdateVisibility);
+  mmGrid.addEventListener("change", mmUpdateCount);
+
+  document.getElementById("mm-select-all").addEventListener("click", function () {
+    mmGrid.querySelectorAll(".mm-item").forEach(function (el) {
+      if (el.style.display !== "none") {
+        el.querySelector(".mm-check").checked = true;
+      }
+    });
+    mmUpdateCount();
+  });
+
+  document.getElementById("mm-select-none").addEventListener("click", function () {
+    mmGrid.querySelectorAll(".mm-check").forEach(function (cb) {
+      cb.checked = false;
+    });
+    mmUpdateCount();
+  });
+
+  // Generate Selected: fires batch_generate for each checked species sequentially
+  document.getElementById("mm-generate-btn").addEventListener("click", async function () {
+    var slugs = [];
+    mmGrid.querySelectorAll(".mm-item").forEach(function (el) {
+      if (el.style.display !== "none" && el.querySelector(".mm-check").checked) {
+        slugs.push(el.dataset.slug);
+      }
+    });
+    if (slugs.length === 0) {
+      document.getElementById("mm-status").textContent = "No species selected.";
+      return;
+    }
+    var provider = document.getElementById("mm-provider").value;
+    var quality = document.getElementById("mm-quality").value;
+    var variations = document.getElementById("mm-variations").value;
+    var statusEl = document.getElementById("mm-status");
+    var btn = document.getElementById("mm-generate-btn");
+    btn.disabled = true;
+    clearLog();
+
+    for (var i = 0; i < slugs.length; i++) {
+      var slug = slugs[i];
+      statusEl.textContent = "Generating " + (i + 1) + " of " + slugs.length + ": " + slug + "...";
+      var fd = new FormData();
+      fd.append("species", slug);
+      fd.append("variations", variations);
+      fd.append("provider", provider);
+      fd.append("quality", quality);
+      fd.append("model", "gpt-image-1");
+      fd.append("size", "1536x1024");
+
+      try {
+        var resp = await fetch("/run/generate", { method: "POST", body: fd });
+        var data = await resp.json();
+        if (!resp.ok) {
+          appendLine("[error] " + slug + ": " + (data.error || "failed"));
+          continue;
+        }
+        appendLine("$ " + (data.argv || []).join(" "));
+        // Wait for this job to finish before starting the next
+        await new Promise(function (resolve) {
+          var src = new EventSource("/stream/" + data.job_id);
+          src.onmessage = function (ev) { appendLine(ev.data); };
+          src.addEventListener("done", function (ev) {
+            try {
+              var code = JSON.parse(ev.data).exit_code;
+              appendLine("[" + slug + " done, exit " + code + "]");
+            } catch (e) {}
+            src.close();
+            resolve();
+          });
+          src.onerror = function () {
+            setTimeout(function () { src.close(); resolve(); }, 2000);
+          };
+        });
+      } catch (err) {
+        appendLine("[error] " + slug + ": " + err);
+      }
+    }
+
+    statusEl.textContent = "Done. Generated " + slugs.length + " species. Run Normalize + Copy Masters to update.";
+    btn.disabled = false;
+    refreshRecent();
+    refreshPosters();
+  });
+
+  mmUpdateVisibility();
 })();
 </script>
 {% endblock %}
