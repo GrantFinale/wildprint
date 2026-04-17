@@ -146,7 +146,7 @@ function renderTable(species) {
       <td>${masterCell(hasSci)}</td>
       <td>${masterCell(hasWc)}</td>
       <td>${masterCell(hasVe)}</td>
-      <td><a href="/?species=${sp.slug}" target="_blank" class="btn btn-sm">Generate</a></td>
+      <td><a href="/console?species=${sp.slug}" target="_blank" class="btn btn-sm">Generate</a></td>
     </tr>`;
   }).join('');
 }
