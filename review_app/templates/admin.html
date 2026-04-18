@@ -128,7 +128,7 @@ function renderTable(species) {
     const hasVe = sp.has_master.vintage_engraving;
     const thumbSrc = hasSci ? `/image/output/master/scientific/${sp.slug}.png` : '';
     const thumbHtml = thumbSrc
-      ? `<div class="admin-thumb"><img src="${thumbSrc}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=admin-thumb-placeholder></div>'"></div>`
+      ? `<div class="admin-thumb"><a href="${thumbSrc}" target="_blank" title="View full resolution"><img src="${thumbSrc}" loading="lazy" onerror="this.parentElement.parentElement.innerHTML='<div class=admin-thumb-placeholder></div>'"></a></div>`
       : '<div class="admin-thumb-placeholder"></div>';
     const catClass = 'badge-category badge-category--' + sp.category;
     const regions = (sp.geographic_range || []).map(r =>
@@ -264,5 +264,41 @@ async function generateBackground() {
 document.getElementById('btn-generate-bg').addEventListener('click', generateBackground);
 loadBgPresets();
 loadBgGallery();
+
+// --- Lightbox for full-res species images ---
+(function () {
+  // Create lightbox overlay
+  var overlay = document.createElement('div');
+  overlay.id = 'admin-lightbox';
+  overlay.style.cssText = 'display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.85); cursor:pointer; align-items:center; justify-content:center;';
+  var lbImg = document.createElement('img');
+  lbImg.style.cssText = 'max-width:90vw; max-height:90vh; object-fit:contain; border-radius:8px; box-shadow:0 4px 40px rgba(0,0,0,0.5);';
+  var lbCaption = document.createElement('div');
+  lbCaption.style.cssText = 'position:absolute; bottom:24px; left:0; right:0; text-align:center; color:#fff; font-size:0.9rem; text-shadow:0 1px 4px rgba(0,0,0,0.6);';
+  overlay.appendChild(lbImg);
+  overlay.appendChild(lbCaption);
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', function () {
+    overlay.style.display = 'none';
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') overlay.style.display = 'none';
+  });
+
+  // Intercept clicks on admin thumbnail links
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('.admin-thumb a');
+    if (!link) return;
+    e.preventDefault();
+    lbImg.src = link.href;
+    // Extract species name from the row
+    var row = link.closest('tr');
+    var name = row ? row.querySelector('strong') : null;
+    var sci = row ? row.querySelector('.sci-name') : null;
+    lbCaption.textContent = (name ? name.textContent : '') + (sci ? ' — ' + sci.textContent : '');
+    overlay.style.display = 'flex';
+  });
+})();
 </script>
 {% endblock %}
