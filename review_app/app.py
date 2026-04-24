@@ -53,6 +53,9 @@ from webapp.habitat_engine import recommend as habitat_recommend, get_species_by
 from poster_layout import (
     EditorialMultiRenderer,
     FileSystemMasterImageLoader,
+    LayoutResult,
+    MasterImage,
+    PlacedItem,
     PosterSpec,
     SpeciesRef,
     select_layout_engine,
@@ -1329,7 +1332,139 @@ def api_generate_poster():
         return jsonify({"error": f"Render failed: {exc}"}), 500
 
     poster_url = f"/image/output/posters/{poster_id}.png"
-    return jsonify({"poster_url": poster_url, "filename": f"{poster_id}.png"})
+    return jsonify({
+        "poster_url": poster_url,
+        "filename": f"{poster_id}.png",
+        "placements": [
+            {
+                "slug": p.species_ref.slug,
+                "common_name": p.species_ref.common_name,
+                "scientific_name": p.species_ref.scientific_name,
+                "x": p.x,
+                "y": p.y,
+                "draw_width": p.draw_width,
+                "draw_height": p.draw_height,
+                "master_url": f"/image/output/master/{style_slug}/{p.species_ref.slug}.png",
+            }
+            for p in result.placements
+        ],
+        "canvas_width": spec.canvas_width,
+        "canvas_height": spec.canvas_height,
+        "title": title,
+        "subtitle": subtitle or "",
+        "background": background,
+    })
+
+
+@app.route("/api/render-custom", methods=["POST"])
+@rate_limit(20)
+def api_render_custom():
+    """Render a poster with user-customized positions and text formatting."""
+    data = request.get_json(force=True)
+    placements_data = data.get("placements", [])
+    canvas_w = data.get("canvas_width", 5100)
+    canvas_h = data.get("canvas_height", 3300)
+    title = data.get("title", "")
+    subtitle = data.get("subtitle", "")
+    background = data.get("background", "#FFFFFF")
+    style_slug = data.get("style", "scientific")
+    text_config = data.get("text_config", {})
+    logo_filename = data.get("logo_filename")
+    bg_image_filename = data.get("background_image_filename")
+
+    if not placements_data:
+        return jsonify({"error": "No placements provided"}), 400
+
+    # Build SpeciesRef + MasterImage + PlacedItem objects from the user data
+    all_species = load_species()
+    species_by_slug = {sp["slug"]: sp for sp in all_species}
+    loader = FileSystemMasterImageLoader(masters_dir=MASTER_DIR)
+
+    placed_items = []
+    for p in placements_data:
+        slug = p.get("slug", "")
+        rec = species_by_slug.get(slug)
+        if not rec:
+            continue
+        if not loader.exists(slug, style_slug):
+            continue
+        master = loader.get(slug, style_slug)
+        sp_ref = SpeciesRef(
+            slug=slug,
+            common_name=rec.get("common_name", slug),
+            scientific_name=rec.get("scientific_name", ""),
+            category=rec.get("category", ""),
+            relative_scale_index=float(rec.get("relative_scale_index", 1.0)),
+            habitat_tags=list(rec.get("habitat_tags", [])),
+        )
+        placed_items.append(PlacedItem(
+            species_ref=sp_ref,
+            master=master,
+            x=int(p.get("x", 0)),
+            y=int(p.get("y", 0)),
+            draw_width=int(p.get("draw_width", 200)),
+            draw_height=int(p.get("draw_height", 150)),
+        ))
+
+    if not placed_items:
+        return jsonify({"error": "No valid placements"}), 400
+
+    spec = PosterSpec(
+        title=title,
+        subtitle=subtitle or None,
+        style_slug=style_slug,
+        species_slugs=[p.species_ref.slug for p in placed_items],
+        layout_style="custom",
+        canvas_width=canvas_w,
+        canvas_height=canvas_h,
+        background_color=background,
+        show_labels=True,
+    )
+
+    result = LayoutResult(poster=spec, placements=placed_items, warnings=[])
+
+    # Create renderer with custom text config
+    renderer = EditorialMultiRenderer(
+        title_font_size=text_config.get("title_size", 150),
+        label_common_font_size=text_config.get("label_size", 42),
+        label_scientific_font_size=int(text_config.get("label_size", 42) * 0.76),
+    )
+
+    # Apply text style overrides
+    if text_config.get("title_color"):
+        renderer.title_color = text_config["title_color"]
+    if text_config.get("label_color"):
+        renderer.scientific_color = text_config["label_color"]
+
+    # Disable leader lines for custom layout
+    renderer.leader_line_labels = False
+
+    # Handle logo
+    if logo_filename:
+        logo_path = Path(PROJECT_ROOT) / "output" / "uploads" / logo_filename
+        if logo_path.exists():
+            renderer._logo_path = logo_path
+
+    # Handle background image
+    if bg_image_filename:
+        bg_path = Path(PROJECT_ROOT) / "output" / "uploads" / bg_image_filename
+        if bg_path.exists():
+            renderer._background_image_path = bg_path
+
+    poster_id = f"custom_{uuid.uuid4().hex}"
+    posters_dir = Path(PROJECT_ROOT) / "output" / "posters"
+    posters_dir.mkdir(parents=True, exist_ok=True)
+    output_path = posters_dir / f"{poster_id}.png"
+
+    try:
+        renderer.render(result, output_path)
+    except Exception as exc:
+        return jsonify({"error": f"Render failed: {exc}"}), 500
+
+    return jsonify({
+        "poster_url": f"/image/output/posters/{poster_id}.png",
+        "filename": f"{poster_id}.png",
+    })
 
 
 # ---------------------------------------------------------------------------

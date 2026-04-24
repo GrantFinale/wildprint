@@ -139,9 +139,59 @@
       <img id="poster-img" class="cp-poster-img">
       <div class="cp-poster-actions">
         <a id="poster-download" class="cp-btn cp-btn-secondary" download>Download PNG</a>
+        <button class="cp-btn cp-btn-secondary" id="btn-open-editor" style="display:none; margin-top:0.5rem">Customize Layout</button>
       </div>
     </div>
   </section>
+
+  <!-- Phase 4: Editor -->
+  <div id="cp-editor-section" class="cp-phase cp-hidden">
+    <div class="cp-section-header">
+      <h2 class="cp-heading">Customize Your Layout</h2>
+      <p class="cp-subheading">Drag animals to reposition. Adjust text formatting below.</p>
+    </div>
+
+    <!-- Text formatting toolbar -->
+    <div class="cp-text-toolbar">
+      <div class="cp-toolbar-group">
+        <label class="cp-toolbar-label">Title & Subtitle</label>
+        <div class="cp-toolbar-controls">
+          <input type="range" id="ed-title-size" min="60" max="200" value="150" title="Font size">
+          <span class="cp-size-display" id="ed-title-size-val">150</span>
+          <input type="color" id="ed-title-color" value="#1a1612" title="Color">
+          <button type="button" class="cp-fmt-btn" id="ed-title-bold" title="Bold"><b>B</b></button>
+          <button type="button" class="cp-fmt-btn" id="ed-title-italic" title="Italic"><i>I</i></button>
+        </div>
+      </div>
+      <div class="cp-toolbar-group">
+        <label class="cp-toolbar-label">Species Labels (all)</label>
+        <div class="cp-toolbar-controls">
+          <input type="range" id="ed-label-size" min="16" max="60" value="42" title="Font size">
+          <span class="cp-size-display" id="ed-label-size-val">42</span>
+          <input type="color" id="ed-label-color" value="#1a1612" title="Color">
+          <button type="button" class="cp-fmt-btn" id="ed-label-bold" title="Bold"><b>B</b></button>
+          <button type="button" class="cp-fmt-btn" id="ed-label-italic" title="Italic"><i>I</i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive canvas -->
+    <div id="cp-editor-canvas" class="cp-editor-canvas">
+    </div>
+
+    <div style="text-align:center; margin-top:1rem">
+      <button class="cp-btn cp-btn-generate" id="btn-render-custom">Render Final Poster</button>
+      <div id="cp-custom-status" class="cp-subheading" style="margin-top:0.5rem"></div>
+    </div>
+
+    <!-- Final custom poster preview -->
+    <div id="cp-custom-preview" class="cp-hidden" style="text-align:center; margin-top:1rem">
+      <img id="cp-custom-img" style="max-width:100%; border-radius:8px; box-shadow:0 2px 16px rgba(0,0,0,0.12)">
+      <div style="margin-top:1rem">
+        <a id="cp-custom-download" class="cp-btn cp-btn-secondary" download>Download Final Poster</a>
+      </div>
+    </div>
+  </div>
 
 </div>
 
@@ -407,11 +457,225 @@ document.getElementById('btn-generate').addEventListener('click', async () => {
     document.getElementById('poster-preview').style.display = '';
     document.getElementById('poster-preview').classList.add('cp-fade-in');
     status.textContent = 'Poster generated!';
+    // Show the Customize Layout button and wire it up
+    document.getElementById('btn-open-editor').style.display = '';
+    window._lastPosterData = data;
+    document.getElementById('btn-open-editor').onclick = function() {
+      openEditor(window._lastPosterData);
+    };
     setTimeout(() => {
       document.getElementById('poster-preview').scrollIntoView({behavior: 'smooth', block: 'center'});
     }, 200);
   } else {
     status.textContent = 'Error: ' + (data.error || 'unknown');
+  }
+});
+
+// --- Editor state ---
+let editorData = null;
+let editorScale = 1;
+
+function openEditor(data) {
+  editorData = data;
+  const canvas = document.getElementById('cp-editor-canvas');
+  const section = document.getElementById('cp-editor-section');
+  section.classList.remove('cp-hidden');
+  section.classList.add('cp-fade-in');
+
+  // Compute scale: editor canvas is the width of its container
+  const containerWidth = canvas.parentElement.clientWidth - 32;
+  editorScale = containerWidth / data.canvas_width;
+  const editorHeight = data.canvas_height * editorScale;
+
+  canvas.style.width = containerWidth + 'px';
+  canvas.style.height = editorHeight + 'px';
+  canvas.style.background = data.background || '#ffffff';
+  canvas.innerHTML = '';
+
+  // Add title overlay
+  const titleDiv = document.createElement('div');
+  titleDiv.className = 'cp-ed-title';
+  titleDiv.textContent = data.title;
+  titleDiv.style.cssText = 'position:absolute; top:' + (3 * editorScale) + '%; left:0; right:0; text-align:center; font-family:Playfair Display,Georgia,serif; font-size:' + (150 * editorScale) + 'px; color:#1a1612; pointer-events:none; font-weight:700;';
+  canvas.appendChild(titleDiv);
+
+  // Add subtitle overlay
+  if (data.subtitle) {
+    const subDiv = document.createElement('div');
+    subDiv.className = 'cp-ed-subtitle';
+    subDiv.textContent = data.subtitle;
+    subDiv.style.cssText = 'position:absolute; top:' + (8 * editorScale) + '%; left:0; right:0; text-align:center; font-family:Playfair Display,Georgia,serif; font-size:' + (52 * editorScale) + 'px; color:#5a5248; pointer-events:none; font-style:italic;';
+    canvas.appendChild(subDiv);
+  }
+
+  // Add species elements
+  data.placements.forEach(function(p, i) {
+    const el = document.createElement('div');
+    el.className = 'cp-ed-species';
+    el.dataset.index = i;
+    el.dataset.slug = p.slug;
+    const w = p.draw_width * editorScale;
+    const h = p.draw_height * editorScale;
+    const x = p.x * editorScale;
+    const y = p.y * editorScale;
+    el.style.cssText = 'position:absolute; left:' + x + 'px; top:' + y + 'px; width:' + w + 'px; height:' + h + 'px; cursor:grab; user-select:none; transition:box-shadow 0.15s;';
+    el.innerHTML = '<img src="' + p.master_url + '" style="width:100%;height:100%;object-fit:contain;pointer-events:none" draggable="false">'
+      + '<div class="cp-ed-label" style="text-align:center;font-family:Playfair Display,Georgia,serif;font-size:' + Math.max(8, 42 * editorScale) + 'px;color:#1a1612;margin-top:2px;pointer-events:none;white-space:nowrap">'
+      + '<div class="cp-ed-common" style="font-weight:600;text-transform:uppercase;letter-spacing:1px">' + esc(p.common_name) + '</div>'
+      + '<div class="cp-ed-sci" style="font-style:italic;font-size:' + Math.max(6, 32 * editorScale) + 'px;color:#5a5248">' + esc(p.scientific_name) + '</div>'
+      + '</div>';
+    canvas.appendChild(el);
+    makeDraggable(el, canvas);
+  });
+
+  setTimeout(function() {
+    section.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }, 100);
+}
+
+// --- Drag logic ---
+function makeDraggable(el, container) {
+  el.addEventListener('pointerdown', function(e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    el.style.cursor = 'grabbing';
+    el.style.zIndex = '100';
+    el.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)';
+    var startX = e.clientX;
+    var startY = e.clientY;
+    var origLeft = parseFloat(el.style.left);
+    var origTop = parseFloat(el.style.top);
+
+    function onMove(e2) {
+      var dx = e2.clientX - startX;
+      var dy = e2.clientY - startY;
+      el.style.left = (origLeft + dx) + 'px';
+      el.style.top = (origTop + dy) + 'px';
+    }
+
+    function onUp(e2) {
+      el.releasePointerCapture(e2.pointerId);
+      el.style.cursor = 'grab';
+      el.style.zIndex = '';
+      el.style.boxShadow = '';
+      el.removeEventListener('pointermove', onMove);
+      el.removeEventListener('pointerup', onUp);
+      var idx = parseInt(el.dataset.index);
+      editorData.placements[idx].x = parseFloat(el.style.left) / editorScale;
+      editorData.placements[idx].y = parseFloat(el.style.top) / editorScale;
+    }
+
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerup', onUp);
+  });
+}
+
+// --- Text formatting controls ---
+document.getElementById('ed-title-size').addEventListener('input', function() {
+  document.getElementById('ed-title-size-val').textContent = this.value;
+  var titleEl = document.querySelector('.cp-ed-title');
+  if (titleEl) titleEl.style.fontSize = (this.value * editorScale) + 'px';
+});
+document.getElementById('ed-title-color').addEventListener('input', function() {
+  var titleEl = document.querySelector('.cp-ed-title');
+  var subEl = document.querySelector('.cp-ed-subtitle');
+  if (titleEl) titleEl.style.color = this.value;
+  if (subEl) subEl.style.color = this.value;
+});
+document.getElementById('ed-title-bold').addEventListener('click', function() {
+  this.classList.toggle('active');
+  var titleEl = document.querySelector('.cp-ed-title');
+  if (titleEl) titleEl.style.fontWeight = this.classList.contains('active') ? '700' : '400';
+});
+document.getElementById('ed-title-italic').addEventListener('click', function() {
+  this.classList.toggle('active');
+  var titleEl = document.querySelector('.cp-ed-title');
+  if (titleEl) titleEl.style.fontStyle = this.classList.contains('active') ? 'italic' : 'normal';
+});
+
+document.getElementById('ed-label-size').addEventListener('input', function() {
+  document.getElementById('ed-label-size-val').textContent = this.value;
+  document.querySelectorAll('.cp-ed-common').forEach(function(el) {
+    el.style.fontSize = Math.max(6, this.value * editorScale) + 'px';
+  }.bind(this));
+  document.querySelectorAll('.cp-ed-sci').forEach(function(el) {
+    el.style.fontSize = Math.max(5, (this.value * 0.76) * editorScale) + 'px';
+  }.bind(this));
+});
+document.getElementById('ed-label-color').addEventListener('input', function() {
+  document.querySelectorAll('.cp-ed-common, .cp-ed-sci').forEach(function(el) {
+    el.style.color = this.value;
+  }.bind(this));
+});
+document.getElementById('ed-label-bold').addEventListener('click', function() {
+  this.classList.toggle('active');
+  var w = this.classList.contains('active') ? '700' : '600';
+  document.querySelectorAll('.cp-ed-common').forEach(function(el) { el.style.fontWeight = w; });
+});
+document.getElementById('ed-label-italic').addEventListener('click', function() {
+  this.classList.toggle('active');
+  var style = this.classList.contains('active') ? 'italic' : 'normal';
+  document.querySelectorAll('.cp-ed-common').forEach(function(el) { el.style.fontStyle = style; });
+});
+
+// --- Render Final Poster ---
+document.getElementById('btn-render-custom').addEventListener('click', async function() {
+  var status = document.getElementById('cp-custom-status');
+  status.textContent = 'Rendering your custom layout...';
+
+  var titleSize = parseInt(document.getElementById('ed-title-size').value);
+  var titleColor = document.getElementById('ed-title-color').value;
+  var titleBold = document.getElementById('ed-title-bold').classList.contains('active');
+  var titleItalic = document.getElementById('ed-title-italic').classList.contains('active');
+  var labelSize = parseInt(document.getElementById('ed-label-size').value);
+  var labelColor = document.getElementById('ed-label-color').value;
+  var labelBold = document.getElementById('ed-label-bold').classList.contains('active');
+  var labelItalic = document.getElementById('ed-label-italic').classList.contains('active');
+
+  var body = {
+    placements: editorData.placements.map(function(p) {
+      return {
+        slug: p.slug,
+        x: Math.round(p.x),
+        y: Math.round(p.y),
+        draw_width: p.draw_width,
+        draw_height: p.draw_height,
+      };
+    }),
+    canvas_width: editorData.canvas_width,
+    canvas_height: editorData.canvas_height,
+    title: editorData.title,
+    subtitle: editorData.subtitle,
+    background: editorData.background,
+    style: document.getElementById('cp-poster-style').value,
+    text_config: {
+      title_size: titleSize,
+      title_color: titleColor,
+      title_bold: titleBold,
+      title_italic: titleItalic,
+      label_size: labelSize,
+      label_color: labelColor,
+      label_bold: labelBold,
+      label_italic: labelItalic,
+    },
+    logo_filename: uploadedLogoFilename,
+    background_image_filename: uploadedBackgroundFilename,
+  };
+
+  var resp = await fetch('/api/render-custom', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+  var result = await resp.json();
+  if (result.poster_url) {
+    document.getElementById('cp-custom-img').src = result.poster_url + '?t=' + Date.now();
+    document.getElementById('cp-custom-download').href = result.poster_url;
+    document.getElementById('cp-custom-preview').classList.remove('cp-hidden');
+    status.textContent = 'Custom poster rendered!';
+  } else {
+    status.textContent = 'Error: ' + (result.error || 'unknown');
   }
 });
 </script>

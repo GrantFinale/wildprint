@@ -995,3 +995,86 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
   .cp-card-image { height: 130px; padding: 8px; }
   .cp-card-image img { max-height: 115px; }
 }
+
+/* --- Poster Editor --- */
+.cp-editor-canvas {
+  position: relative;
+  margin: 0 auto;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+  touch-action: none;
+}
+.cp-ed-species {
+  position: absolute;
+  transition: box-shadow 0.15s;
+}
+.cp-ed-species:hover {
+  box-shadow: 0 2px 12px rgba(45, 95, 74, 0.25);
+  z-index: 10;
+}
+.cp-text-toolbar {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #E8E4DD;
+  border-radius: 8px;
+}
+.cp-toolbar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.cp-toolbar-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #3D3830;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.cp-toolbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.cp-toolbar-controls input[type=range] {
+  width: 100px;
+}
+.cp-toolbar-controls input[type=color] {
+  width: 32px;
+  height: 28px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 1px;
+  cursor: pointer;
+}
+.cp-size-display {
+  font-size: 0.75rem;
+  color: #8A8477;
+  min-width: 28px;
+  text-align: center;
+}
+.cp-fmt-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.cp-fmt-btn:hover {
+  border-color: #2D5F4A;
+}
+.cp-fmt-btn.active {
+  background: #2D5F4A;
+  color: #fff;
+  border-color: #2D5F4A;
+}
