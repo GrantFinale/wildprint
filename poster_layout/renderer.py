@@ -930,6 +930,20 @@ class EditorialMultiRenderer(PosterRenderer):
         self.leader_line_labels: bool = True
         self.leader_line_width: int = 1
         self.leader_max_length: float = 0.12
+        # Custom font overrides for user-edited posters. When these paths
+        # are set, they take precedence over the default Didot fallback chain.
+        self._custom_title_font_path: Path | None = None
+        self._custom_label_font_path: Path | None = None
+        # Label color override — when set, labels use this color instead of
+        # the auto-computed adaptive palette.
+        self._label_override_color: str | None = None
+        # When True, the adaptive palette is skipped — user's explicit
+        # title/scientific/label colors are used as-is.
+        self._disable_adaptive_palette: bool = False
+        # Crop each master image to its alpha bbox before resize, so the
+        # silhouette's aspect is preserved instead of stretching the
+        # full-frame master.
+        self._crop_master_to_alpha: bool = True
 
     def render(self, result: LayoutResult, output_path: Path) -> None:
         spec = result.poster
@@ -987,16 +1001,20 @@ class EditorialMultiRenderer(PosterRenderer):
                 )
                 bg_image_canvas = None
 
-        if sampled_luminance is not None:
-            grey = max(0, min(255, int(round(sampled_luminance))))
-            synth = f"#{grey:02x}{grey:02x}{grey:02x}"
-            title_c, sci_c, rule_c, caption_c = _adaptive_palette(synth)
+        if self._disable_adaptive_palette:
+            # Keep the explicit colors the caller set (user edits)
+            pass
         else:
-            title_c, sci_c, rule_c, caption_c = _adaptive_palette(bg)
-        self.title_color = title_c
-        self.scientific_color = sci_c
-        self.rule_color = rule_c
-        self.caption_color = caption_c
+            if sampled_luminance is not None:
+                grey = max(0, min(255, int(round(sampled_luminance))))
+                synth = f"#{grey:02x}{grey:02x}{grey:02x}"
+                title_c, sci_c, rule_c, caption_c = _adaptive_palette(synth)
+            else:
+                title_c, sci_c, rule_c, caption_c = _adaptive_palette(bg)
+            self.title_color = title_c
+            self.scientific_color = sci_c
+            self.rule_color = rule_c
+            self.caption_color = caption_c
         logger.info(
             "editorial-multi background: %s (luminance=%.0f, title ink=%s)",
             bg,
@@ -1030,26 +1048,58 @@ class EditorialMultiRenderer(PosterRenderer):
         title_band_h = int(round(canvas_h * 0.16))
         caption_band_h = int(round(canvas_h * 0.10))
 
-        # Load fonts (lazy).
-        title_font, scientific_font, regular_font = _load_display_fonts(
-            self.font_candidates,
-            title_size=self.title_font_size,
-            scientific_size=self.scientific_font_size,
-            regular_size=self.subtitle_font_size,
-        )
+        # Load fonts (lazy). If the user chose a custom font, load it from
+        # assets/fonts/ for both title and labels; otherwise fall back to
+        # the Didot family chain.
+        if self._custom_title_font_path and self._custom_title_font_path.exists():
+            try:
+                tfp = str(self._custom_title_font_path)
+                title_font = ImageFont.truetype(tfp, self.title_font_size)
+                scientific_font = ImageFont.truetype(tfp, self.scientific_font_size)
+                regular_font = ImageFont.truetype(tfp, self.subtitle_font_size)
+            except Exception:
+                title_font, scientific_font, regular_font = _load_display_fonts(
+                    self.font_candidates,
+                    title_size=self.title_font_size,
+                    scientific_size=self.scientific_font_size,
+                    regular_size=self.subtitle_font_size,
+                )
+        else:
+            title_font, scientific_font, regular_font = _load_display_fonts(
+                self.font_candidates,
+                title_size=self.title_font_size,
+                scientific_size=self.scientific_font_size,
+                regular_size=self.subtitle_font_size,
+            )
         caption_font = _load_caption_font(
             self.font_candidates, size=self.caption_font_size
         )
         # Label fonts: italic (scientific) and regular (common name).
-        _, label_italic_font, _ = _load_display_fonts(
-            self.font_candidates,
-            title_size=self.label_scientific_font_size,
-            scientific_size=self.label_scientific_font_size,
-            regular_size=self.label_scientific_font_size,
-        )
-        label_common_regular = _load_caption_font(
-            self.font_candidates, size=self.label_common_font_size
-        )
+        if self._custom_label_font_path and self._custom_label_font_path.exists():
+            try:
+                lfp = str(self._custom_label_font_path)
+                label_italic_font = ImageFont.truetype(lfp, self.label_scientific_font_size)
+                label_common_regular = ImageFont.truetype(lfp, self.label_common_font_size)
+            except Exception:
+                _, label_italic_font, _ = _load_display_fonts(
+                    self.font_candidates,
+                    title_size=self.label_scientific_font_size,
+                    scientific_size=self.label_scientific_font_size,
+                    regular_size=self.label_scientific_font_size,
+                )
+                label_common_regular = _load_caption_font(
+                    self.font_candidates, size=self.label_common_font_size
+                )
+        else:
+            _, label_italic_font, _ = _load_display_fonts(
+                self.font_candidates,
+                title_size=self.label_scientific_font_size,
+                scientific_size=self.label_scientific_font_size,
+                regular_size=self.label_scientific_font_size,
+            )
+            label_common_regular = _load_caption_font(
+                self.font_candidates, size=self.label_common_font_size
+            )
 
         # 1. Title block — title + italic subtitle (or empty) + ornamental rule.
         _draw_title_block(
@@ -1107,13 +1157,15 @@ class EditorialMultiRenderer(PosterRenderer):
             for placed in result.placements:
                 bucket = placed.y // 80 * 80
                 is_dense = len(shelves.get(bucket, [])) > 4
+                _label_color = self._label_override_color or self.title_color
+                _label_sci_color = self._label_override_color or self.scientific_color
                 _draw_species_label(
                     draw=draw,
                     placed=placed,
                     common_font=dense_common if is_dense else label_common_regular,
                     scientific_font=dense_italic if is_dense else label_italic_font,
-                    common_color=self.title_color,
-                    sci_color=self.scientific_color,
+                    common_color=_label_color,
+                    sci_color=_label_sci_color,
                     label_gap_px=self.label_gap_px,
                     common_letter_spacing=dense_spacing if is_dense else self.label_letter_spacing,
                 )
@@ -1287,6 +1339,12 @@ class EditorialMultiRenderer(PosterRenderer):
     def _paste_item(self, canvas: Image.Image, placed: PlacedItem) -> None:
         with Image.open(placed.master.image_path) as src:
             src = src.convert("RGBA")
+            # Crop to the alpha silhouette's bbox so resize preserves the
+            # animal's actual shape instead of stretching the padded frame.
+            if self._crop_master_to_alpha:
+                bbox = src.split()[3].getbbox()
+                if bbox:
+                    src = src.crop(bbox)
             resized = src.resize(
                 (max(1, placed.draw_width), max(1, placed.draw_height)),
                 resample=Image.Resampling.LANCZOS,

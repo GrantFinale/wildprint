@@ -1424,19 +1424,56 @@ def api_render_custom():
     result = LayoutResult(poster=spec, placements=placed_items, warnings=[])
 
     # Create renderer with custom text config
+    title_size = int(text_config.get("title_size", 150))
+    label_size = int(text_config.get("label_size", 42))
     renderer = EditorialMultiRenderer(
-        title_font_size=text_config.get("title_size", 150),
-        label_common_font_size=text_config.get("label_size", 42),
-        label_scientific_font_size=int(text_config.get("label_size", 42) * 0.76),
+        title_font_size=title_size,
+        scientific_font_size=max(24, int(title_size * 0.35)),
+        label_common_font_size=label_size,
+        label_scientific_font_size=max(10, int(label_size * 0.76)),
     )
 
-    # Apply text style overrides
+    # Resolve custom fonts (if user picked one). Map (bold, italic) -> style suffix.
+    def _style_suffix(bold: bool, italic: bool) -> str:
+        if bold and italic:
+            return "BoldItalic"
+        if bold:
+            return "Bold"
+        if italic:
+            return "Italic"
+        return "Regular"
+
+    fonts_dir = Path(PROJECT_ROOT) / "assets" / "fonts"
+    title_family = text_config.get("title_font", "Playfair Display")
+    label_family = text_config.get("label_font", "Playfair Display")
+    title_suffix = _style_suffix(
+        bool(text_config.get("title_bold")),
+        bool(text_config.get("title_italic")),
+    )
+    label_suffix = _style_suffix(
+        bool(text_config.get("label_bold")),
+        bool(text_config.get("label_italic")),
+    )
+    title_font_path = fonts_dir / f"{title_family.replace(' ', '')}-{title_suffix}.ttf"
+    label_font_path = fonts_dir / f"{label_family.replace(' ', '')}-{label_suffix}.ttf"
+    if not title_font_path.exists():
+        title_font_path = fonts_dir / f"{title_family.replace(' ', '')}-Regular.ttf"
+    if not label_font_path.exists():
+        label_font_path = fonts_dir / f"{label_family.replace(' ', '')}-Regular.ttf"
+    if title_font_path.exists():
+        renderer._custom_title_font_path = title_font_path
+    if label_font_path.exists():
+        renderer._custom_label_font_path = label_font_path
+
+    # Explicit colors — bypass the adaptive palette so user edits stick.
     if text_config.get("title_color"):
         renderer.title_color = text_config["title_color"]
+        renderer.scientific_color = text_config["title_color"]
     if text_config.get("label_color"):
-        renderer.scientific_color = text_config["label_color"]
+        renderer._label_override_color = text_config["label_color"]
+    renderer._disable_adaptive_palette = True
 
-    # Disable leader lines for custom layout
+    # Disable leader lines for custom layout (user positioned manually)
     renderer.leader_line_labels = False
 
     # Handle logo

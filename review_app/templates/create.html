@@ -4,7 +4,7 @@
 {% block content %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9/dist/leaflet.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&family=Raleway:wght@400;700&family=Poppins:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
 
 <div class="cp-page">
 
@@ -156,21 +156,45 @@
       <div class="cp-toolbar-group">
         <label class="cp-toolbar-label">Title & Subtitle</label>
         <div class="cp-toolbar-controls">
-          <input type="range" id="ed-title-size" min="60" max="200" value="150" title="Font size">
+          <input type="range" id="ed-title-size" min="60" max="400" value="150" title="Font size">
           <span class="cp-size-display" id="ed-title-size-val">150</span>
           <input type="color" id="ed-title-color" value="#1a1612" title="Color">
           <button type="button" class="cp-fmt-btn" id="ed-title-bold" title="Bold"><b>B</b></button>
           <button type="button" class="cp-fmt-btn" id="ed-title-italic" title="Italic"><i>I</i></button>
+          <select id="ed-title-font" title="Font family">
+            <option value="Playfair Display" selected>Playfair Display</option>
+            <option value="Lora">Lora</option>
+            <option value="Merriweather">Merriweather</option>
+            <option value="Cormorant Garamond">Cormorant Garamond</option>
+            <option value="EB Garamond">EB Garamond</option>
+            <option value="Montserrat">Montserrat</option>
+            <option value="Oswald">Oswald</option>
+            <option value="Raleway">Raleway</option>
+            <option value="Poppins">Poppins</option>
+            <option value="Bebas Neue">Bebas Neue</option>
+          </select>
         </div>
       </div>
       <div class="cp-toolbar-group">
         <label class="cp-toolbar-label">Species Labels (all)</label>
         <div class="cp-toolbar-controls">
-          <input type="range" id="ed-label-size" min="16" max="60" value="42" title="Font size">
+          <input type="range" id="ed-label-size" min="16" max="120" value="42" title="Font size">
           <span class="cp-size-display" id="ed-label-size-val">42</span>
           <input type="color" id="ed-label-color" value="#1a1612" title="Color">
           <button type="button" class="cp-fmt-btn" id="ed-label-bold" title="Bold"><b>B</b></button>
           <button type="button" class="cp-fmt-btn" id="ed-label-italic" title="Italic"><i>I</i></button>
+          <select id="ed-label-font" title="Font family">
+            <option value="Playfair Display" selected>Playfair Display</option>
+            <option value="Lora">Lora</option>
+            <option value="Merriweather">Merriweather</option>
+            <option value="Cormorant Garamond">Cormorant Garamond</option>
+            <option value="EB Garamond">EB Garamond</option>
+            <option value="Montserrat">Montserrat</option>
+            <option value="Oswald">Oswald</option>
+            <option value="Raleway">Raleway</option>
+            <option value="Poppins">Poppins</option>
+            <option value="Bebas Neue">Bebas Neue</option>
+          </select>
         </div>
       </div>
     </div>

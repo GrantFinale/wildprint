@@ -29,6 +29,7 @@ COPY scripts/ ./scripts/
 COPY poster_layout/ ./poster_layout/
 COPY review_app/ ./review_app/
 COPY webapp/ ./webapp/
+COPY assets/ ./assets/
 COPY metadata/manifest_schema.json ./metadata/
 
 # Seed masters into the image so the app works immediately.
