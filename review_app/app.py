@@ -1088,8 +1088,61 @@ def api_recommend():
             "lat/lng provided without state code; reverse geocoding not available server-side, skipping geographic filter"
         )
 
-    result = habitat_recommend(answers, region=region)
+    categories = data.get("categories") or None
+    try:
+        offset = int(data.get("offset", 0))
+    except (TypeError, ValueError):
+        offset = 0
+
+    result = habitat_recommend(
+        answers,
+        region=region,
+        categories=categories,
+        offset=offset,
+    )
     return jsonify(result)
+
+
+@app.route("/api/search-species", methods=["POST"])
+@rate_limit(60)
+def api_search_species():
+    """Search species by common or scientific name. Optionally region-filtered."""
+    data = request.get_json(force=True)
+    q = (data.get("query") or "").lower().strip()
+    state = data.get("state")
+    categories = data.get("categories") or None
+    if len(q) < 2:
+        return jsonify({"results": []})
+    region = state_to_region(state) if state else None
+    cat_filter = None
+    if categories:
+        cat_filter = {c.lower() for c in categories if c}
+        if not cat_filter:
+            cat_filter = None
+    species = load_species()
+    results = []
+    for sp in species:
+        if sp.get("category") == "plant":
+            continue
+        if cat_filter is not None and sp.get("category") not in cat_filter:
+            continue
+        if region:
+            geo = [g.lower() for g in sp.get("geographic_range", [])]
+            if region not in geo and "nationwide" not in geo:
+                continue
+        name = (sp.get("common_name") or "").lower()
+        sci = (sp.get("scientific_name") or "").lower()
+        slug = sp.get("slug", "")
+        if q in name or q in sci or q in slug:
+            results.append({
+                "slug": slug,
+                "common_name": sp["common_name"],
+                "scientific_name": sp.get("scientific_name", ""),
+                "category": sp.get("category", ""),
+                "score": 0,
+                "commonness": int(sp.get("commonness", 1)),
+            })
+    return jsonify({"results": results[:30]})
 
 
 @app.route("/api/upload-logo", methods=["POST"])

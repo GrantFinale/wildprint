@@ -90,8 +90,10 @@ _COMMONNESS_BOOST = {3: 8, 2: 4, 1: 0, 0: -3}
 def recommend(
     answers: dict,
     primary_count: int = 10,
-    secondary_count: int = 8,
+    secondary_count: int = 20,
     region: str | None = None,
+    categories: list[str] | None = None,
+    offset: int = 0,
 ) -> dict:
     """Return primary and secondary species recommendations.
 
@@ -100,9 +102,18 @@ def recommend(
       2. Apply commonness boost so abundant species win ties.
       3. Filter out plants (they're decorative borders).
       4. Filter by geographic region (state -> region).
-      5. Compose primary list using category quotas tuned to water_type,
+      5. Filter by selected categories if provided.
+      6. Compose primary list using category quotas tuned to water_type,
          so users see the right MIX (fish for lakes, birds for marshes).
-      6. Secondary list = next high-scoring species across all categories.
+      7. Secondary list = next high-scoring species across all categories,
+         starting at ``offset`` (for "Show 20 more" pagination).
+
+    Behavior with ``categories``:
+      - None or empty: all categories considered (legacy behavior).
+      - Length 1: ``primary_count`` is forced to 15 (focused field guide).
+      - Length >= 2: per-water-type quotas are LIMITED to the selected
+        categories, summed; if that falls short of ``primary_count``,
+        we fill with the next-best species in the selection.
 
     Tiebreakers: commonness desc, then scientific_name asc (deterministic).
     """
@@ -113,11 +124,26 @@ def recommend(
         all_species = json.load(f)
     species_by_slug = {sp["slug"]: sp for sp in all_species}
 
-    # --- Apply commonness boost ---
+    # --- Normalize the categories filter ---
+    cat_filter: set[str] | None = None
+    if categories:
+        cat_filter = {c.lower() for c in categories if c}
+        if not cat_filter:
+            cat_filter = None
+
+    # If exactly one category is selected, treat this as a focused field
+    # guide and bump the primary list to 15.
+    if cat_filter is not None and len(cat_filter) == 1:
+        primary_count = 15
+
+    # --- Apply commonness boost (and drop plants + non-selected cats) ---
     boosted: list[tuple[str, float, int]] = []
     for slug, raw_score in scored:
         sp = species_by_slug.get(slug, {})
-        if sp.get("category") == "plant":
+        cat = sp.get("category")
+        if cat == "plant":
+            continue
+        if cat_filter is not None and cat not in cat_filter:
             continue
         commonness = int(sp.get("commonness", 1))
         boost = _COMMONNESS_BOOST.get(commonness, 0)
@@ -156,7 +182,12 @@ def recommend(
 
     # --- Compose primary list using per-water-type quotas ---
     water_type = (answers.get("water_type") or "lake").lower()
-    quota = _PRIMARY_QUOTAS.get(water_type, _DEFAULT_QUOTA)
+    base_quota = _PRIMARY_QUOTAS.get(water_type, _DEFAULT_QUOTA)
+    # Restrict quotas to the user-selected categories, if any.
+    if cat_filter is not None:
+        quota = {k: v for k, v in base_quota.items() if k in cat_filter}
+    else:
+        quota = dict(base_quota)
 
     primary_picks: list[tuple[str, float, int]] = []
     used_slugs: set[str] = set()
@@ -168,6 +199,7 @@ def recommend(
             used_slugs.add(item[0])
 
     # If quota fell short of primary_count, top up with next-best across all
+    # remaining (already filtered to cat_filter if present).
     if len(primary_picks) < primary_count:
         for item in boosted:
             if item[0] in used_slugs:
@@ -182,9 +214,11 @@ def recommend(
     primary_slug_set = {p[0] for p in primary_picks}
 
     # --- Secondary: next high-scoring species not already in primary ---
-    secondary_picks = [
-        b for b in boosted if b[0] not in primary_slug_set
-    ][:secondary_count]
+    post_primary = [b for b in boosted if b[0] not in primary_slug_set]
+    if offset < 0:
+        offset = 0
+    secondary_picks = post_primary[offset:offset + secondary_count]
+    total_remaining = max(0, len(post_primary) - (offset + len(secondary_picks)))
 
     def _enrich(item):
         slug, score, _commonness = item
@@ -202,6 +236,7 @@ def recommend(
         "primary": [_enrich(p) for p in primary_picks],
         "secondary": [_enrich(s) for s in secondary_picks],
         "all_scores": [_enrich(b) for b in boosted],
+        "total_remaining": total_remaining,
     }
 
 

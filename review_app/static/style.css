@@ -1078,3 +1078,44 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
   color: #fff;
   border-color: #2D5F4A;
 }
+
+/* Category chips (Phase 1) */
+.cp-cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+.cp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #E8E4DD;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+  user-select: none;
+  background: #fff;
+}
+.cp-chip:hover { border-color: #2D5F4A; }
+.cp-chip input { display: none; }
+.cp-chip:has(input:checked) {
+  background: #2D5F4A;
+  color: #fff;
+  border-color: #2D5F4A;
+}
+.cp-chip:has(input:checked) span { color: #fff; }
+.cp-hint {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #8A8477;
+  font-style: italic;
+}
+
+/* Search bar (Phase 2) */
+.cp-search-row {
+  margin: 1.5rem 0 1rem;
+  max-width: 600px;
+}

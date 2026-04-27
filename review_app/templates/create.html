@@ -70,6 +70,18 @@
             <option value="murky">Murky / Stained</option>
           </select>
         </div>
+        <div class="cp-field">
+          <label class="cp-label">Include in poster</label>
+          <div class="cp-cat-chips" id="cp-cat-chips">
+            <label class="cp-chip"><input type="checkbox" name="cat" value="fish" checked><span>Fish</span></label>
+            <label class="cp-chip"><input type="checkbox" name="cat" value="bird"><span>Birds</span></label>
+            <label class="cp-chip"><input type="checkbox" name="cat" value="turtle"><span>Turtles</span></label>
+            <label class="cp-chip"><input type="checkbox" name="cat" value="reptile"><span>Reptiles</span></label>
+            <label class="cp-chip"><input type="checkbox" name="cat" value="amphibian"><span>Amphibians</span></label>
+            <label class="cp-chip"><input type="checkbox" name="cat" value="mammal"><span>Mammals</span></label>
+          </div>
+          <p class="cp-hint">Pick one for a focused field guide, or several for a mixed wildlife poster.</p>
+        </div>
         <button class="cp-btn cp-btn-primary cp-btn-find" id="btn-recommend">Find Species</button>
       </div>
     </div>
@@ -82,10 +94,16 @@
       <p class="cp-subheading"><span id="cp-species-count">0</span> species found &middot; Tap to add or remove</p>
     </div>
     <div id="species-primary" class="cp-species-grid"></div>
-    <div class="cp-more-toggle" id="cp-more-toggle" style="display:none">
-      <button class="cp-btn-text" id="btn-show-more">&#9660; Show <span id="cp-secondary-count">0</span> more species you could add</button>
+
+    <div class="cp-search-row">
+      <input type="text" id="cp-search-input" class="cp-input" placeholder="Looking for something specific? Search by name…">
     </div>
-    <div id="species-secondary" class="cp-species-grid cp-species-secondary cp-hidden"></div>
+    <div id="cp-search-results" class="cp-species-grid"></div>
+
+    <div id="species-secondary" class="cp-species-grid cp-species-secondary"></div>
+    <div class="cp-more-toggle" id="cp-more-toggle" style="display:none">
+      <button class="cp-btn-text" id="btn-show-more">&#9660; Show 20 more species</button>
+    </div>
   </section>
 
   <!-- Phase 3: Design your poster -->
@@ -280,16 +298,22 @@ map.on('click', async function(e) {
   document.getElementById('water-name').focus();
 });
 
-// --- Recommend button handler ---
-document.getElementById('btn-recommend').addEventListener('click', async () => {
-  const answers = {
+// --- Recommend handler (paginating) ---
+async function callRecommend(offset = 0, append = false) {
+  const cats = Array.from(document.querySelectorAll('#cp-cat-chips input:checked')).map(i => i.value);
+  if (cats.length === 0) {
+    alert('Pick at least one category.');
+    return;
+  }
+  const body = {
     water_type: document.getElementById('q-water-type').value,
     depth: document.getElementById('q-depth').value,
     flow: document.getElementById('q-flow').value,
     vegetation: document.getElementById('q-vegetation').value,
     clarity: document.getElementById('q-clarity').value,
+    categories: cats,
+    offset: offset,
   };
-  const body = {...answers};
   if (currentState) body.state = currentState;
   if (marker) {
     body.lat = marker.getLatLng().lat;
@@ -301,88 +325,123 @@ document.getElementById('btn-recommend').addEventListener('click', async () => {
     body: JSON.stringify(body),
   });
   const data = await resp.json();
-  renderSpeciesGrid(data.primary, 'species-primary', true);
-  renderSpeciesGrid(data.secondary, 'species-secondary', false);
 
-  // Update counts and labels
-  const waterName = document.getElementById('water-name').value || 'Your Water';
-  document.getElementById('cp-water-label').textContent = waterName;
-  document.getElementById('cp-species-count').textContent = data.primary.length + data.secondary.length;
-  document.getElementById('cp-secondary-count').textContent = data.secondary.length;
-
-  // Show phases with animation
-  const phaseSpecies = document.getElementById('step-species');
-  const phaseDesign = document.getElementById('step-options');
-  phaseSpecies.classList.remove('cp-hidden');
-  phaseSpecies.classList.add('cp-fade-in');
-  setTimeout(() => {
-    phaseDesign.classList.remove('cp-hidden');
-    phaseDesign.classList.add('cp-fade-in');
-  }, 200);
-
-  // Show more toggle if secondary has items
-  if (data.secondary.length > 0) {
-    document.getElementById('cp-more-toggle').style.display = '';
+  if (offset === 0) {
+    renderSpeciesGrid(data.primary, 'species-primary', true);
+    renderSpeciesGrid(data.secondary || [], 'species-secondary', false);
+  } else if (append) {
+    appendSpeciesGrid(data.secondary || [], 'species-secondary', false);
+  } else {
+    renderSpeciesGrid(data.secondary || [], 'species-secondary', false);
   }
 
-  // Auto-fill poster title
-  if (waterName && waterName !== 'Your Water') {
-    document.getElementById('poster-title').value = 'Wildlife of ' + waterName;
+  // Pagination state
+  const secCount = (data.secondary || []).length;
+  const remaining = data.total_remaining || 0;
+  window._currentOffset = offset + secCount;
+  const moreToggle = document.getElementById('cp-more-toggle');
+  const moreBtn = document.getElementById('btn-show-more');
+  if (remaining > 0) {
+    moreToggle.style.display = '';
+    moreBtn.textContent = '▼ Show 20 more (' + remaining + ' available)';
+  } else {
+    moreToggle.style.display = 'none';
   }
 
-  // Scroll to species
-  setTimeout(() => {
-    phaseSpecies.scrollIntoView({behavior: 'smooth', block: 'start'});
-  }, 100);
+  if (offset === 0) {
+    const waterName = document.getElementById('water-name').value || 'Your Water';
+    document.getElementById('cp-water-label').textContent = waterName;
+    const totalShown = (data.primary || []).length + secCount;
+    document.getElementById('cp-species-count').textContent = totalShown;
+
+    const phaseSpecies = document.getElementById('step-species');
+    const phaseDesign = document.getElementById('step-options');
+    phaseSpecies.classList.remove('cp-hidden');
+    phaseSpecies.classList.add('cp-fade-in');
+    setTimeout(() => {
+      phaseDesign.classList.remove('cp-hidden');
+      phaseDesign.classList.add('cp-fade-in');
+    }, 200);
+
+    if (waterName && waterName !== 'Your Water') {
+      document.getElementById('poster-title').value = 'Wildlife of ' + waterName;
+    }
+
+    setTimeout(() => {
+      phaseSpecies.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }, 100);
+  }
+}
+
+document.getElementById('btn-recommend').addEventListener('click', () => {
+  window._currentOffset = 0;
+  callRecommend(0, false);
 });
 
-// --- Show more toggle ---
+// --- Show more (paginating) ---
 document.getElementById('btn-show-more').addEventListener('click', () => {
-  const sec = document.getElementById('species-secondary');
-  sec.classList.toggle('cp-hidden');
-  const btn = document.getElementById('btn-show-more');
-  if (sec.classList.contains('cp-hidden')) {
-    btn.innerHTML = '&#9660; Show <span id="cp-secondary-count">' + document.querySelectorAll('#species-secondary .cp-species-card').length + '</span> more species you could add';
-  } else {
-    btn.innerHTML = '&#9650; Hide additional species';
+  callRecommend(window._currentOffset || 20, true);
+});
+
+// --- Species search with debounce ---
+let searchDebounce;
+document.getElementById('cp-search-input').addEventListener('input', function() {
+  clearTimeout(searchDebounce);
+  const q = this.value.trim();
+  const resultsEl = document.getElementById('cp-search-results');
+  if (q.length < 2) {
+    resultsEl.innerHTML = '';
+    return;
   }
+  const cats = Array.from(document.querySelectorAll('#cp-cat-chips input:checked')).map(i => i.value);
+  searchDebounce = setTimeout(async () => {
+    const body = { query: q, categories: cats };
+    if (currentState) body.state = currentState;
+    const resp = await fetch('/api/search-species', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json();
+    renderSpeciesGrid(data.results || [], 'cp-search-results', false);
+  }, 300);
 });
 
 // --- Species card renderer ---
-function renderSpeciesGrid(speciesList, containerId, isChecked) {
+function _speciesCardHTML(sp, isChecked) {
   const style = document.getElementById('cp-poster-style').value || 'scientific';
-  const container = document.getElementById(containerId);
-  container.innerHTML = speciesList.map(sp => {
-    const scoreWidth = Math.min(100, Math.round((sp.score / 50) * 100));
-    return `
-      <div class="cp-species-card ${isChecked ? 'cp-selected' : ''}"
-           data-slug="${esc(sp.slug)}" tabindex="0">
-        <div class="cp-card-image">
-          <img src="/image/output/master/${style}/${esc(sp.slug)}.png"
-               alt="${esc(sp.common_name)}" loading="lazy"
-               onerror="this.parentElement.classList.add('cp-no-image')">
+  const scoreWidth = Math.min(100, Math.round(((sp.score || 0) / 50) * 100));
+  return `
+    <div class="cp-species-card ${isChecked ? 'cp-selected' : ''}"
+         data-slug="${esc(sp.slug)}" tabindex="0">
+      <div class="cp-card-image">
+        <img src="/image/output/master/${style}/${esc(sp.slug)}.png"
+             alt="${esc(sp.common_name)}" loading="lazy"
+             onerror="this.parentElement.classList.add('cp-no-image')">
+      </div>
+      <div class="cp-card-body">
+        <div class="cp-card-name">${esc(sp.common_name)}</div>
+        <div class="cp-card-sci">${esc(sp.scientific_name || '')}</div>
+        <div class="cp-card-score">
+          <span class="cp-score-label">Match</span>
+          <div class="cp-score-bar">
+            <div class="cp-score-fill" style="width:${scoreWidth}%"></div>
+          </div>
         </div>
-        <div class="cp-card-body">
-          <div class="cp-card-name">${esc(sp.common_name)}</div>
-          <div class="cp-card-sci">${esc(sp.scientific_name || '')}</div>
-          <div class="cp-card-score">
-            <span class="cp-score-label">Match</span>
-            <div class="cp-score-bar">
-              <div class="cp-score-fill" style="width:${scoreWidth}%"></div>
-            </div>
-          </div>
-          <div class="cp-card-action">
-            ${isChecked
-              ? '<span class="cp-badge-selected">\u2713 Selected</span>'
-              : '<span class="cp-badge-add">+ Add to poster</span>'}
-          </div>
+        <div class="cp-card-action">
+          ${isChecked
+            ? '<span class="cp-badge-selected">\u2713 Selected</span>'
+            : '<span class="cp-badge-add">+ Add to poster</span>'}
         </div>
       </div>
-    `;
-  }).join('');
+    </div>
+  `;
+}
 
-  // Click to toggle
-  container.querySelectorAll('.cp-species-card').forEach(card => {
+function _bindCards(cards) {
+  cards.forEach(card => {
+    if (card._cpBound) return;
+    card._cpBound = true;
     card.addEventListener('click', () => {
       card.classList.toggle('cp-selected');
       const badge = card.querySelector('.cp-card-action');
@@ -391,7 +450,6 @@ function renderSpeciesGrid(speciesList, containerId, isChecked) {
       } else {
         badge.innerHTML = '<span class="cp-badge-add">+ Add to poster</span>';
       }
-      // Subtle click animation
       card.style.transform = 'scale(0.97)';
       setTimeout(() => { card.style.transform = ''; }, 100);
     });
@@ -399,6 +457,21 @@ function renderSpeciesGrid(speciesList, containerId, isChecked) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
     });
   });
+}
+
+function renderSpeciesGrid(speciesList, containerId, isChecked) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = (speciesList || []).map(sp => _speciesCardHTML(sp, isChecked)).join('');
+  _bindCards(container.querySelectorAll('.cp-species-card'));
+}
+
+function appendSpeciesGrid(speciesList, containerId, isChecked) {
+  const container = document.getElementById(containerId);
+  const tmp = document.createElement('div');
+  tmp.innerHTML = (speciesList || []).map(sp => _speciesCardHTML(sp, isChecked)).join('');
+  const newCards = Array.from(tmp.children);
+  newCards.forEach(c => container.appendChild(c));
+  _bindCards(newCards);
 }
 
 // --- Logo upload handler ---
