@@ -69,6 +69,24 @@ def score_species(profiles: dict, answers: dict) -> list[tuple[str, float]]:
     return results
 
 
+# Per-water-type category quotas for the primary list.
+# Goal: surface the species a user actually expects for that habitat —
+# fish-heavy for lakes/rivers, balanced for marshes, bird-heavy for ponds.
+_PRIMARY_QUOTAS: dict[str, dict[str, int]] = {
+    "lake":      {"fish": 6, "bird": 2, "turtle": 1, "amphibian": 1, "reptile": 0, "mammal": 0},
+    "pond":      {"fish": 5, "bird": 1, "turtle": 1, "amphibian": 2, "reptile": 0, "mammal": 1},
+    "river":     {"fish": 7, "bird": 1, "turtle": 1, "amphibian": 0, "reptile": 1, "mammal": 0},
+    "stream":    {"fish": 6, "bird": 1, "turtle": 0, "amphibian": 2, "reptile": 0, "mammal": 1},
+    "reservoir": {"fish": 7, "bird": 2, "turtle": 1, "amphibian": 0, "reptile": 0, "mammal": 0},
+    "marsh":     {"fish": 3, "bird": 4, "turtle": 1, "amphibian": 1, "reptile": 1, "mammal": 0},
+}
+_DEFAULT_QUOTA = {"fish": 5, "bird": 2, "turtle": 1, "amphibian": 1, "reptile": 0, "mammal": 1}
+
+# How much each commonness level boosts the raw habitat score. Tuned so a
+# very-common species at habitat-fit 35 beats a rare specialist at 42.
+_COMMONNESS_BOOST = {3: 8, 2: 4, 1: 0, 0: -3}
+
+
 def recommend(
     answers: dict,
     primary_count: int = 10,
@@ -77,66 +95,114 @@ def recommend(
 ) -> dict:
     """Return primary and secondary species recommendations.
 
-    Filters out category='plant' species from recommendations (plants are
-    border decorations handled automatically by the renderer).
+    Algorithm:
+      1. Score every species' habitat fit across 5 dimensions.
+      2. Apply commonness boost so abundant species win ties.
+      3. Filter out plants (they're decorative borders).
+      4. Filter by geographic region (state -> region).
+      5. Compose primary list using category quotas tuned to water_type,
+         so users see the right MIX (fish for lakes, birds for marshes).
+      6. Secondary list = next high-scoring species across all categories.
 
-    When *region* is provided (e.g. "midwest"), only species whose
-    ``geographic_range`` includes that region or "nationwide" are considered.
-
-    Returns
-    -------
-    Dict with keys 'primary', 'secondary', 'all_scores'. Each entry in
-    primary/secondary is {"slug": str, "score": float, ...species fields}.
+    Tiebreakers: commonness desc, then scientific_name asc (deterministic).
     """
     profiles = load_habitat_profiles()
     scored = score_species(profiles, answers)
 
-    # Load species records for enrichment and plant filtering
     with open(SPECIES_JSON, "r", encoding="utf-8") as f:
         all_species = json.load(f)
     species_by_slug = {sp["slug"]: sp for sp in all_species}
 
-    # Filter out plants
-    scored_filtered = [
-        (slug, score)
-        for slug, score in scored
-        if species_by_slug.get(slug, {}).get("category") != "plant"
-    ]
+    # --- Apply commonness boost ---
+    boosted: list[tuple[str, float, int]] = []
+    for slug, raw_score in scored:
+        sp = species_by_slug.get(slug, {})
+        if sp.get("category") == "plant":
+            continue
+        commonness = int(sp.get("commonness", 1))
+        boost = _COMMONNESS_BOOST.get(commonness, 0)
+        adj_score = raw_score + boost
+        boosted.append((slug, adj_score, commonness))
 
-    # Geographic filtering: keep only species whose range includes the region
+    # --- Geographic filter ---
     if region:
         region_lower = region.lower()
 
         def _in_region(slug: str) -> bool:
             sp = species_by_slug.get(slug, {})
-            geo = sp.get("geographic_range", [])
-            return region_lower in [g.lower() for g in geo] or "nationwide" in [g.lower() for g in geo]
+            geo = [g.lower() for g in sp.get("geographic_range", [])]
+            return region_lower in geo or "nationwide" in geo
 
-        before = len(scored_filtered)
-        scored_filtered = [(s, sc) for s, sc in scored_filtered if _in_region(s)]
+        before = len(boosted)
+        boosted = [b for b in boosted if _in_region(b[0])]
         logger.info(
             "Geographic filter region=%s: %d -> %d species",
-            region, before, len(scored_filtered),
+            region, before, len(boosted),
         )
 
-    def _enrich(slug: str, score: float) -> dict:
+    # --- Sort: score desc, commonness desc, scientific_name asc ---
+    def _sort_key(item):
+        slug, score, commonness = item
+        sp = species_by_slug.get(slug, {})
+        return (-score, -commonness, sp.get("scientific_name", "") or slug)
+
+    boosted.sort(key=_sort_key)
+
+    # --- Group by category for quota assembly ---
+    by_category: dict[str, list[tuple[str, float, int]]] = {}
+    for item in boosted:
+        cat = species_by_slug.get(item[0], {}).get("category", "other")
+        by_category.setdefault(cat, []).append(item)
+
+    # --- Compose primary list using per-water-type quotas ---
+    water_type = (answers.get("water_type") or "lake").lower()
+    quota = _PRIMARY_QUOTAS.get(water_type, _DEFAULT_QUOTA)
+
+    primary_picks: list[tuple[str, float, int]] = []
+    used_slugs: set[str] = set()
+    for cat, n in quota.items():
+        if n <= 0:
+            continue
+        for item in by_category.get(cat, [])[:n]:
+            primary_picks.append(item)
+            used_slugs.add(item[0])
+
+    # If quota fell short of primary_count, top up with next-best across all
+    if len(primary_picks) < primary_count:
+        for item in boosted:
+            if item[0] in used_slugs:
+                continue
+            primary_picks.append(item)
+            used_slugs.add(item[0])
+            if len(primary_picks) >= primary_count:
+                break
+
+    primary_picks.sort(key=_sort_key)
+    primary_picks = primary_picks[:primary_count]
+    primary_slug_set = {p[0] for p in primary_picks}
+
+    # --- Secondary: next high-scoring species not already in primary ---
+    secondary_picks = [
+        b for b in boosted if b[0] not in primary_slug_set
+    ][:secondary_count]
+
+    def _enrich(item):
+        slug, score, _commonness = item
         sp = species_by_slug.get(slug, {})
         return {
             "slug": slug,
-            "score": score,
+            "score": round(score, 1),
             "common_name": sp.get("common_name", slug),
             "scientific_name": sp.get("scientific_name", ""),
             "category": sp.get("category", ""),
+            "commonness": int(sp.get("commonness", 1)),
         }
 
-    primary = [_enrich(s, sc) for s, sc in scored_filtered[:primary_count]]
-    secondary = [
-        _enrich(s, sc)
-        for s, sc in scored_filtered[primary_count : primary_count + secondary_count]
-    ]
-    all_scores = [_enrich(s, sc) for s, sc in scored_filtered]
-
-    return {"primary": primary, "secondary": secondary, "all_scores": all_scores}
+    return {
+        "primary": [_enrich(p) for p in primary_picks],
+        "secondary": [_enrich(s) for s in secondary_picks],
+        "all_scores": [_enrich(b) for b in boosted],
+    }
 
 
 def get_species_by_slugs(slugs: list[str]) -> list[dict]:
