@@ -1216,7 +1216,14 @@ class EditorialMultiRenderer(PosterRenderer):
                     logo_h = max(1, int(logo.height * logo_scale))
                     logo_resized = logo.resize((logo_w, logo_h), Image.LANCZOS)
                     margin = int(canvas_w * 0.02)
-                    if position == "bottom-center":
+                    # If explicit fractional coords are set (from a drag in the
+                    # editor), they take precedence over the named position.
+                    x_frac = getattr(self, "_logo_x_frac", None)
+                    y_frac = getattr(self, "_logo_y_frac", None)
+                    if x_frac is not None and y_frac is not None:
+                        logo_x = int(round(x_frac * canvas_w))
+                        logo_y = int(round(y_frac * canvas_h))
+                    elif position == "bottom-center":
                         logo_x = (canvas_w - logo_w) // 2
                         logo_y = canvas_h - logo_h - margin
                     elif position == "bottom-left":

@@ -158,9 +158,16 @@
 
         <label class="cv3-label">Title font</label>
         <select id="cv3-title-font" class="cv3-input">
-          <option>Playfair Display</option><option>Lora</option><option>Merriweather</option>
-          <option>Cormorant Garamond</option><option>EB Garamond</option><option>Montserrat</option>
-          <option>Oswald</option><option>Raleway</option><option>Poppins</option><option>Bebas Neue</option>
+          <option style="font-family:'Playfair Display',serif">Playfair Display</option>
+          <option style="font-family:'Lora',serif">Lora</option>
+          <option style="font-family:'Merriweather',serif">Merriweather</option>
+          <option style="font-family:'Cormorant Garamond',serif">Cormorant Garamond</option>
+          <option style="font-family:'EB Garamond',serif">EB Garamond</option>
+          <option style="font-family:'Montserrat',sans-serif">Montserrat</option>
+          <option style="font-family:'Oswald',sans-serif">Oswald</option>
+          <option style="font-family:'Raleway',sans-serif">Raleway</option>
+          <option style="font-family:'Poppins',sans-serif">Poppins</option>
+          <option style="font-family:'Bebas Neue',sans-serif">Bebas Neue</option>
         </select>
 
         <label class="cv3-label">Title size: <span id="cv3-title-size-val">150</span></label>
@@ -171,9 +178,16 @@
 
         <label class="cv3-label">Label font</label>
         <select id="cv3-label-font" class="cv3-input">
-          <option>Playfair Display</option><option>Lora</option><option>Merriweather</option>
-          <option>Cormorant Garamond</option><option>EB Garamond</option><option>Montserrat</option>
-          <option>Oswald</option><option>Raleway</option><option>Poppins</option><option>Bebas Neue</option>
+          <option style="font-family:'Playfair Display',serif">Playfair Display</option>
+          <option style="font-family:'Lora',serif">Lora</option>
+          <option style="font-family:'Merriweather',serif">Merriweather</option>
+          <option style="font-family:'Cormorant Garamond',serif">Cormorant Garamond</option>
+          <option style="font-family:'EB Garamond',serif">EB Garamond</option>
+          <option style="font-family:'Montserrat',sans-serif">Montserrat</option>
+          <option style="font-family:'Oswald',sans-serif">Oswald</option>
+          <option style="font-family:'Raleway',sans-serif">Raleway</option>
+          <option style="font-family:'Poppins',sans-serif">Poppins</option>
+          <option style="font-family:'Bebas Neue',sans-serif">Bebas Neue</option>
         </select>
 
         <label class="cv3-label">Label size: <span id="cv3-label-size-val">42</span></label>
@@ -238,12 +252,16 @@
     labelColor: '#1a1612',
     labelGap: 20,
     logoFilename: null,
+    logoUrl: null,     // For editor preview of uploaded logo
     logoSize: 20,
     logoPosition: 'bottom-center',
+    logoXFrac: null,   // null => use logoPosition; otherwise fraction of canvas width
+    logoYFrac: null,
     canvasW: 5100,
     canvasH: 3300,
     lastRenderTime: null,
     overlayShown: true,
+    titleEdited: false,
   };
 
   const recommendCache = { primary: [], secondary: [] };
@@ -509,6 +527,12 @@
         subtitle: state.subtitle,
         background: state.bgColor,
         logo_filename: state.logoFilename,
+        logo_config: {
+          size_pct: state.logoSize,
+          position: state.logoPosition,
+          x_frac: state.logoXFrac,
+          y_frac: state.logoYFrac,
+        },
         background_image_filename: state.bgFilename,
       }),
     })
@@ -630,9 +654,86 @@
       makeDraggable(el);
     });
 
+    // Logo overlay (draggable). Rendered after species so it sits on top.
+    if (state.logoUrl) {
+      const logo = document.createElement('div');
+      logo.className = 'cv3-ed-logo';
+      logo.dataset.role = 'logo';
+      // Target logo box width = logoSize% of canvas width; height bounded
+      // similarly to renderer.py (canvas_h * size_pct * 0.4) — the actual
+      // displayed image is object-fit:contain so aspect ratio is preserved.
+      const sizePct = (state.logoSize || 20) / 100;
+      const boxW = state.canvasW * sizePct;
+      const boxH = state.canvasH * sizePct * 0.4;
+      const margin = state.canvasW * 0.02;
+      let lx, ly;
+      if (state.logoXFrac != null && state.logoYFrac != null) {
+        lx = state.logoXFrac * state.canvasW;
+        ly = state.logoYFrac * state.canvasH;
+      } else {
+        // Match renderer.py named-position math.
+        const pos = state.logoPosition || 'bottom-center';
+        if (pos === 'bottom-left')        { lx = margin;                          ly = state.canvasH - boxH - margin; }
+        else if (pos === 'bottom-right')  { lx = state.canvasW - boxW - margin;   ly = state.canvasH - boxH - margin; }
+        else if (pos === 'top-center')    { lx = (state.canvasW - boxW) / 2;      ly = margin; }
+        else if (pos === 'top-left')      { lx = margin;                          ly = margin; }
+        else if (pos === 'top-right')     { lx = state.canvasW - boxW - margin;   ly = margin; }
+        else                              { lx = (state.canvasW - boxW) / 2;      ly = state.canvasH - boxH - margin; }
+      }
+      const dx = lx * canvasScale;
+      const dy = ly * canvasScale;
+      const dw = boxW * canvasScale;
+      const dh = boxH * canvasScale;
+      logo.style.cssText = 'position:absolute;left:' + dx + 'px;top:' + dy + 'px;width:' + dw + 'px;height:' + dh + 'px;cursor:grab;user-select:none;display:flex;align-items:center;justify-content:center;';
+      logo.innerHTML = '<img src="' + esc(state.logoUrl) + '" style="max-width:100%;max-height:100%;object-fit:contain;pointer-events:none" draggable="false">';
+      canvas.appendChild(logo);
+      makeLogoDraggable(logo, boxW, boxH);
+    }
+
     // Status
     const t = state.lastRenderTime ? state.lastRenderTime.toLocaleTimeString() : '';
     setStatus(state.selectedSpecies.length + ' species placed' + (t ? ' (last layout ' + t + ')' : '') + '. Drag to reposition.');
+  }
+
+  function makeLogoDraggable(el, boxW, boxH) {
+    el.addEventListener('pointerdown', function(e) {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      el.style.cursor = 'grabbing';
+      el.style.zIndex = '101';
+      const startX = e.clientX, startY = e.clientY;
+      const origLeft = parseFloat(el.style.left);
+      const origTop = parseFloat(el.style.top);
+      function onMove(e2) {
+        el.style.left = (origLeft + (e2.clientX - startX)) + 'px';
+        el.style.top = (origTop + (e2.clientY - startY)) + 'px';
+      }
+      function onUp(e2) {
+        el.releasePointerCapture(e2.pointerId);
+        el.style.cursor = 'grab';
+        el.style.zIndex = '';
+        el.removeEventListener('pointermove', onMove);
+        el.removeEventListener('pointerup', onUp);
+        // Save as fractions of canvas dims so it survives style switches & resizes.
+        const lx = parseFloat(el.style.left) / canvasScale;
+        const ly = parseFloat(el.style.top) / canvasScale;
+        state.logoXFrac = lx / state.canvasW;
+        state.logoYFrac = ly / state.canvasH;
+        // Switch the position dropdown to a "custom" sentinel so the user knows
+        // their drag took precedence over the named position.
+        const sel = $('cv3-logo-position');
+        if (sel && !sel.querySelector('option[value="custom"]')) {
+          const opt = document.createElement('option');
+          opt.value = 'custom';
+          opt.textContent = 'Custom (dragged)';
+          sel.appendChild(opt);
+        }
+        if (sel) sel.value = 'custom';
+      }
+      el.addEventListener('pointermove', onMove);
+      el.addEventListener('pointerup', onUp);
+    });
   }
 
   function makeDraggable(el) {
@@ -707,23 +808,36 @@
       if (!tile) return;
       state.style = tile.dataset.slug;
       grid.querySelectorAll('.cv3-style-tile').forEach(function(t) { t.classList.toggle('cv3-selected', t.dataset.slug === state.style); });
-      // Reset positions so layout repacks for the new style's masters
-      state.selectedSpecies.forEach(function(s) { delete s._dragged; });
+      // Preserve any user-dragged positions; the layout merge step in callLayout()
+      // will re-apply them keyed by slug after the new style's layout returns.
       renderSpeciesList();
       scheduleLayout();
     });
   }
 
   // ---------------- Design controls ----------------
+  function applyDefaultTitle() {
+    // Set title from waterName if user hasn't manually edited the title field.
+    if (state.titleEdited) return;
+    const name = (state.waterName || '').trim();
+    state.title = name ? ('Wildlife of ' + name) : 'Wildlife of [your water]';
+    const inp = $('cv3-title');
+    if (inp) inp.value = state.title;
+  }
+
   function bindDesignControls() {
-    $('cv3-title').addEventListener('input', function() { state.title = this.value; drawCanvas(); });
+    $('cv3-title').addEventListener('input', function() {
+      state.title = this.value;
+      state.titleEdited = true;
+      drawCanvas();
+    });
     $('cv3-subtitle').addEventListener('input', function() { state.subtitle = this.value; drawCanvas(); });
     $('cv3-bg-color').addEventListener('input', function() { state.bgColor = this.value; drawCanvas(); });
     $('cv3-water-name').addEventListener('input', function() {
       state.waterName = this.value;
-      if (!state.title) {
-        $('cv3-title').placeholder = 'Wildlife of ' + (this.value || 'Lake Michigan');
-      }
+      $('cv3-title').placeholder = 'Wildlife of ' + (this.value || 'Lake Michigan');
+      applyDefaultTitle();
+      drawCanvas();
     });
 
     $('cv3-bg-clear').addEventListener('click', function() {
@@ -763,12 +877,32 @@
         .then(function(data) {
           if (data.error) { setStatus('Logo upload failed: ' + data.error); return; }
           state.logoFilename = data.logo_filename;
+          state.logoUrl = data.logo_url;
+          state.logoXFrac = null;   // Use named position until user drags.
+          state.logoYFrac = null;
           setStatus('Logo uploaded.');
+          drawCanvas();
         });
     });
-    $('cv3-logo-clear').addEventListener('click', function() { state.logoFilename = null; setStatus('Logo cleared.'); });
-    $('cv3-logo-size').addEventListener('input', function() { state.logoSize = parseInt(this.value, 10); $('cv3-logo-size-val').textContent = this.value; });
-    $('cv3-logo-position').addEventListener('change', function() { state.logoPosition = this.value; });
+    $('cv3-logo-clear').addEventListener('click', function() {
+      state.logoFilename = null;
+      state.logoUrl = null;
+      state.logoXFrac = null;
+      state.logoYFrac = null;
+      setStatus('Logo cleared.');
+      drawCanvas();
+    });
+    $('cv3-logo-size').addEventListener('input', function() {
+      state.logoSize = parseInt(this.value, 10);
+      $('cv3-logo-size-val').textContent = this.value;
+      drawCanvas();
+    });
+    $('cv3-logo-position').addEventListener('change', function() {
+      state.logoPosition = this.value;
+      state.logoXFrac = null;   // Named position overrides any prior drag.
+      state.logoYFrac = null;
+      drawCanvas();
+    });
 
     $('cv3-title-font').addEventListener('change', function() { state.titleFont = this.value; drawCanvas(); });
     $('cv3-title-size').addEventListener('input', function() { state.titleSize = parseInt(this.value, 10); $('cv3-title-size-val').textContent = this.value; drawCanvas(); });
@@ -780,13 +914,21 @@
     $('cv3-label-gap').addEventListener('input', function() { state.labelGap = parseInt(this.value, 10); $('cv3-label-gap-val').textContent = this.value; drawCanvas(); });
   }
 
+  let _bgGalleryHandler = null;
   function loadBgGallery() {
     fetch('/api/public-backgrounds').then(function(r) { return r.json(); }).then(function(data) {
       const gal = $('cv3-bg-gallery');
-      gal.innerHTML = (data.backgrounds || []).map(function(b) {
-        return '<img src="' + b.url + '" data-filename="' + esc(b.filename) + '" data-url="' + esc(b.url) + '" alt="">';
+      const items = data.backgrounds || [];
+      if (items.length === 0) {
+        gal.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--cv3-fg-muted);padding:1rem;font-size:0.85rem">No backgrounds available yet. Try Upload Image instead.</div>';
+        return;
+      }
+      gal.innerHTML = items.map(function(b) {
+        return '<img src="' + esc(b.url) + '" data-filename="' + esc(b.filename) + '" data-url="' + esc(b.url) + '" alt="">';
       }).join('');
-      gal.addEventListener('click', function(e) {
+      // Replace any previous click handler so it does not stack (and is not once-only).
+      if (_bgGalleryHandler) gal.removeEventListener('click', _bgGalleryHandler);
+      _bgGalleryHandler = function(e) {
         if (e.target.tagName === 'IMG') {
           gal.querySelectorAll('img').forEach(function(i) { i.classList.remove('selected'); });
           e.target.classList.add('selected');
@@ -794,7 +936,11 @@
           state.bgUrl = e.target.dataset.url;
           drawCanvas();
         }
-      }, { once: true });
+      };
+      gal.addEventListener('click', _bgGalleryHandler);
+    }).catch(function(err) {
+      const gal = $('cv3-bg-gallery');
+      gal.innerHTML = '<div style="grid-column:1/-1;color:#c33;padding:0.5rem;font-size:0.8rem">Could not load gallery: ' + esc(err.message) + '</div>';
     });
   }
 
@@ -854,7 +1000,12 @@
             label_gap: state.labelGap,
           },
           logo_filename: state.logoFilename,
-          logo_config: { size_pct: state.logoSize, position: state.logoPosition },
+          logo_config: {
+            size_pct: state.logoSize,
+            position: state.logoPosition,
+            x_frac: state.logoXFrac,
+            y_frac: state.logoYFrac,
+          },
         }),
       })
         .then(function(r) { return r.json(); })
@@ -887,6 +1038,7 @@
     bindDesignControls();
     bindSearch();
     bindRenderButton();
+    applyDefaultTitle();   // Set initial "Wildlife of [your water]" placeholder text
     refreshSpecies();
     drawCanvas();
     window.addEventListener('resize', debounce(drawCanvas, 150));

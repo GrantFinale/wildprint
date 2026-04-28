@@ -1330,6 +1330,7 @@ def api_generate_poster():
     subtitle = data.get("subtitle", "") or None
     background = data.get("background", "#FFFFFF")
     logo_filename = data.get("logo_filename")
+    logo_config = data.get("logo_config", {}) or {}
     background_image_filename = data.get("background_image_filename")
 
     if not species_slugs:
@@ -1404,6 +1405,13 @@ def api_generate_poster():
         logo_path = Path(PROJECT_ROOT) / "output" / "uploads" / logo_filename
         if logo_path.exists():
             renderer._logo_path = logo_path
+            renderer._logo_size_pct = int(logo_config.get("size_pct", 20))
+            renderer._logo_position = logo_config.get("position", "bottom-center")
+            xf = logo_config.get("x_frac")
+            yf = logo_config.get("y_frac")
+            if xf is not None and yf is not None:
+                renderer._logo_x_frac = float(xf)
+                renderer._logo_y_frac = float(yf)
     if background_image_filename:
         for cand in (
             Path(PROJECT_ROOT) / "output" / "uploads" / background_image_filename,
@@ -1601,6 +1609,11 @@ def api_render_custom():
     # Apply logo size + position config (used by EditorialMultiRenderer logo block)
     renderer._logo_size_pct = int(logo_config.get("size_pct", 20))
     renderer._logo_position = logo_config.get("position", "bottom-center")
+    _xf = logo_config.get("x_frac")
+    _yf = logo_config.get("y_frac")
+    if _xf is not None and _yf is not None:
+        renderer._logo_x_frac = float(_xf)
+        renderer._logo_y_frac = float(_yf)
 
     # Handle background image — try uploads first, then server-curated backgrounds.
     if bg_image_filename:
