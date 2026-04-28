@@ -3,198 +3,209 @@
 {% block content %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9/dist/leaflet.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&family=Raleway:wght@400;700&family=Poppins:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&family=Raleway:wght@400;700&family=Poppins:wght@400;700&family=Bebas+Neue&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
 
-<div class="cv3-shell">
-  <!-- LEFT SIDEBAR: WATER & HABITAT -->
-  <aside class="cv3-left">
-    <div class="cv3-section">
-      <h3 class="cv3-section-title">Where</h3>
-      <div id="cv3-map" class="cv3-map"></div>
-      <input type="text" id="cv3-water-name" class="cv3-input" placeholder="Water body name (e.g. Lake Michigan)">
-      <span id="cv3-water-location" class="cv3-loc-pill"></span>
-    </div>
-
-    <div class="cv3-section">
-      <h3 class="cv3-section-title">Habitat</h3>
-
-      <div class="cv3-habitat-control">
-        <label class="cv3-label">Water type: <span id="cv3-water-type-val">Lake</span></label>
-        <div class="cv3-habitat-preview">
-          <img id="cv3-water-type-img" src="/static/habitat/water_type_lake.png" alt="" onerror="this.style.display='none'">
-        </div>
-        <input type="range" id="cv3-water-type" class="cv3-slider" min="0" max="5" value="0" step="1"
-               data-dim="water_type"
-               data-values="lake,pond,river,stream,reservoir,marsh"
-               data-labels="Lake,Pond,River,Stream,Reservoir,Marsh">
-      </div>
-
-      <div class="cv3-habitat-control">
-        <label class="cv3-label">Depth: <span id="cv3-depth-val">Moderate</span></label>
-        <div class="cv3-habitat-preview">
-          <img id="cv3-depth-img" src="/static/habitat/depth_moderate.png" alt="" onerror="this.style.display='none'">
-        </div>
-        <input type="range" id="cv3-depth" class="cv3-slider" min="0" max="2" value="1" step="1"
-               data-dim="depth"
-               data-values="shallow,moderate,deep"
-               data-labels="Shallow (<5ft),Moderate (5-20ft),Deep (>20ft)">
-      </div>
-
-      <div class="cv3-habitat-control">
-        <label class="cv3-label">Flow: <span id="cv3-flow-val">Still</span></label>
-        <div class="cv3-habitat-preview">
-          <img id="cv3-flow-img" src="/static/habitat/flow_still.png" alt="" onerror="this.style.display='none'">
-        </div>
-        <input type="range" id="cv3-flow" class="cv3-slider" min="0" max="3" value="0" step="1"
-               data-dim="flow"
-               data-values="still,slow,moderate,fast"
-               data-labels="Still,Slow,Moderate,Fast">
-      </div>
-
-      <div class="cv3-habitat-control">
-        <label class="cv3-label">Vegetation: <span id="cv3-vegetation-val">Moderate</span></label>
-        <div class="cv3-habitat-preview">
-          <img id="cv3-vegetation-img" src="/static/habitat/vegetation_moderate.png" alt="" onerror="this.style.display='none'">
-        </div>
-        <input type="range" id="cv3-vegetation" class="cv3-slider" min="0" max="3" value="1" step="1"
-               data-dim="vegetation"
-               data-values="heavy,moderate,sparse,none"
-               data-labels="Heavy,Moderate,Sparse,None">
-      </div>
-
-      <div class="cv3-habitat-control">
-        <label class="cv3-label">Water clarity: <span id="cv3-clarity-val">Clear</span></label>
-        <div class="cv3-habitat-preview">
-          <img id="cv3-clarity-img" src="/static/habitat/clarity_clear.png" alt="" onerror="this.style.display='none'">
-        </div>
-        <input type="range" id="cv3-clarity" class="cv3-slider" min="0" max="2" value="0" step="1"
-               data-dim="clarity"
-               data-values="clear,moderate,murky"
-               data-labels="Clear,Moderate,Murky">
-      </div>
-    </div>
-
-    <div class="cv3-section">
-      <h3 class="cv3-section-title">Include</h3>
-      <div class="cv3-cat-chips" id="cv3-cat-chips">
-        <label class="cv3-chip"><input type="checkbox" value="fish" checked><span>Fish</span></label>
-        <label class="cv3-chip"><input type="checkbox" value="bird"><span>Birds</span></label>
-        <label class="cv3-chip"><input type="checkbox" value="turtle"><span>Turtles</span></label>
-        <label class="cv3-chip"><input type="checkbox" value="reptile"><span>Reptiles</span></label>
-        <label class="cv3-chip"><input type="checkbox" value="amphibian"><span>Amphibians</span></label>
-        <label class="cv3-chip"><input type="checkbox" value="mammal"><span>Mammals</span></label>
-      </div>
-    </div>
-  </aside>
-
-  <!-- CENTER CANVAS -->
-  <main class="cv3-center">
+<div class="cv3-stack">
+  <!-- TOP: FULL-WIDTH CANVAS -->
+  <section class="cv3-canvas-section">
     <div class="cv3-canvas-wrap">
       <div id="cv3-canvas" class="cv3-canvas">
-        <div class="cv3-canvas-empty" id="cv3-canvas-empty">Pick species from the right to see your poster come alive.</div>
+        <img id="cv3-sample-img" class="cv3-sample-img" src="/static/sample/sample_poster.png" alt="" onerror="this.style.display='none'">
         <div id="cv3-canvas-overlay" class="cv3-canvas-overlay" style="display:none">
           <div class="cv3-spinner"></div>
           <div>Composing&hellip;</div>
+        </div>
+        <div id="cv3-sample-dialog" class="cv3-sample-dialog">
+          <div class="cv3-sample-note">Start by describing your<br>body of water below <span class="cv3-arrow-inline">&#x2193;</span></div>
+          <svg class="cv3-sample-arrow" width="80" height="120" viewBox="0 0 80 120" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1a1612" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M 40 5 Q 20 40, 35 75 Q 50 100, 40 110" />
+            <path d="M 28 95 L 40 112 L 52 95" />
+          </svg>
         </div>
       </div>
     </div>
     <div class="cv3-canvas-status">
       <span id="cv3-status-msg" class="subtle">Drag animals to reposition. Click the title to edit it.</span>
     </div>
-  </main>
-
-  <!-- RIGHT SIDEBAR: CONTENT TABS -->
-  <aside class="cv3-right">
-    <div class="cv3-tabs">
-      <button class="cv3-tab cv3-tab-active" data-tab="species">Species</button>
-      <button class="cv3-tab" data-tab="style">Style</button>
-      <button class="cv3-tab" data-tab="design">Design</button>
-    </div>
-
-    <div class="cv3-tabpane cv3-tabpane-active" data-tab="species">
-      <input type="text" id="cv3-search" class="cv3-input" placeholder="Search species&hellip;">
-      <div id="cv3-species-primary" class="cv3-species-list"></div>
-      <div class="cv3-loadmore-wrap">
-        <button class="cv3-link" id="cv3-show-more" style="display:none">Show more species</button>
-      </div>
-      <div id="cv3-species-secondary" class="cv3-species-list cv3-secondary"></div>
-    </div>
-
-    <div class="cv3-tabpane" data-tab="style">
-      <div id="cv3-style-tiles" class="cv3-style-grid"></div>
-    </div>
-
-    <div class="cv3-tabpane" data-tab="design">
-      <label class="cv3-label">Title</label>
-      <input type="text" id="cv3-title" class="cv3-input" placeholder="Wildlife of Lake Michigan">
-
-      <label class="cv3-label">Subtitle</label>
-      <input type="text" id="cv3-subtitle" class="cv3-input" placeholder="A field guide">
-
-      <label class="cv3-label">Background color</label>
-      <input type="color" id="cv3-bg-color" value="#ffffff">
-
-      <label class="cv3-label">Background image</label>
-      <button type="button" class="cv3-btn-sec" id="cv3-bg-gallery-btn">Browse Gallery</button>
-      <input type="file" id="cv3-bg-upload" accept="image/png,image/jpeg" style="display:none">
-      <button type="button" class="cv3-btn-sec" onclick="document.getElementById('cv3-bg-upload').click()">Upload Image</button>
-      <button type="button" class="cv3-btn-sec" id="cv3-bg-clear">Clear</button>
-      <div id="cv3-bg-gallery" class="cv3-bg-gallery" style="display:none"></div>
-
-      <label class="cv3-label">Title font</label>
-      <select id="cv3-title-font" class="cv3-input">
-        <option>Playfair Display</option><option>Lora</option><option>Merriweather</option>
-        <option>Cormorant Garamond</option><option>EB Garamond</option><option>Montserrat</option>
-        <option>Oswald</option><option>Raleway</option><option>Poppins</option><option>Bebas Neue</option>
-      </select>
-
-      <label class="cv3-label">Title size: <span id="cv3-title-size-val">150</span></label>
-      <input type="range" id="cv3-title-size" min="60" max="400" value="150">
-
-      <label class="cv3-label">Title color</label>
-      <input type="color" id="cv3-title-color" value="#1a1612">
-
-      <label class="cv3-label">Label font</label>
-      <select id="cv3-label-font" class="cv3-input">
-        <option>Playfair Display</option><option>Lora</option><option>Merriweather</option>
-        <option>Cormorant Garamond</option><option>EB Garamond</option><option>Montserrat</option>
-        <option>Oswald</option><option>Raleway</option><option>Poppins</option><option>Bebas Neue</option>
-      </select>
-
-      <label class="cv3-label">Label size: <span id="cv3-label-size-val">42</span></label>
-      <input type="range" id="cv3-label-size" min="16" max="120" value="42">
-
-      <label class="cv3-label">Label color</label>
-      <input type="color" id="cv3-label-color" value="#1a1612">
-
-      <label class="cv3-label">Gap below fish: <span id="cv3-label-gap-val">20</span></label>
-      <input type="range" id="cv3-label-gap" min="0" max="200" value="20">
-
-      <hr class="cv3-divider">
-      <label class="cv3-label">Logo</label>
-      <input type="file" id="cv3-logo-upload" accept="image/png,image/jpeg" style="display:none">
-      <button type="button" class="cv3-btn-sec" onclick="document.getElementById('cv3-logo-upload').click()">Upload Logo</button>
-      <button type="button" class="cv3-btn-sec" id="cv3-logo-clear">Clear</button>
-
-      <label class="cv3-label">Logo size: <span id="cv3-logo-size-val">20</span>%</label>
-      <input type="range" id="cv3-logo-size" min="5" max="40" value="20">
-
-      <label class="cv3-label">Logo position</label>
-      <select id="cv3-logo-position" class="cv3-input">
-        <option value="bottom-center">Bottom Center</option>
-        <option value="bottom-left">Bottom Left</option>
-        <option value="bottom-right">Bottom Right</option>
-        <option value="top-center">Top Center</option>
-        <option value="top-left">Top Left</option>
-        <option value="top-right">Top Right</option>
-      </select>
-    </div>
-
-    <div class="cv3-cta-bar">
+    <div class="cv3-cta-bar-top">
       <a id="cv3-download" class="cv3-btn-primary" download style="display:none">Download Poster</a>
       <button type="button" class="cv3-btn-primary" id="cv3-render-btn">Update Poster</button>
     </div>
-  </aside>
+  </section>
+
+  <!-- BELOW: CONTROLS GRID -->
+  <div class="cv3-controls">
+    <!-- WATER + HABITAT PANEL -->
+    <aside class="cv3-panel">
+      <div class="cv3-section">
+        <h3 class="cv3-section-title">Where</h3>
+        <div id="cv3-map" class="cv3-map"></div>
+        <input type="text" id="cv3-water-name" class="cv3-input" placeholder="Water body name (e.g. Lake Michigan)">
+        <span id="cv3-water-location" class="cv3-loc-pill"></span>
+      </div>
+
+      <div class="cv3-section">
+        <h3 class="cv3-section-title">Habitat</h3>
+
+        <div class="cv3-habitat-control">
+          <label class="cv3-label">Water type: <span id="cv3-water-type-val">Lake</span></label>
+          <div class="cv3-habitat-preview">
+            <img id="cv3-water-type-img" src="/static/habitat/water_type_lake.png" alt="" onerror="this.style.display='none'">
+          </div>
+          <input type="range" id="cv3-water-type" class="cv3-slider" min="0" max="5" value="0" step="1"
+                 data-dim="water_type"
+                 data-values="lake,pond,river,stream,reservoir,marsh"
+                 data-labels="Lake,Pond,River,Stream,Reservoir,Marsh">
+        </div>
+
+        <div class="cv3-habitat-control">
+          <label class="cv3-label">Depth: <span id="cv3-depth-val">Moderate</span></label>
+          <div class="cv3-habitat-preview">
+            <img id="cv3-depth-img" src="/static/habitat/depth_moderate.png" alt="" onerror="this.style.display='none'">
+          </div>
+          <input type="range" id="cv3-depth" class="cv3-slider" min="0" max="2" value="1" step="1"
+                 data-dim="depth"
+                 data-values="shallow,moderate,deep"
+                 data-labels="Shallow (<5ft),Moderate (5-20ft),Deep (>20ft)">
+        </div>
+
+        <div class="cv3-habitat-control">
+          <label class="cv3-label">Flow: <span id="cv3-flow-val">Still</span></label>
+          <div class="cv3-habitat-preview">
+            <img id="cv3-flow-img" src="/static/habitat/flow_still.png" alt="" onerror="this.style.display='none'">
+          </div>
+          <input type="range" id="cv3-flow" class="cv3-slider" min="0" max="3" value="0" step="1"
+                 data-dim="flow"
+                 data-values="still,slow,moderate,fast"
+                 data-labels="Still,Slow,Moderate,Fast">
+        </div>
+
+        <div class="cv3-habitat-control">
+          <label class="cv3-label">Vegetation: <span id="cv3-vegetation-val">Moderate</span></label>
+          <div class="cv3-habitat-preview">
+            <img id="cv3-vegetation-img" src="/static/habitat/vegetation_moderate.png" alt="" onerror="this.style.display='none'">
+          </div>
+          <input type="range" id="cv3-vegetation" class="cv3-slider" min="0" max="3" value="1" step="1"
+                 data-dim="vegetation"
+                 data-values="heavy,moderate,sparse,none"
+                 data-labels="Heavy,Moderate,Sparse,None">
+        </div>
+
+        <div class="cv3-habitat-control">
+          <label class="cv3-label">Water clarity: <span id="cv3-clarity-val">Clear</span></label>
+          <div class="cv3-habitat-preview">
+            <img id="cv3-clarity-img" src="/static/habitat/clarity_clear.png" alt="" onerror="this.style.display='none'">
+          </div>
+          <input type="range" id="cv3-clarity" class="cv3-slider" min="0" max="2" value="0" step="1"
+                 data-dim="clarity"
+                 data-values="clear,moderate,murky"
+                 data-labels="Clear,Moderate,Murky">
+        </div>
+      </div>
+
+      <div class="cv3-section">
+        <h3 class="cv3-section-title">Include</h3>
+        <div class="cv3-cat-chips" id="cv3-cat-chips">
+          <label class="cv3-chip"><input type="checkbox" value="fish" checked><span>Fish</span></label>
+          <label class="cv3-chip"><input type="checkbox" value="bird"><span>Birds</span></label>
+          <label class="cv3-chip"><input type="checkbox" value="turtle"><span>Turtles</span></label>
+          <label class="cv3-chip"><input type="checkbox" value="reptile"><span>Reptiles</span></label>
+          <label class="cv3-chip"><input type="checkbox" value="amphibian"><span>Amphibians</span></label>
+          <label class="cv3-chip"><input type="checkbox" value="mammal"><span>Mammals</span></label>
+        </div>
+        <button type="button" class="cv3-btn-hero" id="cv3-what-lives-here">What Lives Here</button>
+        <p class="cv3-hero-hint">Auto-selects the top 10 species likely in this water.</p>
+      </div>
+    </aside>
+
+    <!-- SPECIES + STYLE + DESIGN PANEL -->
+    <aside class="cv3-panel">
+      <div class="cv3-tabs">
+        <button class="cv3-tab cv3-tab-active" data-tab="species">Species</button>
+        <button class="cv3-tab" data-tab="style">Style</button>
+        <button class="cv3-tab" data-tab="design">Design</button>
+      </div>
+
+      <div class="cv3-tabpane cv3-tabpane-active" data-tab="species">
+        <input type="text" id="cv3-search" class="cv3-input" placeholder="Search species&hellip;">
+        <div id="cv3-species-primary" class="cv3-species-list"></div>
+        <div class="cv3-loadmore-wrap">
+          <button class="cv3-link" id="cv3-show-more" style="display:none">Show more species</button>
+        </div>
+        <div id="cv3-species-secondary" class="cv3-species-list cv3-secondary"></div>
+      </div>
+
+      <div class="cv3-tabpane" data-tab="style">
+        <div id="cv3-style-tiles" class="cv3-style-grid"></div>
+      </div>
+
+      <div class="cv3-tabpane" data-tab="design">
+        <label class="cv3-label">Title</label>
+        <input type="text" id="cv3-title" class="cv3-input" placeholder="Wildlife of Lake Michigan">
+
+        <label class="cv3-label">Subtitle</label>
+        <input type="text" id="cv3-subtitle" class="cv3-input" placeholder="A field guide">
+
+        <label class="cv3-label">Background color</label>
+        <input type="color" id="cv3-bg-color" value="#ffffff">
+
+        <label class="cv3-label">Background image</label>
+        <button type="button" class="cv3-btn-sec" id="cv3-bg-gallery-btn">Browse Gallery</button>
+        <input type="file" id="cv3-bg-upload" accept="image/png,image/jpeg" style="display:none">
+        <button type="button" class="cv3-btn-sec" onclick="document.getElementById('cv3-bg-upload').click()">Upload Image</button>
+        <button type="button" class="cv3-btn-sec" id="cv3-bg-clear">Clear</button>
+        <div id="cv3-bg-gallery" class="cv3-bg-gallery" style="display:none"></div>
+
+        <label class="cv3-label">Title font</label>
+        <select id="cv3-title-font" class="cv3-input">
+          <option>Playfair Display</option><option>Lora</option><option>Merriweather</option>
+          <option>Cormorant Garamond</option><option>EB Garamond</option><option>Montserrat</option>
+          <option>Oswald</option><option>Raleway</option><option>Poppins</option><option>Bebas Neue</option>
+        </select>
+
+        <label class="cv3-label">Title size: <span id="cv3-title-size-val">150</span></label>
+        <input type="range" id="cv3-title-size" min="60" max="400" value="150">
+
+        <label class="cv3-label">Title color</label>
+        <input type="color" id="cv3-title-color" value="#1a1612">
+
+        <label class="cv3-label">Label font</label>
+        <select id="cv3-label-font" class="cv3-input">
+          <option>Playfair Display</option><option>Lora</option><option>Merriweather</option>
+          <option>Cormorant Garamond</option><option>EB Garamond</option><option>Montserrat</option>
+          <option>Oswald</option><option>Raleway</option><option>Poppins</option><option>Bebas Neue</option>
+        </select>
+
+        <label class="cv3-label">Label size: <span id="cv3-label-size-val">42</span></label>
+        <input type="range" id="cv3-label-size" min="16" max="120" value="42">
+
+        <label class="cv3-label">Label color</label>
+        <input type="color" id="cv3-label-color" value="#1a1612">
+
+        <label class="cv3-label">Gap below fish: <span id="cv3-label-gap-val">20</span></label>
+        <input type="range" id="cv3-label-gap" min="0" max="200" value="20">
+
+        <hr class="cv3-divider">
+        <label class="cv3-label">Logo</label>
+        <input type="file" id="cv3-logo-upload" accept="image/png,image/jpeg" style="display:none">
+        <button type="button" class="cv3-btn-sec" onclick="document.getElementById('cv3-logo-upload').click()">Upload Logo</button>
+        <button type="button" class="cv3-btn-sec" id="cv3-logo-clear">Clear</button>
+
+        <label class="cv3-label">Logo size: <span id="cv3-logo-size-val">20</span>%</label>
+        <input type="range" id="cv3-logo-size" min="5" max="40" value="20">
+
+        <label class="cv3-label">Logo position</label>
+        <select id="cv3-logo-position" class="cv3-input">
+          <option value="bottom-center">Bottom Center</option>
+          <option value="bottom-left">Bottom Left</option>
+          <option value="bottom-right">Bottom Right</option>
+          <option value="top-center">Top Center</option>
+          <option value="top-left">Top Left</option>
+          <option value="top-right">Top Right</option>
+        </select>
+      </div>
+    </aside>
+  </div>
 </div>
 
 <script>
@@ -232,6 +243,7 @@
     canvasW: 5100,
     canvasH: 3300,
     lastRenderTime: null,
+    overlayShown: true,
   };
 
   const recommendCache = { primary: [], secondary: [] };
@@ -300,6 +312,16 @@
     return map[name] || null;
   }
 
+  // ---------------- Sample overlay ----------------
+  function dismissOverlay() {
+    if (!state.overlayShown) return;
+    state.overlayShown = false;
+    const dlg = $('cv3-sample-dialog');
+    const img = $('cv3-sample-img');
+    if (dlg) dlg.style.display = 'none';
+    if (img) img.style.display = 'none';
+  }
+
   // ---------------- Habitat sliders ----------------
   function bindHabitatSliders() {
     const ids = ['cv3-water-type','cv3-depth','cv3-flow','cv3-vegetation','cv3-clarity'];
@@ -311,6 +333,7 @@
       const valSpan = $(id + '-val');
       const img = $(id + '-img');
       el.addEventListener('input', function() {
+        dismissOverlay();
         const i = parseInt(el.value, 10);
         const v = values[i];
         const lbl = labels[i];
@@ -323,6 +346,52 @@
         state[camel] = v;
         debouncedRefresh();
       });
+    });
+  }
+
+  // ---------------- What Lives Here ----------------
+  function bindWhatLivesHere() {
+    const btn = $('cv3-what-lives-here');
+    if (!btn) return;
+    btn.addEventListener('click', function() {
+      btn.disabled = true;
+      btn.textContent = 'Finding species…';
+      const body = {
+        water_type: state.waterType,
+        depth: state.depth,
+        flow: state.flow,
+        vegetation: state.vegetation,
+        clarity: state.clarity,
+        categories: state.categories,
+        state: state.state,
+        offset: 0,
+      };
+      fetch('/api/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          recommendCache.primary = data.primary || data.results || [];
+          recommendCache.secondary = data.secondary || [];
+          const top = recommendCache.primary.slice(0, 10);
+          state.selectedSpecies = top.map(function(sp) {
+            return {
+              slug: sp.slug,
+              common_name: sp.common_name,
+              scientific_name: sp.scientific_name || '',
+            };
+          });
+          dismissOverlay();
+          renderSpeciesList();
+          scheduleLayout();
+        })
+        .catch(function() {})
+        .finally(function() {
+          btn.disabled = false;
+          btn.textContent = 'What Lives Here';
+        });
     });
   }
 
@@ -492,20 +561,16 @@
       canvas.style.backgroundImage = 'none';
     }
 
-    // Clear non-overlay children
+    // Clear non-overlay/sample children
     Array.from(canvas.children).forEach(function(c) {
-      if (c.id !== 'cv3-canvas-overlay' && c.id !== 'cv3-canvas-empty') {
+      if (c.id !== 'cv3-canvas-overlay' && c.id !== 'cv3-sample-img' && c.id !== 'cv3-sample-dialog') {
         canvas.removeChild(c);
       }
     });
 
-    const empty = $('cv3-canvas-empty');
     if (state.selectedSpecies.length === 0) {
-      empty.style.display = 'flex';
-      setStatus('0 species placed.');
+      setStatus(state.overlayShown ? 'Describe your water below, or click What Lives Here.' : '0 species placed.');
       return;
-    } else {
-      empty.style.display = 'none';
     }
 
     // Title
@@ -815,6 +880,7 @@
     initMap();
     bindHabitatSliders();
     bindCategoryChips();
+    bindWhatLivesHere();
     bindSpeciesClicks();
     bindTabs();
     buildStyleTiles();

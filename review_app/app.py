@@ -1039,6 +1039,16 @@ def serve_habitat_image(filename: str):
     return send_file(str(p))
 
 
+@app.route("/static/sample/<filename>")
+def serve_sample_image(filename: str):
+    """Serve sample poster images from assets/sample/."""
+    safe = re.sub(r"[^\w.\-]", "_", filename)
+    p = Path(PROJECT_ROOT) / "assets" / "sample" / safe
+    if not p.exists() or not p.is_file():
+        abort(404)
+    return send_file(str(p))
+
+
 @app.route("/image/<path:relpath>")
 def image(relpath: str):
     project_root = Path(PROJECT_ROOT).resolve()
