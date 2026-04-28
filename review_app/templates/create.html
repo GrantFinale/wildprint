@@ -1,1014 +1,835 @@
 {% extends "base.html" %}
-{% block title %}Create Poster — wildprint{% endblock %}
-
+{% block title %}Create Your Poster — wildprint{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&family=Raleway:wght@400;700&family=Poppins:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
 
-<div class="cp-page">
-
-  <!-- Phase 1: Choose your water -->
-  <section class="cp-phase cp-phase-water">
-    <div class="cp-section-header">
-      <h1 class="cp-hero-heading">Create Your Wildlife Poster</h1>
-      <p class="cp-hero-sub">Discover the species that inhabit your local waters.</p>
+<div class="cv3-shell">
+  <!-- LEFT SIDEBAR: WATER & HABITAT -->
+  <aside class="cv3-left">
+    <div class="cv3-section">
+      <h3 class="cv3-section-title">Where</h3>
+      <div id="cv3-map" class="cv3-map"></div>
+      <input type="text" id="cv3-water-name" class="cv3-input" placeholder="Water body name (e.g. Lake Michigan)">
+      <span id="cv3-water-location" class="cv3-loc-pill"></span>
     </div>
 
-    <div class="cp-water-layout">
-      <div class="cp-map-col">
-        <div id="map" class="cp-map"></div>
-      </div>
-      <div class="cp-form-col">
-        <div class="cp-field">
-          <label class="cp-label" for="water-name">Water body name</label>
-          <input type="text" id="water-name" class="cp-input" placeholder="e.g. Lake Michigan">
-          <span id="water-location" class="cp-location-pill"></span>
-        </div>
-        <div class="cp-field">
-          <label class="cp-label" for="q-water-type">Water type</label>
-          <select id="q-water-type" class="cp-select">
-            <option value="lake">Lake</option>
-            <option value="pond">Pond</option>
-            <option value="river">River</option>
-            <option value="stream">Stream</option>
-            <option value="reservoir">Reservoir</option>
-            <option value="marsh">Marsh / Wetland</option>
-          </select>
-        </div>
-        <div class="cp-field">
-          <label class="cp-label" for="q-depth">Average depth</label>
-          <select id="q-depth" class="cp-select">
-            <option value="shallow">Shallow (&lt; 5 ft)</option>
-            <option value="moderate">Moderate (5-20 ft)</option>
-            <option value="deep">Deep (&gt; 20 ft)</option>
-          </select>
-        </div>
-        <div class="cp-field">
-          <label class="cp-label" for="q-flow">Water flow</label>
-          <select id="q-flow" class="cp-select">
-            <option value="still">Still</option>
-            <option value="slow">Slow</option>
-            <option value="moderate">Moderate</option>
-            <option value="fast">Fast</option>
-          </select>
-        </div>
-        <div class="cp-field">
-          <label class="cp-label" for="q-vegetation">Vegetation</label>
-          <select id="q-vegetation" class="cp-select">
-            <option value="heavy">Heavy (weeds, lily pads)</option>
-            <option value="moderate">Moderate</option>
-            <option value="sparse">Sparse</option>
-            <option value="none">None</option>
-          </select>
-        </div>
-        <div class="cp-field">
-          <label class="cp-label" for="q-clarity">Water clarity</label>
-          <select id="q-clarity" class="cp-select">
-            <option value="clear">Clear</option>
-            <option value="moderate">Moderately clear</option>
-            <option value="murky">Murky / Stained</option>
-          </select>
-        </div>
-        <div class="cp-field">
-          <label class="cp-label">Include in poster</label>
-          <div class="cp-cat-chips" id="cp-cat-chips">
-            <label class="cp-chip"><input type="checkbox" name="cat" value="fish" checked><span>Fish</span></label>
-            <label class="cp-chip"><input type="checkbox" name="cat" value="bird"><span>Birds</span></label>
-            <label class="cp-chip"><input type="checkbox" name="cat" value="turtle"><span>Turtles</span></label>
-            <label class="cp-chip"><input type="checkbox" name="cat" value="reptile"><span>Reptiles</span></label>
-            <label class="cp-chip"><input type="checkbox" name="cat" value="amphibian"><span>Amphibians</span></label>
-            <label class="cp-chip"><input type="checkbox" name="cat" value="mammal"><span>Mammals</span></label>
-          </div>
-          <p class="cp-hint">Pick one for a focused field guide, or several for a mixed wildlife poster.</p>
-        </div>
-        <button class="cp-btn cp-btn-primary cp-btn-find" id="btn-recommend">Find Species</button>
-      </div>
-    </div>
-  </section>
+    <div class="cv3-section">
+      <h3 class="cv3-section-title">Habitat</h3>
 
-  <!-- Phase 2: Select your species -->
-  <section class="cp-phase cp-phase-species cp-hidden" id="step-species">
-    <div class="cp-section-header">
-      <h2 class="cp-heading">Recommended Species for <span id="cp-water-label">Your Water</span></h2>
-      <p class="cp-subheading"><span id="cp-species-count">0</span> species found &middot; Tap to add or remove</p>
-    </div>
-    <div id="species-primary" class="cp-species-grid"></div>
+      <div class="cv3-habitat-control">
+        <label class="cv3-label">Water type: <span id="cv3-water-type-val">Lake</span></label>
+        <div class="cv3-habitat-preview">
+          <img id="cv3-water-type-img" src="/static/habitat/water_type_lake.png" alt="" onerror="this.style.display='none'">
+        </div>
+        <input type="range" id="cv3-water-type" class="cv3-slider" min="0" max="5" value="0" step="1"
+               data-dim="water_type"
+               data-values="lake,pond,river,stream,reservoir,marsh"
+               data-labels="Lake,Pond,River,Stream,Reservoir,Marsh">
+      </div>
 
-    <div class="cp-search-row">
-      <input type="text" id="cp-search-input" class="cp-input" placeholder="Looking for something specific? Search by name…">
-    </div>
-    <div id="cp-search-results" class="cp-species-grid"></div>
+      <div class="cv3-habitat-control">
+        <label class="cv3-label">Depth: <span id="cv3-depth-val">Moderate</span></label>
+        <div class="cv3-habitat-preview">
+          <img id="cv3-depth-img" src="/static/habitat/depth_moderate.png" alt="" onerror="this.style.display='none'">
+        </div>
+        <input type="range" id="cv3-depth" class="cv3-slider" min="0" max="2" value="1" step="1"
+               data-dim="depth"
+               data-values="shallow,moderate,deep"
+               data-labels="Shallow (<5ft),Moderate (5-20ft),Deep (>20ft)">
+      </div>
 
-    <div id="species-secondary" class="cp-species-grid cp-species-secondary"></div>
-    <div class="cp-more-toggle" id="cp-more-toggle" style="display:none">
-      <button class="cp-btn-text" id="btn-show-more">&#9660; Show 20 more species</button>
-    </div>
-  </section>
+      <div class="cv3-habitat-control">
+        <label class="cv3-label">Flow: <span id="cv3-flow-val">Still</span></label>
+        <div class="cv3-habitat-preview">
+          <img id="cv3-flow-img" src="/static/habitat/flow_still.png" alt="" onerror="this.style.display='none'">
+        </div>
+        <input type="range" id="cv3-flow" class="cv3-slider" min="0" max="3" value="0" step="1"
+               data-dim="flow"
+               data-values="still,slow,moderate,fast"
+               data-labels="Still,Slow,Moderate,Fast">
+      </div>
 
-  <!-- Phase 3: Design your poster -->
-  <section class="cp-phase cp-phase-design cp-hidden" id="step-options">
-    <div class="cp-section-header">
-      <h2 class="cp-heading">Design Your Poster</h2>
-    </div>
-    <div class="cp-design-grid">
-      <div class="cp-field">
-        <label class="cp-label" for="poster-title">Title</label>
-        <input type="text" id="poster-title" class="cp-input" placeholder="Wildlife of Lake Michigan">
-      </div>
-      <div class="cp-field">
-        <label class="cp-label" for="cp-poster-style">Style</label>
-        <select id="cp-poster-style" class="cp-select">
-          {% for style in styles %}
-          <option value="{{ style.slug }}">{{ style.style_name or style.name or style.slug }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="cp-field">
-        <label class="cp-label" for="poster-subtitle">Subtitle</label>
-        <input type="text" id="poster-subtitle" class="cp-input" placeholder="A field guide">
-      </div>
-      <div class="cp-field">
-        <label class="cp-label" for="poster-bg">Background color</label>
-        <input type="color" id="poster-bg" class="cp-color" value="#ffffff">
-      </div>
-      <div class="cp-field">
-        <label class="cp-label" for="logo-upload">Logo (optional)</label>
-        <input type="file" id="logo-upload" class="cp-input-file" accept="image/png,image/jpeg">
-        <div id="logo-preview" class="cp-file-preview" style="display:none">
-          <img id="logo-thumb" class="cp-file-thumb">
-          <button type="button" class="cp-btn-remove" id="btn-remove-logo">&times; Remove</button>
+      <div class="cv3-habitat-control">
+        <label class="cv3-label">Vegetation: <span id="cv3-vegetation-val">Moderate</span></label>
+        <div class="cv3-habitat-preview">
+          <img id="cv3-vegetation-img" src="/static/habitat/vegetation_moderate.png" alt="" onerror="this.style.display='none'">
         </div>
+        <input type="range" id="cv3-vegetation" class="cv3-slider" min="0" max="3" value="1" step="1"
+               data-dim="vegetation"
+               data-values="heavy,moderate,sparse,none"
+               data-labels="Heavy,Moderate,Sparse,None">
       </div>
-      <div class="cp-field">
-        <label class="cp-label" for="bg-upload">Background image (optional)</label>
-        <input type="file" id="bg-upload" class="cp-input-file" accept="image/png,image/jpeg">
-        <div id="bg-preview" class="cp-file-preview" style="display:none">
-          <img id="bg-thumb" class="cp-file-thumb">
-          <button type="button" class="cp-btn-remove" id="btn-remove-bg">&times; Remove</button>
-        </div>
-      </div>
-      <div class="cp-field" style="grid-column:1/-1">
-        <label class="cp-label">Or pick a server-generated landscape</label>
-        <button type="button" class="cp-btn cp-btn-secondary" id="cp-bg-gallery-btn" style="margin-top:0.25rem">Browse Gallery</button>
-        <div id="cp-bg-gallery" style="display:none;margin-top:0.75rem;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.5rem"></div>
-      </div>
-    </div>
-    <div class="cp-generate-wrap">
-      <button class="cp-btn cp-btn-generate" id="btn-generate">Generate Your Poster</button>
-      <div id="generate-status" class="cp-status-text"></div>
-    </div>
-    <div id="poster-preview" class="cp-poster-preview" style="display:none">
-      <img id="poster-img" class="cp-poster-img">
-      <div class="cp-poster-actions">
-        <a id="poster-download" class="cp-btn cp-btn-secondary" download>Download PNG</a>
-        <button class="cp-btn cp-btn-secondary" id="btn-open-editor" style="display:none; margin-top:0.5rem">Customize Layout</button>
-      </div>
-    </div>
-  </section>
 
-  <!-- Phase 4: Editor -->
-  <div id="cp-editor-section" class="cp-phase cp-hidden">
-    <div class="cp-section-header">
-      <h2 class="cp-heading">Customize Your Layout</h2>
-      <p class="cp-subheading">Drag animals to reposition. Adjust text formatting below.</p>
-    </div>
-
-    <!-- Text formatting toolbar -->
-    <div class="cp-text-toolbar">
-      <div class="cp-toolbar-group">
-        <label class="cp-toolbar-label">Title & Subtitle</label>
-        <div class="cp-toolbar-controls">
-          <input type="range" id="ed-title-size" min="60" max="400" value="150" title="Font size">
-          <span class="cp-size-display" id="ed-title-size-val">150</span>
-          <input type="color" id="ed-title-color" value="#1a1612" title="Color">
-          <button type="button" class="cp-fmt-btn" id="ed-title-bold" title="Bold"><b>B</b></button>
-          <button type="button" class="cp-fmt-btn" id="ed-title-italic" title="Italic"><i>I</i></button>
-          <select id="ed-title-font" title="Font family">
-            <option value="Playfair Display" selected>Playfair Display</option>
-            <option value="Lora">Lora</option>
-            <option value="Merriweather">Merriweather</option>
-            <option value="Cormorant Garamond">Cormorant Garamond</option>
-            <option value="EB Garamond">EB Garamond</option>
-            <option value="Montserrat">Montserrat</option>
-            <option value="Oswald">Oswald</option>
-            <option value="Raleway">Raleway</option>
-            <option value="Poppins">Poppins</option>
-            <option value="Bebas Neue">Bebas Neue</option>
-          </select>
+      <div class="cv3-habitat-control">
+        <label class="cv3-label">Water clarity: <span id="cv3-clarity-val">Clear</span></label>
+        <div class="cv3-habitat-preview">
+          <img id="cv3-clarity-img" src="/static/habitat/clarity_clear.png" alt="" onerror="this.style.display='none'">
         </div>
-      </div>
-      <div class="cp-toolbar-group">
-        <label class="cp-toolbar-label">Species Labels (all)</label>
-        <div class="cp-toolbar-controls">
-          <input type="range" id="ed-label-size" min="16" max="120" value="42" title="Font size">
-          <span class="cp-size-display" id="ed-label-size-val">42</span>
-          <input type="color" id="ed-label-color" value="#1a1612" title="Color">
-          <button type="button" class="cp-fmt-btn" id="ed-label-bold" title="Bold"><b>B</b></button>
-          <button type="button" class="cp-fmt-btn" id="ed-label-italic" title="Italic"><i>I</i></button>
-          <select id="ed-label-font" title="Font family">
-            <option value="Playfair Display" selected>Playfair Display</option>
-            <option value="Lora">Lora</option>
-            <option value="Merriweather">Merriweather</option>
-            <option value="Cormorant Garamond">Cormorant Garamond</option>
-            <option value="EB Garamond">EB Garamond</option>
-            <option value="Montserrat">Montserrat</option>
-            <option value="Oswald">Oswald</option>
-            <option value="Raleway">Raleway</option>
-            <option value="Poppins">Poppins</option>
-            <option value="Bebas Neue">Bebas Neue</option>
-          </select>
-        </div>
-        <div class="cp-toolbar-controls" style="margin-top:0.4rem">
-          <span class="cp-toolbar-label" style="font-size:0.7rem;text-transform:none">Gap below fish</span>
-          <input type="range" id="ed-label-gap" min="0" max="200" value="20" title="Distance between species and its label">
-          <span class="cp-size-display" id="ed-label-gap-val">20</span>
-        </div>
-      </div>
-      <div class="cp-toolbar-group">
-        <label class="cp-toolbar-label">Background &amp; Logo</label>
-        <div class="cp-toolbar-controls">
-          <input type="color" id="ed-bg-color" value="#ffffff" title="Background color">
-          <label class="cp-fmt-btn" style="width:auto;padding:0 0.5rem;font-size:0.75rem;cursor:pointer" title="Upload background image">
-            BG image
-            <input type="file" id="ed-bg-upload" accept="image/png,image/jpeg" style="display:none">
-          </label>
-          <button type="button" class="cp-fmt-btn" id="ed-bg-clear" style="width:auto;padding:0 0.5rem;font-size:0.75rem" title="Clear background image">×</button>
-          <label class="cp-fmt-btn" style="width:auto;padding:0 0.5rem;font-size:0.75rem;cursor:pointer" title="Upload logo">
-            Logo
-            <input type="file" id="ed-logo-upload" accept="image/png,image/jpeg" style="display:none">
-          </label>
-          <button type="button" class="cp-fmt-btn" id="ed-logo-clear" style="width:auto;padding:0 0.5rem;font-size:0.75rem" title="Clear logo">×</button>
-        </div>
-        <div class="cp-toolbar-controls" style="margin-top:0.4rem">
-          <span class="cp-toolbar-label" style="font-size:0.7rem;text-transform:none">Logo size</span>
-          <input type="range" id="ed-logo-size" min="5" max="40" value="20" title="Logo width as % of poster width">
-          <span class="cp-size-display" id="ed-logo-size-val">20%</span>
-          <select id="ed-logo-position" title="Logo position">
-            <option value="bottom-center" selected>Bottom Center</option>
-            <option value="bottom-left">Bottom Left</option>
-            <option value="bottom-right">Bottom Right</option>
-            <option value="top-center">Top Center</option>
-            <option value="top-left">Top Left</option>
-            <option value="top-right">Top Right</option>
-          </select>
-        </div>
-        <div id="ed-bg-status" class="cp-subheading" style="font-size:0.7rem;margin-top:0.2rem"></div>
+        <input type="range" id="cv3-clarity" class="cv3-slider" min="0" max="2" value="0" step="1"
+               data-dim="clarity"
+               data-values="clear,moderate,murky"
+               data-labels="Clear,Moderate,Murky">
       </div>
     </div>
 
-    <!-- Interactive canvas -->
-    <div id="cp-editor-canvas" class="cp-editor-canvas">
-    </div>
-
-    <div style="text-align:center; margin-top:1rem">
-      <button class="cp-btn cp-btn-generate" id="btn-render-custom">Render Final Poster</button>
-      <div id="cp-custom-status" class="cp-subheading" style="margin-top:0.5rem"></div>
-    </div>
-
-    <!-- Final custom poster preview -->
-    <div id="cp-custom-preview" class="cp-hidden" style="text-align:center; margin-top:1rem">
-      <img id="cp-custom-img" style="max-width:100%; border-radius:8px; box-shadow:0 2px 16px rgba(0,0,0,0.12)">
-      <div style="margin-top:1rem">
-        <a id="cp-custom-download" class="cp-btn cp-btn-secondary" download>Download Final Poster</a>
+    <div class="cv3-section">
+      <h3 class="cv3-section-title">Include</h3>
+      <div class="cv3-cat-chips" id="cv3-cat-chips">
+        <label class="cv3-chip"><input type="checkbox" value="fish" checked><span>Fish</span></label>
+        <label class="cv3-chip"><input type="checkbox" value="bird"><span>Birds</span></label>
+        <label class="cv3-chip"><input type="checkbox" value="turtle"><span>Turtles</span></label>
+        <label class="cv3-chip"><input type="checkbox" value="reptile"><span>Reptiles</span></label>
+        <label class="cv3-chip"><input type="checkbox" value="amphibian"><span>Amphibians</span></label>
+        <label class="cv3-chip"><input type="checkbox" value="mammal"><span>Mammals</span></label>
       </div>
     </div>
-  </div>
+  </aside>
 
+  <!-- CENTER CANVAS -->
+  <main class="cv3-center">
+    <div class="cv3-canvas-wrap">
+      <div id="cv3-canvas" class="cv3-canvas">
+        <div class="cv3-canvas-empty" id="cv3-canvas-empty">Pick species from the right to see your poster come alive.</div>
+        <div id="cv3-canvas-overlay" class="cv3-canvas-overlay" style="display:none">
+          <div class="cv3-spinner"></div>
+          <div>Composing&hellip;</div>
+        </div>
+      </div>
+    </div>
+    <div class="cv3-canvas-status">
+      <span id="cv3-status-msg" class="subtle">Drag animals to reposition. Click the title to edit it.</span>
+    </div>
+  </main>
+
+  <!-- RIGHT SIDEBAR: CONTENT TABS -->
+  <aside class="cv3-right">
+    <div class="cv3-tabs">
+      <button class="cv3-tab cv3-tab-active" data-tab="species">Species</button>
+      <button class="cv3-tab" data-tab="style">Style</button>
+      <button class="cv3-tab" data-tab="design">Design</button>
+    </div>
+
+    <div class="cv3-tabpane cv3-tabpane-active" data-tab="species">
+      <input type="text" id="cv3-search" class="cv3-input" placeholder="Search species&hellip;">
+      <div id="cv3-species-primary" class="cv3-species-list"></div>
+      <div class="cv3-loadmore-wrap">
+        <button class="cv3-link" id="cv3-show-more" style="display:none">Show more species</button>
+      </div>
+      <div id="cv3-species-secondary" class="cv3-species-list cv3-secondary"></div>
+    </div>
+
+    <div class="cv3-tabpane" data-tab="style">
+      <div id="cv3-style-tiles" class="cv3-style-grid"></div>
+    </div>
+
+    <div class="cv3-tabpane" data-tab="design">
+      <label class="cv3-label">Title</label>
+      <input type="text" id="cv3-title" class="cv3-input" placeholder="Wildlife of Lake Michigan">
+
+      <label class="cv3-label">Subtitle</label>
+      <input type="text" id="cv3-subtitle" class="cv3-input" placeholder="A field guide">
+
+      <label class="cv3-label">Background color</label>
+      <input type="color" id="cv3-bg-color" value="#ffffff">
+
+      <label class="cv3-label">Background image</label>
+      <button type="button" class="cv3-btn-sec" id="cv3-bg-gallery-btn">Browse Gallery</button>
+      <input type="file" id="cv3-bg-upload" accept="image/png,image/jpeg" style="display:none">
+      <button type="button" class="cv3-btn-sec" onclick="document.getElementById('cv3-bg-upload').click()">Upload Image</button>
+      <button type="button" class="cv3-btn-sec" id="cv3-bg-clear">Clear</button>
+      <div id="cv3-bg-gallery" class="cv3-bg-gallery" style="display:none"></div>
+
+      <label class="cv3-label">Title font</label>
+      <select id="cv3-title-font" class="cv3-input">
+        <option>Playfair Display</option><option>Lora</option><option>Merriweather</option>
+        <option>Cormorant Garamond</option><option>EB Garamond</option><option>Montserrat</option>
+        <option>Oswald</option><option>Raleway</option><option>Poppins</option><option>Bebas Neue</option>
+      </select>
+
+      <label class="cv3-label">Title size: <span id="cv3-title-size-val">150</span></label>
+      <input type="range" id="cv3-title-size" min="60" max="400" value="150">
+
+      <label class="cv3-label">Title color</label>
+      <input type="color" id="cv3-title-color" value="#1a1612">
+
+      <label class="cv3-label">Label font</label>
+      <select id="cv3-label-font" class="cv3-input">
+        <option>Playfair Display</option><option>Lora</option><option>Merriweather</option>
+        <option>Cormorant Garamond</option><option>EB Garamond</option><option>Montserrat</option>
+        <option>Oswald</option><option>Raleway</option><option>Poppins</option><option>Bebas Neue</option>
+      </select>
+
+      <label class="cv3-label">Label size: <span id="cv3-label-size-val">42</span></label>
+      <input type="range" id="cv3-label-size" min="16" max="120" value="42">
+
+      <label class="cv3-label">Label color</label>
+      <input type="color" id="cv3-label-color" value="#1a1612">
+
+      <label class="cv3-label">Gap below fish: <span id="cv3-label-gap-val">20</span></label>
+      <input type="range" id="cv3-label-gap" min="0" max="200" value="20">
+
+      <hr class="cv3-divider">
+      <label class="cv3-label">Logo</label>
+      <input type="file" id="cv3-logo-upload" accept="image/png,image/jpeg" style="display:none">
+      <button type="button" class="cv3-btn-sec" onclick="document.getElementById('cv3-logo-upload').click()">Upload Logo</button>
+      <button type="button" class="cv3-btn-sec" id="cv3-logo-clear">Clear</button>
+
+      <label class="cv3-label">Logo size: <span id="cv3-logo-size-val">20</span>%</label>
+      <input type="range" id="cv3-logo-size" min="5" max="40" value="20">
+
+      <label class="cv3-label">Logo position</label>
+      <select id="cv3-logo-position" class="cv3-input">
+        <option value="bottom-center">Bottom Center</option>
+        <option value="bottom-left">Bottom Left</option>
+        <option value="bottom-right">Bottom Right</option>
+        <option value="top-center">Top Center</option>
+        <option value="top-left">Top Left</option>
+        <option value="top-right">Top Right</option>
+      </select>
+    </div>
+
+    <div class="cv3-cta-bar">
+      <a id="cv3-download" class="cv3-btn-primary" download style="display:none">Download Poster</a>
+      <button type="button" class="cv3-btn-primary" id="cv3-render-btn">Update Poster</button>
+    </div>
+  </aside>
 </div>
 
 <script>
-function esc(s) {
-  if (!s) return '';
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-
-// --- Map initialization ---
-const map = L.map('map').setView([43.0, -85.0], 6);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap'
-}).addTo(map);
-
-let marker = null;
-let currentState = null;
-
-const stateNameToCode = (function() {
-  const m = {
-    'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
-    'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
-    'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
-    'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
-    'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
-    'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
-    'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV',
-    'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
-    'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK',
-    'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
-    'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT',
-    'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
-    'Wisconsin': 'WI', 'Wyoming': 'WY'
+(function() {
+  // ---------------- State ----------------
+  const STYLES = {{ styles|tojson }};
+  const state = {
+    waterName: '',
+    state: null,
+    waterType: 'lake',
+    depth: 'moderate',
+    flow: 'still',
+    vegetation: 'moderate',
+    clarity: 'clear',
+    categories: ['fish'],
+    selectedSpecies: [],   // [{slug, common_name, scientific_name, master_url, x, y, draw_width, draw_height, silhouette_bbox}]
+    style: 'scientific',
+    title: '',
+    subtitle: '',
+    bgColor: '#ffffff',
+    bgFilename: null,
+    bgUrl: null,
+    titleFont: 'Playfair Display',
+    titleSize: 150,
+    titleColor: '#1a1612',
+    titleBold: false,
+    titleItalic: false,
+    labelFont: 'Playfair Display',
+    labelSize: 42,
+    labelColor: '#1a1612',
+    labelGap: 20,
+    logoFilename: null,
+    logoSize: 20,
+    logoPosition: 'bottom-center',
+    canvasW: 5100,
+    canvasH: 3300,
+    lastRenderTime: null,
   };
-  return function(name) { return name ? m[name] || null : null; };
-})();
 
-map.on('click', async function(e) {
-  if (marker) marker.remove();
-  marker = L.marker(e.latlng).addTo(map);
-  try {
-    const resp = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${e.latlng.lat}&lon=${e.latlng.lng}&format=json&zoom=5`,
-      {headers: {'Accept-Language': 'en', 'User-Agent': 'wildprint/1.0'}}
-    );
-    const geo = await resp.json();
-    const state = geo.address?.state;
-    const stateCode = stateNameToCode(state);
-    if (stateCode) {
-      document.getElementById('water-location').textContent = '\ud83d\udccd ' + state + ' (' + stateCode + ')';
-      currentState = stateCode;
-    } else {
-      document.getElementById('water-location').textContent = '';
-      currentState = null;
-    }
-  } catch (err) {
-    console.warn('Reverse geocoding failed:', err);
-    currentState = null;
-  }
-  document.getElementById('water-name').focus();
-});
+  const recommendCache = { primary: [], secondary: [] };
+  let canvasScale = 1;
 
-// --- Recommend handler (paginating) ---
-async function callRecommend(offset = 0, append = false) {
-  const cats = Array.from(document.querySelectorAll('#cp-cat-chips input:checked')).map(i => i.value);
-  if (cats.length === 0) {
-    alert('Pick at least one category.');
-    return;
-  }
-  const body = {
-    water_type: document.getElementById('q-water-type').value,
-    depth: document.getElementById('q-depth').value,
-    flow: document.getElementById('q-flow').value,
-    vegetation: document.getElementById('q-vegetation').value,
-    clarity: document.getElementById('q-clarity').value,
-    categories: cats,
-    offset: offset,
-  };
-  if (currentState) body.state = currentState;
-  if (marker) {
-    body.lat = marker.getLatLng().lat;
-    body.lng = marker.getLatLng().lng;
-  }
-  const resp = await fetch('/api/recommend', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(body),
-  });
-  const data = await resp.json();
-
-  if (offset === 0) {
-    renderSpeciesGrid(data.primary, 'species-primary', true);
-    renderSpeciesGrid(data.secondary || [], 'species-secondary', false);
-  } else if (append) {
-    appendSpeciesGrid(data.secondary || [], 'species-secondary', false);
-  } else {
-    renderSpeciesGrid(data.secondary || [], 'species-secondary', false);
-  }
-
-  // Pagination state
-  const secCount = (data.secondary || []).length;
-  const remaining = data.total_remaining || 0;
-  window._currentOffset = offset + secCount;
-  const moreToggle = document.getElementById('cp-more-toggle');
-  const moreBtn = document.getElementById('btn-show-more');
-  if (remaining > 0) {
-    moreToggle.style.display = '';
-    moreBtn.textContent = '▼ Show 20 more (' + remaining + ' available)';
-  } else {
-    moreToggle.style.display = 'none';
-  }
-
-  if (offset === 0) {
-    const waterName = document.getElementById('water-name').value || 'Your Water';
-    document.getElementById('cp-water-label').textContent = waterName;
-    const totalShown = (data.primary || []).length + secCount;
-    document.getElementById('cp-species-count').textContent = totalShown;
-
-    const phaseSpecies = document.getElementById('step-species');
-    const phaseDesign = document.getElementById('step-options');
-    phaseSpecies.classList.remove('cp-hidden');
-    phaseSpecies.classList.add('cp-fade-in');
-    setTimeout(() => {
-      phaseDesign.classList.remove('cp-hidden');
-      phaseDesign.classList.add('cp-fade-in');
-    }, 200);
-
-    if (waterName && waterName !== 'Your Water') {
-      document.getElementById('poster-title').value = 'Wildlife of ' + waterName;
-    }
-
-    setTimeout(() => {
-      phaseSpecies.scrollIntoView({behavior: 'smooth', block: 'start'});
-    }, 100);
-  }
-}
-
-document.getElementById('btn-recommend').addEventListener('click', () => {
-  window._currentOffset = 0;
-  callRecommend(0, false);
-});
-
-// --- Show more (paginating) ---
-document.getElementById('btn-show-more').addEventListener('click', () => {
-  callRecommend(window._currentOffset || 20, true);
-});
-
-// --- Species search with debounce ---
-let searchDebounce;
-document.getElementById('cp-search-input').addEventListener('input', function() {
-  clearTimeout(searchDebounce);
-  const q = this.value.trim();
-  const resultsEl = document.getElementById('cp-search-results');
-  if (q.length < 2) {
-    resultsEl.innerHTML = '';
-    return;
-  }
-  const cats = Array.from(document.querySelectorAll('#cp-cat-chips input:checked')).map(i => i.value);
-  searchDebounce = setTimeout(async () => {
-    const body = { query: q, categories: cats };
-    if (currentState) body.state = currentState;
-    const resp = await fetch('/api/search-species', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(body),
-    });
-    const data = await resp.json();
-    renderSpeciesGrid(data.results || [], 'cp-search-results', false);
-  }, 300);
-});
-
-// --- Species card renderer ---
-function _speciesCardHTML(sp, isChecked) {
-  const style = document.getElementById('cp-poster-style').value || 'scientific';
-  const scoreWidth = Math.min(100, Math.round(((sp.score || 0) / 50) * 100));
-  return `
-    <div class="cp-species-card ${isChecked ? 'cp-selected' : ''}"
-         data-slug="${esc(sp.slug)}" tabindex="0">
-      <div class="cp-card-image">
-        <img src="/image/output/master/${style}/${esc(sp.slug)}.png"
-             alt="${esc(sp.common_name)}" loading="lazy"
-             onerror="this.parentElement.classList.add('cp-no-image')">
-      </div>
-      <div class="cp-card-body">
-        <div class="cp-card-name">${esc(sp.common_name)}</div>
-        <div class="cp-card-sci">${esc(sp.scientific_name || '')}</div>
-        <div class="cp-card-score">
-          <span class="cp-score-label">Match</span>
-          <div class="cp-score-bar">
-            <div class="cp-score-fill" style="width:${scoreWidth}%"></div>
-          </div>
-        </div>
-        <div class="cp-card-action">
-          ${isChecked
-            ? '<span class="cp-badge-selected">\u2713 Selected</span>'
-            : '<span class="cp-badge-add">+ Add to poster</span>'}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function _bindCards(cards) {
-  cards.forEach(card => {
-    if (card._cpBound) return;
-    card._cpBound = true;
-    card.addEventListener('click', () => {
-      card.classList.toggle('cp-selected');
-      const badge = card.querySelector('.cp-card-action');
-      if (card.classList.contains('cp-selected')) {
-        badge.innerHTML = '<span class="cp-badge-selected">\u2713 Selected</span>';
-      } else {
-        badge.innerHTML = '<span class="cp-badge-add">+ Add to poster</span>';
-      }
-      card.style.transform = 'scale(0.97)';
-      setTimeout(() => { card.style.transform = ''; }, 100);
-    });
-    card.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
-    });
-  });
-}
-
-function renderSpeciesGrid(speciesList, containerId, isChecked) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = (speciesList || []).map(sp => _speciesCardHTML(sp, isChecked)).join('');
-  _bindCards(container.querySelectorAll('.cp-species-card'));
-}
-
-function appendSpeciesGrid(speciesList, containerId, isChecked) {
-  const container = document.getElementById(containerId);
-  const tmp = document.createElement('div');
-  tmp.innerHTML = (speciesList || []).map(sp => _speciesCardHTML(sp, isChecked)).join('');
-  const newCards = Array.from(tmp.children);
-  newCards.forEach(c => container.appendChild(c));
-  _bindCards(newCards);
-}
-
-// --- Logo upload handler ---
-let uploadedLogoFilename = null;
-document.getElementById('logo-upload').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const fd = new FormData();
-  fd.append('logo', file);
-  const resp = await fetch('/api/upload-logo', {method: 'POST', body: fd});
-  const data = await resp.json();
-  if (data.logo_filename) {
-    uploadedLogoFilename = data.logo_filename;
-    document.getElementById('logo-thumb').src = data.logo_url;
-    document.getElementById('logo-preview').style.display = '';
-  }
-});
-document.getElementById('btn-remove-logo').addEventListener('click', () => {
-  uploadedLogoFilename = null;
-  document.getElementById('logo-preview').style.display = 'none';
-  document.getElementById('logo-upload').value = '';
-});
-
-// --- Background image upload handler ---
-let uploadedBackgroundFilename = null;
-document.getElementById('bg-upload').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const fd = new FormData();
-  fd.append('background', file);
-  const resp = await fetch('/api/upload-background', {method: 'POST', body: fd});
-  const data = await resp.json();
-  if (data.background_filename) {
-    uploadedBackgroundFilename = data.background_filename;
-    document.getElementById('bg-thumb').src = data.background_url;
-    document.getElementById('bg-preview').style.display = '';
-  } else if (data.error) {
-    alert('Background upload failed: ' + data.error);
-  }
-});
-document.getElementById('btn-remove-bg').addEventListener('click', () => {
-  uploadedBackgroundFilename = null;
-  document.getElementById('bg-preview').style.display = 'none';
-  document.getElementById('bg-upload').value = '';
-});
-
-// --- Generate poster handler ---
-document.getElementById('btn-generate').addEventListener('click', async () => {
-  const status = document.getElementById('generate-status');
-  status.textContent = 'Generating poster\u2026';
-  // Collect selected species
-  const slugs = [];
-  document.querySelectorAll('.cp-species-card.cp-selected').forEach(card => {
-    slugs.push(card.dataset.slug);
-  });
-  if (slugs.length < 5) {
-    status.textContent = 'Please select at least 5 species.';
-    return;
-  }
-  const body = {
-    species_slugs: slugs,
-    style: document.getElementById('cp-poster-style').value,
-    title: document.getElementById('poster-title').value || 'Wildlife of This Water',
-    subtitle: document.getElementById('poster-subtitle').value || '',
-    background: document.getElementById('poster-bg').value,
-    water_body_name: document.getElementById('water-name').value,
-    logo_filename: uploadedLogoFilename,
-    background_image_filename: uploadedBackgroundFilename,
-  };
-  const resp = await fetch('/api/generate-poster', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(body),
-  });
-  const data = await resp.json();
-  if (data.poster_url) {
-    document.getElementById('poster-img').src = data.poster_url + '?t=' + Date.now();
-    document.getElementById('poster-download').href = data.poster_url;
-    document.getElementById('poster-download').download = data.filename;
-    document.getElementById('poster-preview').style.display = '';
-    document.getElementById('poster-preview').classList.add('cp-fade-in');
-    status.textContent = 'Poster generated!';
-    // Show the Customize Layout button and wire it up
-    document.getElementById('btn-open-editor').style.display = '';
-    window._lastPosterData = data;
-    document.getElementById('btn-open-editor').onclick = function() {
-      openEditor(window._lastPosterData);
+  // ---------------- Helpers ----------------
+  function $(id) { return document.getElementById(id); }
+  function debounce(fn, ms) {
+    let t = null;
+    return function() {
+      const args = arguments;
+      if (t) clearTimeout(t);
+      t = setTimeout(function() { fn.apply(null, args); }, ms);
     };
-    setTimeout(() => {
-      document.getElementById('poster-preview').scrollIntoView({behavior: 'smooth', block: 'center'});
-    }, 200);
-  } else {
-    status.textContent = 'Error: ' + (data.error || 'unknown');
   }
-});
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function setStatus(msg) { $('cv3-status-msg').textContent = msg; }
 
-// --- Editor state ---
-let editorData = null;
-let editorScale = 1;
-
-function openEditor(data) {
-  editorData = data;
-  const canvas = document.getElementById('cp-editor-canvas');
-  const section = document.getElementById('cp-editor-section');
-  section.classList.remove('cp-hidden');
-  section.classList.add('cp-fade-in');
-
-  // Compute scale: editor canvas is the width of its container
-  const containerWidth = canvas.parentElement.clientWidth - 32;
-  editorScale = containerWidth / data.canvas_width;
-  const editorHeight = data.canvas_height * editorScale;
-
-  canvas.style.width = containerWidth + 'px';
-  canvas.style.height = editorHeight + 'px';
-  canvas.style.background = data.background || '#ffffff';
-  canvas.innerHTML = '';
-
-  // Add title overlay
-  const titleDiv = document.createElement('div');
-  titleDiv.className = 'cp-ed-title';
-  titleDiv.textContent = data.title;
-  titleDiv.style.cssText = 'position:absolute; top:' + (3 * editorScale) + '%; left:0; right:0; text-align:center; font-family:Playfair Display,Georgia,serif; font-size:' + (150 * editorScale) + 'px; color:#1a1612; pointer-events:none; font-weight:700;';
-  canvas.appendChild(titleDiv);
-
-  // Add subtitle overlay
-  if (data.subtitle) {
-    const subDiv = document.createElement('div');
-    subDiv.className = 'cp-ed-subtitle';
-    subDiv.textContent = data.subtitle;
-    subDiv.style.cssText = 'position:absolute; top:' + (8 * editorScale) + '%; left:0; right:0; text-align:center; font-family:Playfair Display,Georgia,serif; font-size:' + (52 * editorScale) + 'px; color:#5a5248; pointer-events:none; font-style:italic;';
-    canvas.appendChild(subDiv);
+  // ---------------- Map (Leaflet) ----------------
+  let map = null;
+  let mapMarker = null;
+  function initMap() {
+    map = L.map('cv3-map', { zoomControl: true, attributionControl: false }).setView([39.5, -98.35], 3);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+    map.on('click', function(e) {
+      const lat = e.latlng.lat, lng = e.latlng.lng;
+      if (mapMarker) map.removeLayer(mapMarker);
+      mapMarker = L.marker([lat, lng]).addTo(map);
+      reverseGeocode(lat, lng);
+    });
+  }
+  function reverseGeocode(lat, lng) {
+    const url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=10';
+    fetch(url, { headers: { 'Accept': 'application/json' } })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        const addr = data.address || {};
+        const stateName = addr.state || '';
+        const stCode = stateNameToCode(stateName);
+        state.state = stCode;
+        const human = (addr.city || addr.town || addr.village || addr.county || '') + (stateName ? (', ' + stateName) : '');
+        $('cv3-water-location').textContent = human ? ('Pinned: ' + human) : '';
+        refreshSpecies();
+      })
+      .catch(function() {
+        $('cv3-water-location').textContent = 'Location set';
+      });
+  }
+  function stateNameToCode(name) {
+    const map = {
+      'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+      'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+      'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS',
+      'Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA',
+      'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT',
+      'Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
+      'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
+      'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+      'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
+      'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY'
+    };
+    return map[name] || null;
   }
 
-  // Add species elements
-  data.placements.forEach(function(p, i) {
-    const el = document.createElement('div');
-    el.className = 'cp-ed-species';
-    el.dataset.index = i;
-    el.dataset.slug = p.slug;
-    const w = p.draw_width * editorScale;
-    const h = p.draw_height * editorScale;
-    const x = p.x * editorScale;
-    const y = p.y * editorScale;
-    el.style.cssText = 'position:absolute; left:' + x + 'px; top:' + y + 'px; width:' + w + 'px; height:' + h + 'px; cursor:grab; user-select:none; transition:box-shadow 0.15s;';
+  // ---------------- Habitat sliders ----------------
+  function bindHabitatSliders() {
+    const ids = ['cv3-water-type','cv3-depth','cv3-flow','cv3-vegetation','cv3-clarity'];
+    ids.forEach(function(id) {
+      const el = $(id);
+      const dim = el.dataset.dim;
+      const values = el.dataset.values.split(',');
+      const labels = el.dataset.labels.split(',');
+      const valSpan = $(id + '-val');
+      const img = $(id + '-img');
+      el.addEventListener('input', function() {
+        const i = parseInt(el.value, 10);
+        const v = values[i];
+        const lbl = labels[i];
+        valSpan.textContent = lbl;
+        if (img) {
+          img.src = '/static/habitat/' + dim + '_' + v + '.png';
+          img.style.display = '';
+        }
+        const camel = dim.replace(/_([a-z])/g, function(_, c) { return c.toUpperCase(); });
+        state[camel] = v;
+        debouncedRefresh();
+      });
+    });
+  }
 
-    // Crop the master to its silhouette region so the fish fills the box
-    // exactly. Without this, sleek species (pike/gar) leave large empty
-    // padding above/below the visible silhouette and the label drifts.
-    const sb = p.silhouette_bbox || {l:0, t:0, r:1, b:1};
-    const sbW = Math.max(0.01, sb.r - sb.l);
-    const sbH = Math.max(0.01, sb.b - sb.t);
-    const imgW = w / sbW;
-    const imgH = h / sbH;
-    const offX = -sb.l * imgW;
-    const offY = -sb.t * imgH;
+  // ---------------- Categories ----------------
+  function bindCategoryChips() {
+    $('cv3-cat-chips').addEventListener('change', function() {
+      const checks = $('cv3-cat-chips').querySelectorAll('input[type=checkbox]');
+      state.categories = Array.from(checks).filter(function(c) { return c.checked; }).map(function(c) { return c.value; });
+      debouncedRefresh();
+    });
+  }
 
-    const imgWrap = document.createElement('div');
-    imgWrap.style.cssText = 'width:100%;height:100%;overflow:hidden;position:relative';
-    imgWrap.innerHTML = '<img src="' + p.master_url + '" style="position:absolute;width:' + imgW + 'px;height:' + imgH + 'px;left:' + offX + 'px;top:' + offY + 'px;pointer-events:none" draggable="false">';
-    el.appendChild(imgWrap);
+  // ---------------- /api/recommend ----------------
+  function refreshSpecies() {
+    const body = {
+      water_type: state.waterType,
+      depth: state.depth,
+      flow: state.flow,
+      vegetation: state.vegetation,
+      clarity: state.clarity,
+      categories: state.categories,
+      state: state.state,
+      offset: 0,
+    };
+    fetch('/api/recommend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        recommendCache.primary = data.primary || data.results || [];
+        recommendCache.secondary = data.secondary || [];
+        renderSpeciesList();
+      })
+      .catch(function() {});
+  }
+  const debouncedRefresh = debounce(refreshSpecies, 500);
 
-    const labelDiv = document.createElement('div');
-    labelDiv.className = 'cp-ed-label';
-    labelDiv.style.cssText = 'text-align:center;font-family:Playfair Display,Georgia,serif;font-size:' + Math.max(8, 42 * editorScale) + 'px;color:#1a1612;margin-top:2px;pointer-events:none;white-space:nowrap';
-    labelDiv.innerHTML = '<div class="cp-ed-common" style="font-weight:600;text-transform:uppercase;letter-spacing:1px">' + esc(p.common_name) + '</div>'
-      + '<div class="cp-ed-sci" style="font-style:italic;font-size:' + Math.max(6, 32 * editorScale) + 'px;color:#5a5248">' + esc(p.scientific_name) + '</div>';
-    el.appendChild(labelDiv);
+  function renderSpeciesList() {
+    const primary = recommendCache.primary;
+    const secondary = recommendCache.secondary;
+    const sel = new Set(state.selectedSpecies.map(function(s) { return s.slug; }));
+    $('cv3-species-primary').innerHTML = primary.map(function(sp) {
+      return speciesCardHTML(sp, sel.has(sp.slug));
+    }).join('');
+    $('cv3-species-secondary').innerHTML = secondary.map(function(sp) {
+      return speciesCardHTML(sp, sel.has(sp.slug));
+    }).join('');
+    $('cv3-show-more').style.display = secondary.length ? 'block' : 'none';
+    $('cv3-show-more').textContent = 'Show ' + secondary.length + ' more species';
+  }
+  function speciesCardHTML(sp, isSelected) {
+    const img = '/image/output/master/' + state.style + '/' + sp.slug + '.png';
+    return '<div class="cv3-species-card' + (isSelected ? ' cv3-selected' : '') + '" data-slug="' + esc(sp.slug) + '">' +
+      '<img src="' + img + '" onerror="this.style.opacity=0.2" alt="">' +
+      '<div><div class="cv3-species-card-name">' + esc(sp.common_name) + '</div>' +
+      '<div class="cv3-species-card-sci">' + esc(sp.scientific_name || '') + '</div></div>' +
+      '</div>';
+  }
 
-    canvas.appendChild(el);
-    makeDraggable(el, canvas);
-  });
-
-  setTimeout(function() {
-    section.scrollIntoView({behavior: 'smooth', block: 'start'});
-  }, 100);
-}
-
-// --- Drag logic ---
-function makeDraggable(el, container) {
-  el.addEventListener('pointerdown', function(e) {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    el.setPointerCapture(e.pointerId);
-    el.style.cursor = 'grabbing';
-    el.style.zIndex = '100';
-    el.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)';
-    var startX = e.clientX;
-    var startY = e.clientY;
-    var origLeft = parseFloat(el.style.left);
-    var origTop = parseFloat(el.style.top);
-
-    function onMove(e2) {
-      var dx = e2.clientX - startX;
-      var dy = e2.clientY - startY;
-      el.style.left = (origLeft + dx) + 'px';
-      el.style.top = (origTop + dy) + 'px';
+  function bindSpeciesClicks() {
+    function handler(e) {
+      const card = e.target.closest('.cv3-species-card');
+      if (!card) return;
+      toggleSpecies(card.dataset.slug);
     }
-
-    function onUp(e2) {
-      el.releasePointerCapture(e2.pointerId);
-      el.style.cursor = 'grab';
-      el.style.zIndex = '';
-      el.style.boxShadow = '';
-      el.removeEventListener('pointermove', onMove);
-      el.removeEventListener('pointerup', onUp);
-      var idx = parseInt(el.dataset.index);
-      editorData.placements[idx].x = parseFloat(el.style.left) / editorScale;
-      editorData.placements[idx].y = parseFloat(el.style.top) / editorScale;
-    }
-
-    el.addEventListener('pointermove', onMove);
-    el.addEventListener('pointerup', onUp);
-  });
-}
-
-// --- Text formatting controls ---
-document.getElementById('ed-title-size').addEventListener('input', function() {
-  document.getElementById('ed-title-size-val').textContent = this.value;
-  var titleEl = document.querySelector('.cp-ed-title');
-  if (titleEl) titleEl.style.fontSize = (this.value * editorScale) + 'px';
-});
-document.getElementById('ed-title-color').addEventListener('input', function() {
-  var titleEl = document.querySelector('.cp-ed-title');
-  var subEl = document.querySelector('.cp-ed-subtitle');
-  if (titleEl) titleEl.style.color = this.value;
-  if (subEl) subEl.style.color = this.value;
-});
-document.getElementById('ed-title-bold').addEventListener('click', function() {
-  this.classList.toggle('active');
-  var titleEl = document.querySelector('.cp-ed-title');
-  if (titleEl) titleEl.style.fontWeight = this.classList.contains('active') ? '700' : '400';
-});
-document.getElementById('ed-title-italic').addEventListener('click', function() {
-  this.classList.toggle('active');
-  var titleEl = document.querySelector('.cp-ed-title');
-  if (titleEl) titleEl.style.fontStyle = this.classList.contains('active') ? 'italic' : 'normal';
-});
-
-document.getElementById('ed-label-size').addEventListener('input', function() {
-  document.getElementById('ed-label-size-val').textContent = this.value;
-  document.querySelectorAll('.cp-ed-common').forEach(function(el) {
-    el.style.fontSize = Math.max(6, this.value * editorScale) + 'px';
-  }.bind(this));
-  document.querySelectorAll('.cp-ed-sci').forEach(function(el) {
-    el.style.fontSize = Math.max(5, (this.value * 0.76) * editorScale) + 'px';
-  }.bind(this));
-});
-document.getElementById('ed-label-color').addEventListener('input', function() {
-  document.querySelectorAll('.cp-ed-common, .cp-ed-sci').forEach(function(el) {
-    el.style.color = this.value;
-  }.bind(this));
-});
-document.getElementById('ed-label-bold').addEventListener('click', function() {
-  this.classList.toggle('active');
-  var w = this.classList.contains('active') ? '700' : '600';
-  document.querySelectorAll('.cp-ed-common').forEach(function(el) { el.style.fontWeight = w; });
-});
-document.getElementById('ed-label-italic').addEventListener('click', function() {
-  this.classList.toggle('active');
-  var style = this.classList.contains('active') ? 'italic' : 'normal';
-  document.querySelectorAll('.cp-ed-common').forEach(function(el) { el.style.fontStyle = style; });
-});
-
-// --- Font family pickers (apply live to editor preview) ---
-document.getElementById('ed-title-font').addEventListener('change', function() {
-  var fam = "'" + this.value + "', Georgia, serif";
-  var t = document.querySelector('.cp-ed-title');
-  var s = document.querySelector('.cp-ed-subtitle');
-  if (t) t.style.fontFamily = fam;
-  if (s) s.style.fontFamily = fam;
-});
-document.getElementById('ed-label-font').addEventListener('change', function() {
-  var fam = "'" + this.value + "', Georgia, serif";
-  document.querySelectorAll('.cp-ed-common, .cp-ed-sci').forEach(function(el) {
-    el.style.fontFamily = fam;
-  });
-});
-
-// --- Label gap slider (vertical distance from fish bottom to label top) ---
-document.getElementById('ed-label-gap').addEventListener('input', function() {
-  document.getElementById('ed-label-gap-val').textContent = this.value;
-  var gap = parseInt(this.value, 10) * editorScale;
-  document.querySelectorAll('.cp-ed-species .cp-ed-label').forEach(function(el) {
-    el.style.marginTop = gap + 'px';
-  });
-});
-
-// --- Background color picker (live updates editor canvas) ---
-document.getElementById('ed-bg-color').addEventListener('input', function() {
-  var canvas = document.getElementById('cp-editor-canvas');
-  // Only set bg color when no bg image is active
-  if (!uploadedBackgroundFilename) {
-    canvas.style.background = this.value;
-    canvas.style.backgroundImage = '';
+    $('cv3-species-primary').addEventListener('click', handler);
+    $('cv3-species-secondary').addEventListener('click', handler);
+    $('cv3-show-more').addEventListener('click', function() {
+      $('cv3-species-secondary').style.display = 'flex';
+      $('cv3-show-more').style.display = 'none';
+    });
   }
-  if (editorData) editorData.background = this.value;
-});
 
-// --- Background image upload from the editor ---
-document.getElementById('ed-bg-upload').addEventListener('change', async function(e) {
-  var file = e.target.files[0];
-  if (!file) return;
-  var statusEl = document.getElementById('ed-bg-status');
-  statusEl.textContent = 'uploading background…';
-  var fd = new FormData();
-  fd.append('background', file);
-  try {
-    var resp = await fetch('/api/upload-background', {method: 'POST', body: fd});
-    var data = await resp.json();
-    if (data.background_filename) {
-      uploadedBackgroundFilename = data.background_filename;
-      var canvas = document.getElementById('cp-editor-canvas');
-      canvas.style.backgroundImage = 'url(' + data.background_url + ')';
+  function toggleSpecies(slug) {
+    const idx = state.selectedSpecies.findIndex(function(s) { return s.slug === slug; });
+    if (idx >= 0) {
+      state.selectedSpecies.splice(idx, 1);
+    } else {
+      // Look up from recommend caches
+      const all = recommendCache.primary.concat(recommendCache.secondary);
+      const sp = all.find(function(s) { return s.slug === slug; });
+      if (sp) {
+        state.selectedSpecies.push({
+          slug: sp.slug,
+          common_name: sp.common_name,
+          scientific_name: sp.scientific_name || '',
+        });
+      }
+    }
+    renderSpeciesList();
+    scheduleLayout();
+  }
+
+  // ---------------- Layout (server-side placement) ----------------
+  function scheduleLayout() {
+    if (state.selectedSpecies.length === 0) {
+      drawCanvas();
+      return;
+    }
+    debouncedLayout();
+  }
+  const debouncedLayout = debounce(callLayout, 600);
+  function callLayout() {
+    if (state.selectedSpecies.length === 0) { drawCanvas(); return; }
+    showOverlay(true);
+    fetch('/api/generate-poster', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        species_slugs: state.selectedSpecies.map(function(s) { return s.slug; }),
+        style: state.style,
+        title: state.title || ('Wildlife of ' + ($('cv3-water-name').value || 'this place')),
+        subtitle: state.subtitle,
+        background: state.bgColor,
+        logo_filename: state.logoFilename,
+        background_image_filename: state.bgFilename,
+      }),
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        showOverlay(false);
+        if (data.error) { setStatus('Layout error: ' + data.error); return; }
+        state.canvasW = data.canvas_width;
+        state.canvasH = data.canvas_height;
+        // Merge placements into selectedSpecies (preserve dragged positions for already-placed)
+        const oldBySlug = {};
+        state.selectedSpecies.forEach(function(s) { if (s._dragged) oldBySlug[s.slug] = s; });
+        state.selectedSpecies = data.placements.map(function(p) {
+          const old = oldBySlug[p.slug];
+          if (old) {
+            return Object.assign({}, p, { x: old.x, y: old.y, _dragged: true });
+          }
+          return Object.assign({}, p);
+        });
+        state.lastRenderTime = new Date();
+        drawCanvas();
+      })
+      .catch(function(err) {
+        showOverlay(false);
+        setStatus('Layout failed: ' + err.message);
+      });
+  }
+
+  // ---------------- Canvas drawing (live editor) ----------------
+  function drawCanvas() {
+    const canvas = $('cv3-canvas');
+    const wrap = canvas.parentElement;
+    // Compute scale based on container size, preserving aspect 5100x3300
+    const padding = 32;
+    const availW = wrap.clientWidth - padding;
+    const availH = wrap.clientHeight - padding;
+    const sW = availW / state.canvasW;
+    const sH = availH / state.canvasH;
+    canvasScale = Math.min(sW, sH);
+    const w = state.canvasW * canvasScale;
+    const h = state.canvasH * canvasScale;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    canvas.style.background = state.bgColor;
+    if (state.bgUrl) {
+      canvas.style.backgroundImage = "url('" + state.bgUrl + "')";
       canvas.style.backgroundSize = 'cover';
       canvas.style.backgroundPosition = 'center';
-      statusEl.textContent = 'background set';
     } else {
-      statusEl.textContent = 'error: ' + (data.error || 'upload failed');
+      canvas.style.backgroundImage = 'none';
     }
-  } catch (err) {
-    statusEl.textContent = 'error: ' + err;
-  }
-});
-document.getElementById('ed-bg-clear').addEventListener('click', function() {
-  uploadedBackgroundFilename = null;
-  var canvas = document.getElementById('cp-editor-canvas');
-  canvas.style.backgroundImage = '';
-  canvas.style.background = document.getElementById('ed-bg-color').value;
-  document.getElementById('ed-bg-status').textContent = 'background cleared';
-  document.getElementById('ed-bg-upload').value = '';
-});
 
-// --- Logo upload from the editor (overlay preview at bottom-center) ---
-document.getElementById('ed-logo-upload').addEventListener('change', async function(e) {
-  var file = e.target.files[0];
-  if (!file) return;
-  var statusEl = document.getElementById('ed-bg-status');
-  statusEl.textContent = 'uploading logo…';
-  var fd = new FormData();
-  fd.append('logo', file);
-  try {
-    var resp = await fetch('/api/upload-logo', {method: 'POST', body: fd});
-    var data = await resp.json();
-    if (data.logo_filename) {
-      uploadedLogoFilename = data.logo_filename;
-      // Show a preview on the editor canvas — applyLogoStyle handles size/pos.
-      var canvas = document.getElementById('cp-editor-canvas');
-      var existing = document.getElementById('ed-logo-preview');
-      if (existing) existing.remove();
-      var img = document.createElement('img');
-      img.id = 'ed-logo-preview';
-      img.src = data.logo_url;
-      img.style.cssText = 'position:absolute;pointer-events:none;opacity:0.95';
-      canvas.appendChild(img);
-      applyLogoStyle();
-      statusEl.textContent = 'logo added';
+    // Clear non-overlay children
+    Array.from(canvas.children).forEach(function(c) {
+      if (c.id !== 'cv3-canvas-overlay' && c.id !== 'cv3-canvas-empty') {
+        canvas.removeChild(c);
+      }
+    });
+
+    const empty = $('cv3-canvas-empty');
+    if (state.selectedSpecies.length === 0) {
+      empty.style.display = 'flex';
+      setStatus('0 species placed.');
+      return;
     } else {
-      statusEl.textContent = 'error: ' + (data.error || 'upload failed');
+      empty.style.display = 'none';
     }
-  } catch (err) {
-    statusEl.textContent = 'error: ' + err;
+
+    // Title
+    if (state.title) {
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'cv3-ed-title';
+      titleDiv.contentEditable = 'true';
+      titleDiv.textContent = state.title;
+      titleDiv.style.cssText = 'position:absolute;top:' + (3 * canvasScale * 100) + 'px;left:0;right:0;text-align:center;font-family:\'' + state.titleFont + '\',Georgia,serif;font-size:' + (state.titleSize * canvasScale) + 'px;color:' + state.titleColor + ';font-weight:' + (state.titleBold ? '700' : '700') + ';font-style:' + (state.titleItalic ? 'italic' : 'normal') + ';outline:none;cursor:text;';
+      titleDiv.addEventListener('blur', function() { state.title = titleDiv.textContent; });
+      canvas.appendChild(titleDiv);
+    }
+    if (state.subtitle) {
+      const subDiv = document.createElement('div');
+      subDiv.className = 'cv3-ed-subtitle';
+      subDiv.contentEditable = 'true';
+      subDiv.textContent = state.subtitle;
+      subDiv.style.cssText = 'position:absolute;top:' + (8 * canvasScale * 100) + 'px;left:0;right:0;text-align:center;font-family:\'' + state.titleFont + '\',Georgia,serif;font-size:' + (state.titleSize * 0.35 * canvasScale) + 'px;color:' + state.titleColor + ';font-style:italic;outline:none;cursor:text;';
+      subDiv.addEventListener('blur', function() { state.subtitle = subDiv.textContent; });
+      canvas.appendChild(subDiv);
+    }
+
+    // Species
+    state.selectedSpecies.forEach(function(p, i) {
+      if (typeof p.x !== 'number' || typeof p.draw_width !== 'number') return;
+      const el = document.createElement('div');
+      el.className = 'cv3-ed-species';
+      el.dataset.index = i;
+      el.dataset.slug = p.slug;
+      const dw = p.draw_width * canvasScale;
+      const dh = p.draw_height * canvasScale;
+      const dx = p.x * canvasScale;
+      const dy = p.y * canvasScale;
+      el.style.cssText = 'position:absolute;left:' + dx + 'px;top:' + dy + 'px;width:' + dw + 'px;height:' + dh + 'px;cursor:grab;user-select:none;';
+
+      const sb = p.silhouette_bbox || {l:0,t:0,r:1,b:1};
+      const sbW = Math.max(0.01, sb.r - sb.l);
+      const sbH = Math.max(0.01, sb.b - sb.t);
+      const imgW = dw / sbW;
+      const imgH = dh / sbH;
+      const offX = -sb.l * imgW;
+      const offY = -sb.t * imgH;
+
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'width:100%;height:100%;overflow:hidden;position:relative;';
+      wrap.innerHTML = '<img src="' + (p.master_url || '/image/output/master/' + state.style + '/' + p.slug + '.png') + '" style="position:absolute;width:' + imgW + 'px;height:' + imgH + 'px;left:' + offX + 'px;top:' + offY + 'px;pointer-events:none;" draggable="false">';
+      el.appendChild(wrap);
+
+      const lbl = document.createElement('div');
+      lbl.className = 'cv3-ed-label';
+      lbl.style.cssText = 'text-align:center;font-family:\'' + state.labelFont + '\',Georgia,serif;font-size:' + Math.max(8, state.labelSize * canvasScale) + 'px;color:' + state.labelColor + ';margin-top:' + (state.labelGap * canvasScale) + 'px;pointer-events:none;white-space:nowrap;';
+      lbl.innerHTML = '<div style="font-weight:600;text-transform:uppercase;letter-spacing:1px">' + esc(p.common_name) + '</div>' +
+        '<div style="font-style:italic;font-size:' + Math.max(6, state.labelSize * 0.76 * canvasScale) + 'px">' + esc(p.scientific_name || '') + '</div>';
+      el.appendChild(lbl);
+
+      canvas.appendChild(el);
+      makeDraggable(el);
+    });
+
+    // Status
+    const t = state.lastRenderTime ? state.lastRenderTime.toLocaleTimeString() : '';
+    setStatus(state.selectedSpecies.length + ' species placed' + (t ? ' (last layout ' + t + ')' : '') + '. Drag to reposition.');
   }
-});
-document.getElementById('ed-logo-clear').addEventListener('click', function() {
-  uploadedLogoFilename = null;
-  var existing = document.getElementById('ed-logo-preview');
-  if (existing) existing.remove();
-  document.getElementById('ed-bg-status').textContent = 'logo cleared';
-  document.getElementById('ed-logo-upload').value = '';
-});
 
-// --- Logo size + position controls ---
-function applyLogoStyle() {
-  const img = document.getElementById('ed-logo-preview');
-  if (!img) return;
-  const sizePct = document.getElementById('ed-logo-size').value;
-  const pos = document.getElementById('ed-logo-position').value;
-  img.style.maxWidth = sizePct + '%';
-  img.style.maxHeight = (parseInt(sizePct, 10) * 0.4) + '%';
-  img.style.transform = '';
-  img.style.left = ''; img.style.right = ''; img.style.top = ''; img.style.bottom = '';
-  const margin = '2%';
-  if (pos === 'bottom-center') { img.style.bottom = margin; img.style.left = '50%'; img.style.transform = 'translateX(-50%)'; }
-  else if (pos === 'bottom-left') { img.style.bottom = margin; img.style.left = margin; }
-  else if (pos === 'bottom-right') { img.style.bottom = margin; img.style.right = margin; }
-  else if (pos === 'top-center') { img.style.top = margin; img.style.left = '50%'; img.style.transform = 'translateX(-50%)'; }
-  else if (pos === 'top-left') { img.style.top = margin; img.style.left = margin; }
-  else if (pos === 'top-right') { img.style.top = margin; img.style.right = margin; }
-}
-document.getElementById('ed-logo-size').addEventListener('input', function() {
-  document.getElementById('ed-logo-size-val').textContent = this.value + '%';
-  applyLogoStyle();
-});
-document.getElementById('ed-logo-position').addEventListener('change', applyLogoStyle);
+  function makeDraggable(el) {
+    el.addEventListener('pointerdown', function(e) {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      el.style.cursor = 'grabbing';
+      el.style.zIndex = '100';
+      el.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)';
+      const startX = e.clientX, startY = e.clientY;
+      const origLeft = parseFloat(el.style.left);
+      const origTop = parseFloat(el.style.top);
+      function onMove(e2) {
+        el.style.left = (origLeft + (e2.clientX - startX)) + 'px';
+        el.style.top = (origTop + (e2.clientY - startY)) + 'px';
+      }
+      function onUp(e2) {
+        el.releasePointerCapture(e2.pointerId);
+        el.style.cursor = 'grab';
+        el.style.zIndex = '';
+        el.style.boxShadow = '';
+        el.removeEventListener('pointermove', onMove);
+        el.removeEventListener('pointerup', onUp);
+        const idx = parseInt(el.dataset.index, 10);
+        const sp = state.selectedSpecies[idx];
+        if (sp) {
+          sp.x = parseFloat(el.style.left) / canvasScale;
+          sp.y = parseFloat(el.style.top) / canvasScale;
+          sp._dragged = true;
+        }
+      }
+      el.addEventListener('pointermove', onMove);
+      el.addEventListener('pointerup', onUp);
+    });
+  }
 
-// --- Server-curated background gallery (Phase 3: Design Your Poster) ---
-let _bgGalleryLoaded = false;
-const _cpBgGalleryBtn = document.getElementById('cp-bg-gallery-btn');
-if (_cpBgGalleryBtn) _cpBgGalleryBtn.addEventListener('click', async function() {
-  const gal = document.getElementById('cp-bg-gallery');
-  if (gal.style.display === 'none' || !_bgGalleryLoaded) {
-    gal.style.display = 'grid';
-    if (!_bgGalleryLoaded) {
-      const resp = await fetch('/api/public-backgrounds');
-      const data = await resp.json();
-      gal.innerHTML = (data.backgrounds || []).map(bg =>
-        `<img src="${bg.url}" data-bg="${bg.filename}" data-url="${bg.url}" loading="lazy" style="width:100%;height:90px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:border-color 0.15s">`
-      ).join('') || '<div class="subtle">No server backgrounds yet.</div>';
-      gal.querySelectorAll('img').forEach(im => {
-        im.addEventListener('click', () => {
-          uploadedBackgroundFilename = im.dataset.bg;
-          gal.querySelectorAll('img').forEach(x => x.style.borderColor = 'transparent');
-          im.style.borderColor = '#2D5F4A';
-          // Show in the existing Phase 3 preview
-          const bgPreview = document.getElementById('bg-preview');
-          const bgThumb = document.getElementById('bg-thumb');
-          if (bgPreview && bgThumb) {
-            bgThumb.src = im.dataset.url;
-            bgPreview.style.display = '';
-          }
-          // Clear any previously uploaded file so server uses gallery selection
-          const bgUpload = document.getElementById('bg-upload');
-          if (bgUpload) bgUpload.value = '';
+  function showOverlay(on) {
+    $('cv3-canvas-overlay').style.display = on ? 'flex' : 'none';
+  }
+
+  // ---------------- Tabs ----------------
+  function bindTabs() {
+    document.querySelectorAll('.cv3-tab').forEach(function(t) {
+      t.addEventListener('click', function() {
+        const which = t.dataset.tab;
+        document.querySelectorAll('.cv3-tab').forEach(function(x) { x.classList.remove('cv3-tab-active'); });
+        t.classList.add('cv3-tab-active');
+        document.querySelectorAll('.cv3-tabpane').forEach(function(p) {
+          p.classList.toggle('cv3-tabpane-active', p.dataset.tab === which);
         });
       });
-      _bgGalleryLoaded = true;
+    });
+  }
+
+  // ---------------- Style tiles ----------------
+  function buildStyleTiles() {
+    const grid = $('cv3-style-tiles');
+    grid.innerHTML = STYLES.filter(function(s) { return s.enabled !== false; }).map(function(s) {
+      const slug = s.slug;
+      const name = s.style_name || s.name || slug;
+      const desc = s.description || '';
+      const sample = '/image/output/master/' + slug + '/largemouth_bass.png';
+      return '<div class="cv3-style-tile' + (slug === state.style ? ' cv3-selected' : '') + '" data-slug="' + esc(slug) + '">' +
+        '<img src="' + sample + '" onerror="this.style.opacity=0.2" alt="">' +
+        '<div><div class="cv3-style-tile-name">' + esc(name) + '</div>' +
+        '<div class="cv3-style-tile-desc">' + esc(desc) + '</div></div>' +
+        '</div>';
+    }).join('');
+    grid.addEventListener('click', function(e) {
+      const tile = e.target.closest('.cv3-style-tile');
+      if (!tile) return;
+      state.style = tile.dataset.slug;
+      grid.querySelectorAll('.cv3-style-tile').forEach(function(t) { t.classList.toggle('cv3-selected', t.dataset.slug === state.style); });
+      // Reset positions so layout repacks for the new style's masters
+      state.selectedSpecies.forEach(function(s) { delete s._dragged; });
+      renderSpeciesList();
+      scheduleLayout();
+    });
+  }
+
+  // ---------------- Design controls ----------------
+  function bindDesignControls() {
+    $('cv3-title').addEventListener('input', function() { state.title = this.value; drawCanvas(); });
+    $('cv3-subtitle').addEventListener('input', function() { state.subtitle = this.value; drawCanvas(); });
+    $('cv3-bg-color').addEventListener('input', function() { state.bgColor = this.value; drawCanvas(); });
+    $('cv3-water-name').addEventListener('input', function() {
+      state.waterName = this.value;
+      if (!state.title) {
+        $('cv3-title').placeholder = 'Wildlife of ' + (this.value || 'Lake Michigan');
+      }
+    });
+
+    $('cv3-bg-clear').addEventListener('click', function() {
+      state.bgFilename = null;
+      state.bgUrl = null;
+      drawCanvas();
+    });
+    $('cv3-bg-gallery-btn').addEventListener('click', function() {
+      const gal = $('cv3-bg-gallery');
+      if (gal.style.display === 'none') {
+        gal.style.display = 'grid';
+        loadBgGallery();
+      } else {
+        gal.style.display = 'none';
+      }
+    });
+    $('cv3-bg-upload').addEventListener('change', function() {
+      const f = this.files[0];
+      if (!f) return;
+      const fd = new FormData(); fd.append('background', f);
+      fetch('/api/upload-background', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.error) { setStatus('Upload failed: ' + data.error); return; }
+          state.bgFilename = data.background_filename;
+          state.bgUrl = data.background_url;
+          drawCanvas();
+        });
+    });
+
+    $('cv3-logo-upload').addEventListener('change', function() {
+      const f = this.files[0];
+      if (!f) return;
+      const fd = new FormData(); fd.append('logo', f);
+      fetch('/api/upload-logo', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.error) { setStatus('Logo upload failed: ' + data.error); return; }
+          state.logoFilename = data.logo_filename;
+          setStatus('Logo uploaded.');
+        });
+    });
+    $('cv3-logo-clear').addEventListener('click', function() { state.logoFilename = null; setStatus('Logo cleared.'); });
+    $('cv3-logo-size').addEventListener('input', function() { state.logoSize = parseInt(this.value, 10); $('cv3-logo-size-val').textContent = this.value; });
+    $('cv3-logo-position').addEventListener('change', function() { state.logoPosition = this.value; });
+
+    $('cv3-title-font').addEventListener('change', function() { state.titleFont = this.value; drawCanvas(); });
+    $('cv3-title-size').addEventListener('input', function() { state.titleSize = parseInt(this.value, 10); $('cv3-title-size-val').textContent = this.value; drawCanvas(); });
+    $('cv3-title-color').addEventListener('input', function() { state.titleColor = this.value; drawCanvas(); });
+
+    $('cv3-label-font').addEventListener('change', function() { state.labelFont = this.value; drawCanvas(); });
+    $('cv3-label-size').addEventListener('input', function() { state.labelSize = parseInt(this.value, 10); $('cv3-label-size-val').textContent = this.value; drawCanvas(); });
+    $('cv3-label-color').addEventListener('input', function() { state.labelColor = this.value; drawCanvas(); });
+    $('cv3-label-gap').addEventListener('input', function() { state.labelGap = parseInt(this.value, 10); $('cv3-label-gap-val').textContent = this.value; drawCanvas(); });
+  }
+
+  function loadBgGallery() {
+    fetch('/api/public-backgrounds').then(function(r) { return r.json(); }).then(function(data) {
+      const gal = $('cv3-bg-gallery');
+      gal.innerHTML = (data.backgrounds || []).map(function(b) {
+        return '<img src="' + b.url + '" data-filename="' + esc(b.filename) + '" data-url="' + esc(b.url) + '" alt="">';
+      }).join('');
+      gal.addEventListener('click', function(e) {
+        if (e.target.tagName === 'IMG') {
+          gal.querySelectorAll('img').forEach(function(i) { i.classList.remove('selected'); });
+          e.target.classList.add('selected');
+          state.bgFilename = e.target.dataset.filename;
+          state.bgUrl = e.target.dataset.url;
+          drawCanvas();
+        }
+      }, { once: true });
+    });
+  }
+
+  // ---------------- Search ----------------
+  const debouncedSearch = debounce(function(q) {
+    if (!q || q.length < 2) { refreshSpecies(); return; }
+    fetch('/api/search-species', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q, state: state.state, categories: state.categories }),
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        recommendCache.primary = data.results || [];
+        recommendCache.secondary = [];
+        renderSpeciesList();
+      });
+  }, 300);
+  function bindSearch() {
+    $('cv3-search').addEventListener('input', function() { debouncedSearch(this.value); });
+  }
+
+  // ---------------- Render / Download ----------------
+  function bindRenderButton() {
+    function doRender() {
+      if (state.selectedSpecies.length === 0) { setStatus('Pick at least one species first.'); return; }
+      showOverlay(true);
+      fetch('/api/render-custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          placements: state.selectedSpecies.map(function(p) {
+            return {
+              slug: p.slug,
+              x: p.x || 0,
+              y: p.y || 0,
+              draw_width: p.draw_width || 800,
+              draw_height: p.draw_height || 600,
+            };
+          }),
+          canvas_width: state.canvasW,
+          canvas_height: state.canvasH,
+          title: state.title,
+          subtitle: state.subtitle,
+          background: state.bgColor,
+          background_image_filename: state.bgFilename,
+          style: state.style,
+          text_config: {
+            title_font: state.titleFont,
+            title_size: state.titleSize,
+            title_color: state.titleColor,
+            title_bold: state.titleBold,
+            title_italic: state.titleItalic,
+            label_font: state.labelFont,
+            label_size: state.labelSize,
+            label_color: state.labelColor,
+            label_gap: state.labelGap,
+          },
+          logo_filename: state.logoFilename,
+          logo_config: { size_pct: state.logoSize, position: state.logoPosition },
+        }),
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          showOverlay(false);
+          if (data.error) { setStatus('Render error: ' + data.error); return; }
+          const a = $('cv3-download');
+          a.href = data.poster_url;
+          a.style.display = 'block';
+          state.lastRenderTime = new Date();
+          setStatus(state.selectedSpecies.length + ' species placed (rendered ' + state.lastRenderTime.toLocaleTimeString() + '). Click Download.');
+        })
+        .catch(function(err) {
+          showOverlay(false);
+          setStatus('Render failed: ' + err.message);
+        });
     }
-  } else {
-    gal.style.display = 'none';
+    $('cv3-render-btn').addEventListener('click', doRender);
   }
-});
 
-// --- Render Final Poster ---
-document.getElementById('btn-render-custom').addEventListener('click', async function() {
-  var status = document.getElementById('cp-custom-status');
-  status.textContent = 'Rendering your custom layout...';
-
-  var titleSize = parseInt(document.getElementById('ed-title-size').value);
-  var titleColor = document.getElementById('ed-title-color').value;
-  var titleBold = document.getElementById('ed-title-bold').classList.contains('active');
-  var titleItalic = document.getElementById('ed-title-italic').classList.contains('active');
-  var labelSize = parseInt(document.getElementById('ed-label-size').value);
-  var labelColor = document.getElementById('ed-label-color').value;
-  var labelBold = document.getElementById('ed-label-bold').classList.contains('active');
-  var labelItalic = document.getElementById('ed-label-italic').classList.contains('active');
-
-  var body = {
-    placements: editorData.placements.map(function(p) {
-      return {
-        slug: p.slug,
-        x: Math.round(p.x),
-        y: Math.round(p.y),
-        draw_width: p.draw_width,
-        draw_height: p.draw_height,
-      };
-    }),
-    canvas_width: editorData.canvas_width,
-    canvas_height: editorData.canvas_height,
-    title: editorData.title,
-    subtitle: editorData.subtitle,
-    background: editorData.background,
-    style: document.getElementById('cp-poster-style').value,
-    text_config: {
-      title_size: titleSize,
-      title_color: titleColor,
-      title_bold: titleBold,
-      title_italic: titleItalic,
-      title_font: document.getElementById('ed-title-font').value,
-      label_size: labelSize,
-      label_color: labelColor,
-      label_bold: labelBold,
-      label_italic: labelItalic,
-      label_font: document.getElementById('ed-label-font').value,
-      label_gap: parseInt(document.getElementById('ed-label-gap').value, 10),
-    },
-    logo_filename: uploadedLogoFilename,
-    background_image_filename: uploadedBackgroundFilename,
-    logo_config: {
-      size_pct: parseInt(document.getElementById('ed-logo-size').value, 10),
-      position: document.getElementById('ed-logo-position').value,
-    },
-  };
-
-  var resp = await fetch('/api/render-custom', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(body),
-  });
-  var result = await resp.json();
-  if (result.poster_url) {
-    document.getElementById('cp-custom-img').src = result.poster_url + '?t=' + Date.now();
-    document.getElementById('cp-custom-download').href = result.poster_url;
-    document.getElementById('cp-custom-preview').classList.remove('cp-hidden');
-    status.textContent = 'Custom poster rendered!';
-  } else {
-    status.textContent = 'Error: ' + (result.error || 'unknown');
+  // ---------------- Init ----------------
+  function init() {
+    initMap();
+    bindHabitatSliders();
+    bindCategoryChips();
+    bindSpeciesClicks();
+    bindTabs();
+    buildStyleTiles();
+    bindDesignControls();
+    bindSearch();
+    bindRenderButton();
+    refreshSpecies();
+    drawCanvas();
+    window.addEventListener('resize', debounce(drawCanvas, 150));
   }
-});
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 </script>
 {% endblock %}

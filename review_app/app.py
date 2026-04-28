@@ -1029,6 +1029,16 @@ def copy_masters_route():
     return redirect(url_for("browse"))
 
 
+@app.route("/static/habitat/<filename>")
+def serve_habitat_image(filename: str):
+    """Serve habitat preview images from assets/habitat/."""
+    safe = re.sub(r"[^\w.\-]", "_", filename)
+    p = Path(PROJECT_ROOT) / "assets" / "habitat" / safe
+    if not p.exists() or not p.is_file():
+        abort(404)
+    return send_file(str(p))
+
+
 @app.route("/image/<path:relpath>")
 def image(relpath: str):
     project_root = Path(PROJECT_ROOT).resolve()
