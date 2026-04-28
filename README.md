@@ -186,3 +186,4 @@ Style is data, not a code branch. It flows through prompts, metadata, output pat
 - Add category-specific base prompts (birds, turtles, plants).
 - Add batch QA metrics (detect off-white background, detect orientation drift).
 - Add a web upload flow in the review app for manual replacements.
+
