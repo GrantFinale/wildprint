@@ -1242,6 +1242,23 @@ def api_list_backgrounds():
     return jsonify({"backgrounds": items[:24]})
 
 
+@app.route("/api/public-backgrounds")
+@rate_limit(60)
+def api_public_backgrounds():
+    """List server-curated background images for the public editor."""
+    bg_dir = Path(PROJECT_ROOT) / "output" / "backgrounds"
+    if not bg_dir.exists():
+        return jsonify({"backgrounds": []})
+    items = []
+    for p in sorted(bg_dir.glob("*.png"), key=lambda x: x.stat().st_mtime, reverse=True):
+        rel = p.relative_to(Path(PROJECT_ROOT))
+        items.append({
+            "filename": p.name,
+            "url": f"/image/{rel}",
+        })
+    return jsonify({"backgrounds": items[:50]})
+
+
 @app.route("/api/generate-background", methods=["POST"])
 @admin_required
 def api_generate_background():
@@ -1368,11 +1385,13 @@ def api_generate_poster():
         if logo_path.exists():
             renderer._logo_path = logo_path
     if background_image_filename:
-        bg_path = (
-            Path(PROJECT_ROOT) / "output" / "uploads" / background_image_filename
-        )
-        if bg_path.exists():
-            renderer._background_image_path = bg_path
+        for cand in (
+            Path(PROJECT_ROOT) / "output" / "uploads" / background_image_filename,
+            Path(PROJECT_ROOT) / "output" / "backgrounds" / background_image_filename,
+        ):
+            if cand.exists():
+                renderer._background_image_path = cand
+                break
 
     poster_id = f"custom_{uuid.uuid4().hex}"
     posters_dir = Path(PROJECT_ROOT) / "output" / "posters"
@@ -1384,23 +1403,44 @@ def api_generate_poster():
     except Exception as exc:
         return jsonify({"error": f"Render failed: {exc}"}), 500
 
+    # Compute per-placement silhouette alpha-bbox fractions so the editor
+    # can crop each master to its actual fish region (sleek species like pike
+    # and gar otherwise leave large empty padding above/below the silhouette).
+    from PIL import Image as _PILImage
+    placements_response = []
+    for placed in result.placements:
+        item = {
+            "slug": placed.species_ref.slug,
+            "common_name": placed.species_ref.common_name,
+            "scientific_name": placed.species_ref.scientific_name,
+            "x": placed.x,
+            "y": placed.y,
+            "draw_width": placed.draw_width,
+            "draw_height": placed.draw_height,
+            "master_url": f"/image/output/master/{style_slug}/{placed.species_ref.slug}.png",
+        }
+        try:
+            with _PILImage.open(placed.master.image_path) as im:
+                im = im.convert("RGBA")
+                alpha = im.split()[3]
+                bb = alpha.getbbox()
+                if bb:
+                    w, h = im.size
+                    item["silhouette_bbox"] = {
+                        "l": bb[0] / w,
+                        "t": bb[1] / h,
+                        "r": bb[2] / w,
+                        "b": bb[3] / h,
+                    }
+        except Exception:
+            pass
+        placements_response.append(item)
+
     poster_url = f"/image/output/posters/{poster_id}.png"
     return jsonify({
         "poster_url": poster_url,
         "filename": f"{poster_id}.png",
-        "placements": [
-            {
-                "slug": p.species_ref.slug,
-                "common_name": p.species_ref.common_name,
-                "scientific_name": p.species_ref.scientific_name,
-                "x": p.x,
-                "y": p.y,
-                "draw_width": p.draw_width,
-                "draw_height": p.draw_height,
-                "master_url": f"/image/output/master/{style_slug}/{p.species_ref.slug}.png",
-            }
-            for p in result.placements
-        ],
+        "placements": placements_response,
         "canvas_width": spec.canvas_width,
         "canvas_height": spec.canvas_height,
         "title": title,
@@ -1424,6 +1464,7 @@ def api_render_custom():
     text_config = data.get("text_config", {})
     logo_filename = data.get("logo_filename")
     bg_image_filename = data.get("background_image_filename")
+    logo_config = data.get("logo_config", {})
 
     if not placements_data:
         return jsonify({"error": "No placements provided"}), 400
@@ -1537,11 +1578,20 @@ def api_render_custom():
         if logo_path.exists():
             renderer._logo_path = logo_path
 
-    # Handle background image
+    # Apply logo size + position config (used by EditorialMultiRenderer logo block)
+    renderer._logo_size_pct = int(logo_config.get("size_pct", 20))
+    renderer._logo_position = logo_config.get("position", "bottom-center")
+
+    # Handle background image — try uploads first, then server-curated backgrounds.
     if bg_image_filename:
-        bg_path = Path(PROJECT_ROOT) / "output" / "uploads" / bg_image_filename
-        if bg_path.exists():
-            renderer._background_image_path = bg_path
+        candidates = [
+            Path(PROJECT_ROOT) / "output" / "uploads" / bg_image_filename,
+            Path(PROJECT_ROOT) / "output" / "backgrounds" / bg_image_filename,
+        ]
+        for cand in candidates:
+            if cand.exists():
+                renderer._background_image_path = cand
+                break
 
     poster_id = f"custom_{uuid.uuid4().hex}"
     posters_dir = Path(PROJECT_ROOT) / "output" / "posters"

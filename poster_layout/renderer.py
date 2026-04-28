@@ -1019,7 +1019,7 @@ class EditorialMultiRenderer(PosterRenderer):
             "editorial-multi background: %s (luminance=%.0f, title ink=%s)",
             bg,
             _relative_luminance(bg),
-            title_c,
+            self.title_color,
         )
 
         if bg_image_canvas is not None:
@@ -1195,16 +1195,19 @@ class EditorialMultiRenderer(PosterRenderer):
             secondary_letter_spacing=self.caption_letter_spacing,
         )
 
-        # 4. Optional logo — composited centered in the lower caption band.
-        # Supports PNG (alpha) or JPEG. Scaled to fit ~30% of canvas width
-        # and ~40% of caption band height. For bulk-purchase buyers to place
-        # their brand centered at the bottom of the poster.
+        # 4. Optional logo — composited at a configurable size & position.
+        # Supports PNG (alpha) or JPEG. Defaults: 20% of canvas width,
+        # bottom-center. Override via _logo_size_pct (5-40) and _logo_position
+        # ("bottom-center" | "bottom-left" | "bottom-right" |
+        #  "top-center" | "top-left" | "top-right").
         if hasattr(self, "_logo_path") and self._logo_path:
             try:
                 with Image.open(self._logo_path) as logo_src:
                     logo = logo_src.convert("RGBA")
-                    max_logo_w = int(canvas_w * 0.30)
-                    max_logo_h = int(caption_band_h * 0.40)
+                    size_pct = getattr(self, "_logo_size_pct", 20) / 100.0
+                    position = getattr(self, "_logo_position", "bottom-center")
+                    max_logo_w = int(canvas_w * size_pct)
+                    max_logo_h = int(canvas_h * size_pct * 0.4)
                     logo_scale = min(
                         max_logo_w / max(1, logo.width),
                         max_logo_h / max(1, logo.height),
@@ -1212,16 +1215,36 @@ class EditorialMultiRenderer(PosterRenderer):
                     logo_w = max(1, int(logo.width * logo_scale))
                     logo_h = max(1, int(logo.height * logo_scale))
                     logo_resized = logo.resize((logo_w, logo_h), Image.LANCZOS)
-                    logo_x = (canvas_w - logo_w) // 2
-                    logo_y = canvas_h - int(caption_band_h * 0.55)
+                    margin = int(canvas_w * 0.02)
+                    if position == "bottom-center":
+                        logo_x = (canvas_w - logo_w) // 2
+                        logo_y = canvas_h - logo_h - margin
+                    elif position == "bottom-left":
+                        logo_x = margin
+                        logo_y = canvas_h - logo_h - margin
+                    elif position == "bottom-right":
+                        logo_x = canvas_w - logo_w - margin
+                        logo_y = canvas_h - logo_h - margin
+                    elif position == "top-center":
+                        logo_x = (canvas_w - logo_w) // 2
+                        logo_y = margin
+                    elif position == "top-left":
+                        logo_x = margin
+                        logo_y = margin
+                    elif position == "top-right":
+                        logo_x = canvas_w - logo_w - margin
+                        logo_y = margin
+                    else:
+                        logo_x = (canvas_w - logo_w) // 2
+                        logo_y = canvas_h - logo_h - margin
                     canvas.paste(
                         logo_resized.convert("RGB"),
                         (logo_x, logo_y),
                         mask=logo_resized.split()[3],
                     )
                     logger.info(
-                        "Logo composited from %s (%dx%d at y=%d)",
-                        self._logo_path, logo_w, logo_h, logo_y,
+                        "Logo composited from %s (%dx%d at %d,%d, pos=%s)",
+                        self._logo_path, logo_w, logo_h, logo_x, logo_y, position,
                     )
             except (OSError, Image.UnidentifiedImageError) as exc:
                 logger.warning("Could not load logo %s: %s", self._logo_path, exc)

@@ -235,6 +235,24 @@
           </label>
           <button type="button" class="cp-fmt-btn" id="ed-logo-clear" style="width:auto;padding:0 0.5rem;font-size:0.75rem" title="Clear logo">×</button>
         </div>
+        <div class="cp-toolbar-controls" style="margin-top:0.4rem">
+          <button type="button" class="cp-fmt-btn" id="ed-bg-gallery-btn" style="width:auto;padding:0 0.5rem;font-size:0.75rem">Gallery</button>
+          <span class="subtle" style="font-size:0.7rem">— or choose a server-generated landscape</span>
+        </div>
+        <div id="ed-bg-gallery" style="display:none;margin-top:0.5rem;max-height:200px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.4rem"></div>
+        <div class="cp-toolbar-controls" style="margin-top:0.4rem">
+          <span class="cp-toolbar-label" style="font-size:0.7rem;text-transform:none">Logo size</span>
+          <input type="range" id="ed-logo-size" min="5" max="40" value="20" title="Logo width as % of poster width">
+          <span class="cp-size-display" id="ed-logo-size-val">20%</span>
+          <select id="ed-logo-position" title="Logo position">
+            <option value="bottom-center" selected>Bottom Center</option>
+            <option value="bottom-left">Bottom Left</option>
+            <option value="bottom-right">Bottom Right</option>
+            <option value="top-center">Top Center</option>
+            <option value="top-left">Top Left</option>
+            <option value="top-right">Top Right</option>
+          </select>
+        </div>
         <div id="ed-bg-status" class="cp-subheading" style="font-size:0.7rem;margin-top:0.2rem"></div>
       </div>
     </div>
@@ -638,11 +656,30 @@ function openEditor(data) {
     const x = p.x * editorScale;
     const y = p.y * editorScale;
     el.style.cssText = 'position:absolute; left:' + x + 'px; top:' + y + 'px; width:' + w + 'px; height:' + h + 'px; cursor:grab; user-select:none; transition:box-shadow 0.15s;';
-    el.innerHTML = '<img src="' + p.master_url + '" style="width:100%;height:100%;object-fit:contain;pointer-events:none" draggable="false">'
-      + '<div class="cp-ed-label" style="text-align:center;font-family:Playfair Display,Georgia,serif;font-size:' + Math.max(8, 42 * editorScale) + 'px;color:#1a1612;margin-top:2px;pointer-events:none;white-space:nowrap">'
-      + '<div class="cp-ed-common" style="font-weight:600;text-transform:uppercase;letter-spacing:1px">' + esc(p.common_name) + '</div>'
-      + '<div class="cp-ed-sci" style="font-style:italic;font-size:' + Math.max(6, 32 * editorScale) + 'px;color:#5a5248">' + esc(p.scientific_name) + '</div>'
-      + '</div>';
+
+    // Crop the master to its silhouette region so the fish fills the box
+    // exactly. Without this, sleek species (pike/gar) leave large empty
+    // padding above/below the visible silhouette and the label drifts.
+    const sb = p.silhouette_bbox || {l:0, t:0, r:1, b:1};
+    const sbW = Math.max(0.01, sb.r - sb.l);
+    const sbH = Math.max(0.01, sb.b - sb.t);
+    const imgW = w / sbW;
+    const imgH = h / sbH;
+    const offX = -sb.l * imgW;
+    const offY = -sb.t * imgH;
+
+    const imgWrap = document.createElement('div');
+    imgWrap.style.cssText = 'width:100%;height:100%;overflow:hidden;position:relative';
+    imgWrap.innerHTML = '<img src="' + p.master_url + '" style="position:absolute;width:' + imgW + 'px;height:' + imgH + 'px;left:' + offX + 'px;top:' + offY + 'px;pointer-events:none" draggable="false">';
+    el.appendChild(imgWrap);
+
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'cp-ed-label';
+    labelDiv.style.cssText = 'text-align:center;font-family:Playfair Display,Georgia,serif;font-size:' + Math.max(8, 42 * editorScale) + 'px;color:#1a1612;margin-top:2px;pointer-events:none;white-space:nowrap';
+    labelDiv.innerHTML = '<div class="cp-ed-common" style="font-weight:600;text-transform:uppercase;letter-spacing:1px">' + esc(p.common_name) + '</div>'
+      + '<div class="cp-ed-sci" style="font-style:italic;font-size:' + Math.max(6, 32 * editorScale) + 'px;color:#5a5248">' + esc(p.scientific_name) + '</div>';
+    el.appendChild(labelDiv);
+
     canvas.appendChild(el);
     makeDraggable(el, canvas);
   });
@@ -820,15 +857,16 @@ document.getElementById('ed-logo-upload').addEventListener('change', async funct
     var data = await resp.json();
     if (data.logo_filename) {
       uploadedLogoFilename = data.logo_filename;
-      // Show a preview on the editor canvas, centered along the bottom
+      // Show a preview on the editor canvas — applyLogoStyle handles size/pos.
       var canvas = document.getElementById('cp-editor-canvas');
       var existing = document.getElementById('ed-logo-preview');
       if (existing) existing.remove();
       var img = document.createElement('img');
       img.id = 'ed-logo-preview';
       img.src = data.logo_url;
-      img.style.cssText = 'position:absolute;bottom:1%;left:50%;transform:translateX(-50%);max-width:25%;max-height:8%;pointer-events:none;opacity:0.95';
+      img.style.cssText = 'position:absolute;pointer-events:none;opacity:0.95';
       canvas.appendChild(img);
+      applyLogoStyle();
       statusEl.textContent = 'logo added';
     } else {
       statusEl.textContent = 'error: ' + (data.error || 'upload failed');
@@ -843,6 +881,61 @@ document.getElementById('ed-logo-clear').addEventListener('click', function() {
   if (existing) existing.remove();
   document.getElementById('ed-bg-status').textContent = 'logo cleared';
   document.getElementById('ed-logo-upload').value = '';
+});
+
+// --- Logo size + position controls ---
+function applyLogoStyle() {
+  const img = document.getElementById('ed-logo-preview');
+  if (!img) return;
+  const sizePct = document.getElementById('ed-logo-size').value;
+  const pos = document.getElementById('ed-logo-position').value;
+  img.style.maxWidth = sizePct + '%';
+  img.style.maxHeight = (parseInt(sizePct, 10) * 0.4) + '%';
+  img.style.transform = '';
+  img.style.left = ''; img.style.right = ''; img.style.top = ''; img.style.bottom = '';
+  const margin = '2%';
+  if (pos === 'bottom-center') { img.style.bottom = margin; img.style.left = '50%'; img.style.transform = 'translateX(-50%)'; }
+  else if (pos === 'bottom-left') { img.style.bottom = margin; img.style.left = margin; }
+  else if (pos === 'bottom-right') { img.style.bottom = margin; img.style.right = margin; }
+  else if (pos === 'top-center') { img.style.top = margin; img.style.left = '50%'; img.style.transform = 'translateX(-50%)'; }
+  else if (pos === 'top-left') { img.style.top = margin; img.style.left = margin; }
+  else if (pos === 'top-right') { img.style.top = margin; img.style.right = margin; }
+}
+document.getElementById('ed-logo-size').addEventListener('input', function() {
+  document.getElementById('ed-logo-size-val').textContent = this.value + '%';
+  applyLogoStyle();
+});
+document.getElementById('ed-logo-position').addEventListener('change', applyLogoStyle);
+
+// --- Server-curated background gallery ---
+let _bgGalleryLoaded = false;
+document.getElementById('ed-bg-gallery-btn').addEventListener('click', async function() {
+  const gal = document.getElementById('ed-bg-gallery');
+  if (gal.style.display === 'none' || !_bgGalleryLoaded) {
+    gal.style.display = 'grid';
+    if (!_bgGalleryLoaded) {
+      const resp = await fetch('/api/public-backgrounds');
+      const data = await resp.json();
+      gal.innerHTML = (data.backgrounds || []).map(bg =>
+        `<img src="${bg.url}" data-bg="${bg.filename}" data-url="${bg.url}" loading="lazy" style="width:100%;height:80px;object-fit:cover;border-radius:4px;cursor:pointer;border:2px solid transparent">`
+      ).join('') || '<div class="subtle">No server backgrounds yet.</div>';
+      gal.querySelectorAll('img').forEach(im => {
+        im.addEventListener('click', () => {
+          uploadedBackgroundFilename = im.dataset.bg;
+          const canvas = document.getElementById('cp-editor-canvas');
+          canvas.style.backgroundImage = `url(${im.dataset.url})`;
+          canvas.style.backgroundSize = 'cover';
+          canvas.style.backgroundPosition = 'center';
+          gal.querySelectorAll('img').forEach(x => x.style.borderColor = 'transparent');
+          im.style.borderColor = '#2D5F4A';
+          document.getElementById('ed-bg-status').textContent = 'background: ' + im.dataset.bg;
+        });
+      });
+      _bgGalleryLoaded = true;
+    }
+  } else {
+    gal.style.display = 'none';
+  }
 });
 
 // --- Render Final Poster ---
@@ -890,6 +983,10 @@ document.getElementById('btn-render-custom').addEventListener('click', async fun
     },
     logo_filename: uploadedLogoFilename,
     background_image_filename: uploadedBackgroundFilename,
+    logo_config: {
+      size_pct: parseInt(document.getElementById('ed-logo-size').value, 10),
+      position: document.getElementById('ed-logo-position').value,
+    },
   };
 
   var resp = await fetch('/api/render-custom', {
