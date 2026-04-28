@@ -1479,11 +1479,13 @@ def api_render_custom():
     # Create renderer with custom text config
     title_size = int(text_config.get("title_size", 150))
     label_size = int(text_config.get("label_size", 42))
+    label_gap = int(text_config.get("label_gap", 20))
     renderer = EditorialMultiRenderer(
         title_font_size=title_size,
         scientific_font_size=max(24, int(title_size * 0.35)),
         label_common_font_size=label_size,
         label_scientific_font_size=max(10, int(label_size * 0.76)),
+        label_gap_px=label_gap,
     )
 
     # Resolve custom fonts (if user picked one). Map (bold, italic) -> style suffix.

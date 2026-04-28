@@ -1270,9 +1270,19 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
                     return None
                 return best[2], best[3], best[1]
 
-            pos = _find_position(self.overlap_tolerance)
+            # Try increasingly relaxed tolerances. First try ZERO overlap —
+            # only allow overlap when there's no clean position available.
+            pos = _find_position(0.0)
             if pos is None:
-                pos = _find_position(0.15)
+                pos = _find_position(0.02)
+            if pos is None:
+                pos = _find_position(0.08)
+            if pos is None:
+                pos = _find_position(0.20)
+                if pos is not None:
+                    warnings.append(
+                        f"'{s.slug}': placed with up to 20% overlap (canvas crowded)."
+                    )
             if pos is None:
                 warnings.append(
                     f"SilhouettePackedLayoutEngine: no valid position for "

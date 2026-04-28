@@ -214,6 +214,28 @@
             <option value="Bebas Neue">Bebas Neue</option>
           </select>
         </div>
+        <div class="cp-toolbar-controls" style="margin-top:0.4rem">
+          <span class="cp-toolbar-label" style="font-size:0.7rem;text-transform:none">Gap below fish</span>
+          <input type="range" id="ed-label-gap" min="0" max="200" value="20" title="Distance between species and its label">
+          <span class="cp-size-display" id="ed-label-gap-val">20</span>
+        </div>
+      </div>
+      <div class="cp-toolbar-group">
+        <label class="cp-toolbar-label">Background &amp; Logo</label>
+        <div class="cp-toolbar-controls">
+          <input type="color" id="ed-bg-color" value="#ffffff" title="Background color">
+          <label class="cp-fmt-btn" style="width:auto;padding:0 0.5rem;font-size:0.75rem;cursor:pointer" title="Upload background image">
+            BG image
+            <input type="file" id="ed-bg-upload" accept="image/png,image/jpeg" style="display:none">
+          </label>
+          <button type="button" class="cp-fmt-btn" id="ed-bg-clear" style="width:auto;padding:0 0.5rem;font-size:0.75rem" title="Clear background image">×</button>
+          <label class="cp-fmt-btn" style="width:auto;padding:0 0.5rem;font-size:0.75rem;cursor:pointer" title="Upload logo">
+            Logo
+            <input type="file" id="ed-logo-upload" accept="image/png,image/jpeg" style="display:none">
+          </label>
+          <button type="button" class="cp-fmt-btn" id="ed-logo-clear" style="width:auto;padding:0 0.5rem;font-size:0.75rem" title="Clear logo">×</button>
+        </div>
+        <div id="ed-bg-status" class="cp-subheading" style="font-size:0.7rem;margin-top:0.2rem"></div>
       </div>
     </div>
 
@@ -716,6 +738,113 @@ document.getElementById('ed-label-italic').addEventListener('click', function() 
   document.querySelectorAll('.cp-ed-common').forEach(function(el) { el.style.fontStyle = style; });
 });
 
+// --- Font family pickers (apply live to editor preview) ---
+document.getElementById('ed-title-font').addEventListener('change', function() {
+  var fam = "'" + this.value + "', Georgia, serif";
+  var t = document.querySelector('.cp-ed-title');
+  var s = document.querySelector('.cp-ed-subtitle');
+  if (t) t.style.fontFamily = fam;
+  if (s) s.style.fontFamily = fam;
+});
+document.getElementById('ed-label-font').addEventListener('change', function() {
+  var fam = "'" + this.value + "', Georgia, serif";
+  document.querySelectorAll('.cp-ed-common, .cp-ed-sci').forEach(function(el) {
+    el.style.fontFamily = fam;
+  });
+});
+
+// --- Label gap slider (vertical distance from fish bottom to label top) ---
+document.getElementById('ed-label-gap').addEventListener('input', function() {
+  document.getElementById('ed-label-gap-val').textContent = this.value;
+  var gap = parseInt(this.value, 10) * editorScale;
+  document.querySelectorAll('.cp-ed-species .cp-ed-label').forEach(function(el) {
+    el.style.marginTop = gap + 'px';
+  });
+});
+
+// --- Background color picker (live updates editor canvas) ---
+document.getElementById('ed-bg-color').addEventListener('input', function() {
+  var canvas = document.getElementById('cp-editor-canvas');
+  // Only set bg color when no bg image is active
+  if (!uploadedBackgroundFilename) {
+    canvas.style.background = this.value;
+    canvas.style.backgroundImage = '';
+  }
+  if (editorData) editorData.background = this.value;
+});
+
+// --- Background image upload from the editor ---
+document.getElementById('ed-bg-upload').addEventListener('change', async function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var statusEl = document.getElementById('ed-bg-status');
+  statusEl.textContent = 'uploading background…';
+  var fd = new FormData();
+  fd.append('background', file);
+  try {
+    var resp = await fetch('/api/upload-background', {method: 'POST', body: fd});
+    var data = await resp.json();
+    if (data.background_filename) {
+      uploadedBackgroundFilename = data.background_filename;
+      var canvas = document.getElementById('cp-editor-canvas');
+      canvas.style.backgroundImage = 'url(' + data.background_url + ')';
+      canvas.style.backgroundSize = 'cover';
+      canvas.style.backgroundPosition = 'center';
+      statusEl.textContent = 'background set';
+    } else {
+      statusEl.textContent = 'error: ' + (data.error || 'upload failed');
+    }
+  } catch (err) {
+    statusEl.textContent = 'error: ' + err;
+  }
+});
+document.getElementById('ed-bg-clear').addEventListener('click', function() {
+  uploadedBackgroundFilename = null;
+  var canvas = document.getElementById('cp-editor-canvas');
+  canvas.style.backgroundImage = '';
+  canvas.style.background = document.getElementById('ed-bg-color').value;
+  document.getElementById('ed-bg-status').textContent = 'background cleared';
+  document.getElementById('ed-bg-upload').value = '';
+});
+
+// --- Logo upload from the editor (overlay preview at bottom-center) ---
+document.getElementById('ed-logo-upload').addEventListener('change', async function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var statusEl = document.getElementById('ed-bg-status');
+  statusEl.textContent = 'uploading logo…';
+  var fd = new FormData();
+  fd.append('logo', file);
+  try {
+    var resp = await fetch('/api/upload-logo', {method: 'POST', body: fd});
+    var data = await resp.json();
+    if (data.logo_filename) {
+      uploadedLogoFilename = data.logo_filename;
+      // Show a preview on the editor canvas, centered along the bottom
+      var canvas = document.getElementById('cp-editor-canvas');
+      var existing = document.getElementById('ed-logo-preview');
+      if (existing) existing.remove();
+      var img = document.createElement('img');
+      img.id = 'ed-logo-preview';
+      img.src = data.logo_url;
+      img.style.cssText = 'position:absolute;bottom:1%;left:50%;transform:translateX(-50%);max-width:25%;max-height:8%;pointer-events:none;opacity:0.95';
+      canvas.appendChild(img);
+      statusEl.textContent = 'logo added';
+    } else {
+      statusEl.textContent = 'error: ' + (data.error || 'upload failed');
+    }
+  } catch (err) {
+    statusEl.textContent = 'error: ' + err;
+  }
+});
+document.getElementById('ed-logo-clear').addEventListener('click', function() {
+  uploadedLogoFilename = null;
+  var existing = document.getElementById('ed-logo-preview');
+  if (existing) existing.remove();
+  document.getElementById('ed-bg-status').textContent = 'logo cleared';
+  document.getElementById('ed-logo-upload').value = '';
+});
+
 // --- Render Final Poster ---
 document.getElementById('btn-render-custom').addEventListener('click', async function() {
   var status = document.getElementById('cp-custom-status');
@@ -751,10 +880,13 @@ document.getElementById('btn-render-custom').addEventListener('click', async fun
       title_color: titleColor,
       title_bold: titleBold,
       title_italic: titleItalic,
+      title_font: document.getElementById('ed-title-font').value,
       label_size: labelSize,
       label_color: labelColor,
       label_bold: labelBold,
       label_italic: labelItalic,
+      label_font: document.getElementById('ed-label-font').value,
+      label_gap: parseInt(document.getElementById('ed-label-gap').value, 10),
     },
     logo_filename: uploadedLogoFilename,
     background_image_filename: uploadedBackgroundFilename,
