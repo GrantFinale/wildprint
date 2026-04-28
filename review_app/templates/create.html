@@ -148,6 +148,11 @@
           <button type="button" class="cp-btn-remove" id="btn-remove-bg">&times; Remove</button>
         </div>
       </div>
+      <div class="cp-field" style="grid-column:1/-1">
+        <label class="cp-label">Or pick a server-generated landscape</label>
+        <button type="button" class="cp-btn cp-btn-secondary" id="cp-bg-gallery-btn" style="margin-top:0.25rem">Browse Gallery</button>
+        <div id="cp-bg-gallery" style="display:none;margin-top:0.75rem;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.5rem"></div>
+      </div>
     </div>
     <div class="cp-generate-wrap">
       <button class="cp-btn cp-btn-generate" id="btn-generate">Generate Your Poster</button>
@@ -235,11 +240,6 @@
           </label>
           <button type="button" class="cp-fmt-btn" id="ed-logo-clear" style="width:auto;padding:0 0.5rem;font-size:0.75rem" title="Clear logo">×</button>
         </div>
-        <div class="cp-toolbar-controls" style="margin-top:0.4rem">
-          <button type="button" class="cp-fmt-btn" id="ed-bg-gallery-btn" style="width:auto;padding:0 0.5rem;font-size:0.75rem">Gallery</button>
-          <span class="subtle" style="font-size:0.7rem">— or choose a server-generated landscape</span>
-        </div>
-        <div id="ed-bg-gallery" style="display:none;margin-top:0.5rem;max-height:200px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.4rem"></div>
         <div class="cp-toolbar-controls" style="margin-top:0.4rem">
           <span class="cp-toolbar-label" style="font-size:0.7rem;text-transform:none">Logo size</span>
           <input type="range" id="ed-logo-size" min="5" max="40" value="20" title="Logo width as % of poster width">
@@ -907,28 +907,34 @@ document.getElementById('ed-logo-size').addEventListener('input', function() {
 });
 document.getElementById('ed-logo-position').addEventListener('change', applyLogoStyle);
 
-// --- Server-curated background gallery ---
+// --- Server-curated background gallery (Phase 3: Design Your Poster) ---
 let _bgGalleryLoaded = false;
-document.getElementById('ed-bg-gallery-btn').addEventListener('click', async function() {
-  const gal = document.getElementById('ed-bg-gallery');
+const _cpBgGalleryBtn = document.getElementById('cp-bg-gallery-btn');
+if (_cpBgGalleryBtn) _cpBgGalleryBtn.addEventListener('click', async function() {
+  const gal = document.getElementById('cp-bg-gallery');
   if (gal.style.display === 'none' || !_bgGalleryLoaded) {
     gal.style.display = 'grid';
     if (!_bgGalleryLoaded) {
       const resp = await fetch('/api/public-backgrounds');
       const data = await resp.json();
       gal.innerHTML = (data.backgrounds || []).map(bg =>
-        `<img src="${bg.url}" data-bg="${bg.filename}" data-url="${bg.url}" loading="lazy" style="width:100%;height:80px;object-fit:cover;border-radius:4px;cursor:pointer;border:2px solid transparent">`
+        `<img src="${bg.url}" data-bg="${bg.filename}" data-url="${bg.url}" loading="lazy" style="width:100%;height:90px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:border-color 0.15s">`
       ).join('') || '<div class="subtle">No server backgrounds yet.</div>';
       gal.querySelectorAll('img').forEach(im => {
         im.addEventListener('click', () => {
           uploadedBackgroundFilename = im.dataset.bg;
-          const canvas = document.getElementById('cp-editor-canvas');
-          canvas.style.backgroundImage = `url(${im.dataset.url})`;
-          canvas.style.backgroundSize = 'cover';
-          canvas.style.backgroundPosition = 'center';
           gal.querySelectorAll('img').forEach(x => x.style.borderColor = 'transparent');
           im.style.borderColor = '#2D5F4A';
-          document.getElementById('ed-bg-status').textContent = 'background: ' + im.dataset.bg;
+          // Show in the existing Phase 3 preview
+          const bgPreview = document.getElementById('bg-preview');
+          const bgThumb = document.getElementById('bg-thumb');
+          if (bgPreview && bgThumb) {
+            bgThumb.src = im.dataset.url;
+            bgPreview.style.display = '';
+          }
+          // Clear any previously uploaded file so server uses gallery selection
+          const bgUpload = document.getElementById('bg-upload');
+          if (bgUpload) bgUpload.value = '';
         });
       });
       _bgGalleryLoaded = true;
