@@ -5,128 +5,147 @@
 <script src="https://unpkg.com/leaflet@1.9/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&family=Raleway:wght@400;700&family=Poppins:wght@400;700&family=Bebas+Neue&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
 
-<div class="cv3-stack">
-  <!-- TOP: FULL-WIDTH CANVAS -->
-  <section class="cv3-canvas-section">
-    <div class="cv3-canvas-wrap">
-      <div id="cv3-canvas" class="cv3-canvas">
-        <img id="cv3-sample-img" class="cv3-sample-img" src="/static/sample/sample_poster.jpg" alt="" onerror="this.style.display='none'">
-        <div id="cv3-canvas-overlay" class="cv3-canvas-overlay" style="display:none">
-          <div class="cv3-spinner"></div>
-          <div>Composing&hellip;</div>
+<!-- ============================================================
+     MODE 1: WIZARD (steps 1-7)
+     ============================================================ -->
+<section id="cv3-wizard" class="cv3-wizard" aria-label="Poster setup wizard">
+  <div class="cv3-wiz-progress">
+    <div class="cv3-wiz-progress-label"><span id="cv3-wiz-step-label">Step 1 of 7</span> &middot; <span id="cv3-wiz-step-name">Where</span></div>
+    <div class="cv3-wiz-progress-bar"><div id="cv3-wiz-progress-fill" class="cv3-wiz-progress-fill" style="width:14.28%"></div></div>
+  </div>
+
+  <div class="cv3-wiz-stage">
+
+    <!-- Step 1: Where -->
+    <div class="cv3-wiz-step cv3-wiz-active" data-step="1">
+      <h2 class="cv3-wiz-title">Where is your water?</h2>
+      <p class="cv3-wiz-sub">Click the map to drop a pin, then name your water body.</p>
+      <div id="cv3-map" class="cv3-wiz-map"></div>
+      <input type="text" id="cv3-water-name" class="cv3-input cv3-wiz-input" placeholder="Body of water name (e.g. Lake Michigan)">
+      <span id="cv3-water-location" class="cv3-loc-pill"></span>
+    </div>
+
+    <!-- Step 2: Water type -->
+    <div class="cv3-wiz-step" data-step="2">
+      <h2 class="cv3-wiz-title">What type of water?</h2>
+      <p class="cv3-wiz-sub">Pick the closest match.</p>
+      <div class="cv3-wiz-habitat">
+        <div class="cv3-wiz-value" id="cv3-water-type-val">Lake</div>
+        <div class="cv3-wiz-preview">
+          <img id="cv3-water-type-img" src="/static/habitat/water_type_lake.png" alt="" onerror="this.style.display='none'">
         </div>
-        <div id="cv3-sample-dialog" class="cv3-sample-dialog">
-          <div class="cv3-sample-note">Start by describing your<br>body of water below <span class="cv3-arrow-inline">&#x2193;</span></div>
-          <svg class="cv3-sample-arrow" width="80" height="120" viewBox="0 0 80 120" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1a1612" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M 40 5 Q 20 40, 35 75 Q 50 100, 40 110" />
-            <path d="M 28 95 L 40 112 L 52 95" />
-          </svg>
-        </div>
+        <input type="range" id="cv3-water-type" class="cv3-slider cv3-wiz-slider" min="0" max="5" value="0" step="1"
+               data-dim="water_type"
+               data-values="lake,pond,river,stream,reservoir,marsh"
+               data-labels="Lake,Pond,River,Stream,Reservoir,Marsh">
       </div>
     </div>
-    <div class="cv3-canvas-status">
-      <span id="cv3-status-msg" class="subtle">Drag animals to reposition. Click the title to edit it.</span>
+
+    <!-- Step 3: Depth -->
+    <div class="cv3-wiz-step" data-step="3">
+      <h2 class="cv3-wiz-title">How deep?</h2>
+      <p class="cv3-wiz-sub">Roughly how deep is the water?</p>
+      <div class="cv3-wiz-habitat">
+        <div class="cv3-wiz-value" id="cv3-depth-val">Moderate (5-20ft)</div>
+        <div class="cv3-wiz-preview">
+          <img id="cv3-depth-img" src="/static/habitat/depth_moderate.png" alt="" onerror="this.style.display='none'">
+        </div>
+        <input type="range" id="cv3-depth" class="cv3-slider cv3-wiz-slider" min="0" max="2" value="1" step="1"
+               data-dim="depth"
+               data-values="shallow,moderate,deep"
+               data-labels="Shallow (<5ft),Moderate (5-20ft),Deep (>20ft)">
+      </div>
     </div>
-    <div class="cv3-cta-bar-top">
-      <a id="cv3-download" class="cv3-btn-primary" download style="display:none">Download Poster</a>
-      <button type="button" class="cv3-btn-primary" id="cv3-render-btn">Update Poster</button>
+
+    <!-- Step 4: Flow -->
+    <div class="cv3-wiz-step" data-step="4">
+      <h2 class="cv3-wiz-title">How does the water flow?</h2>
+      <p class="cv3-wiz-sub">From still ponds to fast-moving streams.</p>
+      <div class="cv3-wiz-habitat">
+        <div class="cv3-wiz-value" id="cv3-flow-val">Still</div>
+        <div class="cv3-wiz-preview">
+          <img id="cv3-flow-img" src="/static/habitat/flow_still.png" alt="" onerror="this.style.display='none'">
+        </div>
+        <input type="range" id="cv3-flow" class="cv3-slider cv3-wiz-slider" min="0" max="3" value="0" step="1"
+               data-dim="flow"
+               data-values="still,slow,moderate,fast"
+               data-labels="Still,Slow,Moderate,Fast">
+      </div>
     </div>
-  </section>
 
-  <!-- BELOW: CONTROLS GRID -->
-  <div class="cv3-controls">
-    <!-- WATER + HABITAT PANEL -->
-    <aside class="cv3-panel">
-      <div class="cv3-section">
-        <h3 class="cv3-section-title">Where</h3>
-        <div id="cv3-map" class="cv3-map"></div>
-        <input type="text" id="cv3-water-name" class="cv3-input" placeholder="Water body name (e.g. Lake Michigan)">
-        <span id="cv3-water-location" class="cv3-loc-pill"></span>
+    <!-- Step 5: Vegetation -->
+    <div class="cv3-wiz-step" data-step="5">
+      <h2 class="cv3-wiz-title">How much vegetation?</h2>
+      <p class="cv3-wiz-sub">Lily pads, reeds, weeds, that sort of thing.</p>
+      <div class="cv3-wiz-habitat">
+        <div class="cv3-wiz-value" id="cv3-vegetation-val">Moderate</div>
+        <div class="cv3-wiz-preview">
+          <img id="cv3-vegetation-img" src="/static/habitat/vegetation_moderate.png" alt="" onerror="this.style.display='none'">
+        </div>
+        <input type="range" id="cv3-vegetation" class="cv3-slider cv3-wiz-slider" min="0" max="3" value="1" step="1"
+               data-dim="vegetation"
+               data-values="heavy,moderate,sparse,none"
+               data-labels="Heavy,Moderate,Sparse,None">
       </div>
+    </div>
 
-      <div class="cv3-section">
-        <h3 class="cv3-section-title">Habitat</h3>
-
-        <div class="cv3-habitat-control">
-          <label class="cv3-label">Water type: <span id="cv3-water-type-val">Lake</span></label>
-          <div class="cv3-habitat-preview">
-            <img id="cv3-water-type-img" src="/static/habitat/water_type_lake.png" alt="" onerror="this.style.display='none'">
-          </div>
-          <input type="range" id="cv3-water-type" class="cv3-slider" min="0" max="5" value="0" step="1"
-                 data-dim="water_type"
-                 data-values="lake,pond,river,stream,reservoir,marsh"
-                 data-labels="Lake,Pond,River,Stream,Reservoir,Marsh">
+    <!-- Step 6: Clarity -->
+    <div class="cv3-wiz-step" data-step="6">
+      <h2 class="cv3-wiz-title">How clear is the water?</h2>
+      <p class="cv3-wiz-sub">Crystal-clear to brown and stained.</p>
+      <div class="cv3-wiz-habitat">
+        <div class="cv3-wiz-value" id="cv3-clarity-val">Clear</div>
+        <div class="cv3-wiz-preview">
+          <img id="cv3-clarity-img" src="/static/habitat/clarity_clear.png" alt="" onerror="this.style.display='none'">
         </div>
-
-        <div class="cv3-habitat-control">
-          <label class="cv3-label">Depth: <span id="cv3-depth-val">Moderate</span></label>
-          <div class="cv3-habitat-preview">
-            <img id="cv3-depth-img" src="/static/habitat/depth_moderate.png" alt="" onerror="this.style.display='none'">
-          </div>
-          <input type="range" id="cv3-depth" class="cv3-slider" min="0" max="2" value="1" step="1"
-                 data-dim="depth"
-                 data-values="shallow,moderate,deep"
-                 data-labels="Shallow (<5ft),Moderate (5-20ft),Deep (>20ft)">
-        </div>
-
-        <div class="cv3-habitat-control">
-          <label class="cv3-label">Flow: <span id="cv3-flow-val">Still</span></label>
-          <div class="cv3-habitat-preview">
-            <img id="cv3-flow-img" src="/static/habitat/flow_still.png" alt="" onerror="this.style.display='none'">
-          </div>
-          <input type="range" id="cv3-flow" class="cv3-slider" min="0" max="3" value="0" step="1"
-                 data-dim="flow"
-                 data-values="still,slow,moderate,fast"
-                 data-labels="Still,Slow,Moderate,Fast">
-        </div>
-
-        <div class="cv3-habitat-control">
-          <label class="cv3-label">Vegetation: <span id="cv3-vegetation-val">Moderate</span></label>
-          <div class="cv3-habitat-preview">
-            <img id="cv3-vegetation-img" src="/static/habitat/vegetation_moderate.png" alt="" onerror="this.style.display='none'">
-          </div>
-          <input type="range" id="cv3-vegetation" class="cv3-slider" min="0" max="3" value="1" step="1"
-                 data-dim="vegetation"
-                 data-values="heavy,moderate,sparse,none"
-                 data-labels="Heavy,Moderate,Sparse,None">
-        </div>
-
-        <div class="cv3-habitat-control">
-          <label class="cv3-label">Water clarity: <span id="cv3-clarity-val">Clear</span></label>
-          <div class="cv3-habitat-preview">
-            <img id="cv3-clarity-img" src="/static/habitat/clarity_clear.png" alt="" onerror="this.style.display='none'">
-          </div>
-          <input type="range" id="cv3-clarity" class="cv3-slider" min="0" max="2" value="0" step="1"
-                 data-dim="clarity"
-                 data-values="clear,moderate,murky"
-                 data-labels="Clear,Moderate,Murky">
-        </div>
+        <input type="range" id="cv3-clarity" class="cv3-slider cv3-wiz-slider" min="0" max="2" value="0" step="1"
+               data-dim="clarity"
+               data-values="clear,moderate,murky"
+               data-labels="Clear,Moderate,Murky">
       </div>
+    </div>
 
-      <div class="cv3-section">
-        <h3 class="cv3-section-title">Include</h3>
-        <div class="cv3-cat-chips" id="cv3-cat-chips">
-          <label class="cv3-chip"><input type="checkbox" value="fish" checked><span>Fish</span></label>
-          <label class="cv3-chip"><input type="checkbox" value="bird"><span>Birds</span></label>
-          <label class="cv3-chip"><input type="checkbox" value="turtle"><span>Turtles</span></label>
-          <label class="cv3-chip"><input type="checkbox" value="reptile"><span>Reptiles</span></label>
-          <label class="cv3-chip"><input type="checkbox" value="amphibian"><span>Amphibians</span></label>
-          <label class="cv3-chip"><input type="checkbox" value="mammal"><span>Mammals</span></label>
-        </div>
-        <button type="button" class="cv3-btn-hero" id="cv3-what-lives-here">What Lives Here</button>
-        <p class="cv3-hero-hint">Auto-selects the top 10 species likely in this water.</p>
+    <!-- Step 7: Include -->
+    <div class="cv3-wiz-step" data-step="7">
+      <h2 class="cv3-wiz-title">What kinds of wildlife to include?</h2>
+      <p class="cv3-wiz-sub">Pick the categories you want on your poster.</p>
+      <div class="cv3-cat-chips cv3-wiz-chips" id="cv3-cat-chips">
+        <label class="cv3-chip"><input type="checkbox" value="fish" checked><span>Fish</span></label>
+        <label class="cv3-chip"><input type="checkbox" value="bird"><span>Birds</span></label>
+        <label class="cv3-chip"><input type="checkbox" value="turtle"><span>Turtles</span></label>
+        <label class="cv3-chip"><input type="checkbox" value="mammal"><span>Mammals</span></label>
+        <label class="cv3-chip"><input type="checkbox" value="reptile"><span>Reptiles</span></label>
+        <label class="cv3-chip"><input type="checkbox" value="amphibian"><span>Amphibians</span></label>
+        <label class="cv3-chip"><input type="checkbox" value="insect"><span>Insects</span></label>
       </div>
-    </aside>
+    </div>
 
-    <!-- SPECIES + STYLE + DESIGN PANEL -->
-    <aside class="cv3-panel">
-      <div class="cv3-tabs">
-        <button class="cv3-tab cv3-tab-active" data-tab="species">Species</button>
-        <button class="cv3-tab" data-tab="style">Style</button>
-        <button class="cv3-tab" data-tab="design">Design</button>
-      </div>
+  </div>
 
-      <div class="cv3-tabpane cv3-tabpane-active" data-tab="species">
+  <!-- Wizard nav -->
+  <div class="cv3-wiz-nav">
+    <button type="button" id="cv3-wiz-back" class="cv3-btn-sec cv3-wiz-back" disabled>&larr; Back</button>
+    <button type="button" id="cv3-wiz-next" class="cv3-btn-hero cv3-wiz-next">Next &rarr;</button>
+  </div>
+</section>
+
+<!-- ============================================================
+     MODE 2: EDITOR (after wizard completes)
+     ============================================================ -->
+<section id="cv3-editor" class="cv3-editor" style="display:none" aria-label="Poster editor">
+  <!-- Left rail: section buttons + active panel -->
+  <aside class="cv3-ed-rail">
+    <div class="cv3-ed-rail-head">
+      <button type="button" id="cv3-restart" class="cv3-link cv3-ed-restart" title="Edit your water description">&larr; Edit water</button>
+    </div>
+
+    <div class="cv3-ed-sections" role="tablist" aria-orientation="vertical">
+      <button class="cv3-ed-secbtn cv3-ed-secbtn-active" role="tab" data-tab="species" aria-selected="true" aria-controls="cv3-pane-species">
+        <span class="cv3-ed-secbtn-icon" aria-hidden="true">&#9876;</span>
+        <span class="cv3-ed-secbtn-label">Species</span>
+        <span class="cv3-ed-secbtn-chev" aria-hidden="true">&#9654;</span>
+      </button>
+      <div class="cv3-ed-pane cv3-ed-pane-active" id="cv3-pane-species" role="tabpanel" data-tab="species">
         <input type="text" id="cv3-search" class="cv3-input" placeholder="Search species&hellip;">
         <div id="cv3-species-primary" class="cv3-species-list"></div>
         <div class="cv3-loadmore-wrap">
@@ -135,11 +154,21 @@
         <div id="cv3-species-secondary" class="cv3-species-list cv3-secondary"></div>
       </div>
 
-      <div class="cv3-tabpane" data-tab="style">
+      <button class="cv3-ed-secbtn" role="tab" data-tab="style" aria-selected="false" aria-controls="cv3-pane-style">
+        <span class="cv3-ed-secbtn-icon" aria-hidden="true">&#10070;</span>
+        <span class="cv3-ed-secbtn-label">Style</span>
+        <span class="cv3-ed-secbtn-chev" aria-hidden="true">&#9654;</span>
+      </button>
+      <div class="cv3-ed-pane" id="cv3-pane-style" role="tabpanel" data-tab="style">
         <div id="cv3-style-tiles" class="cv3-style-grid"></div>
       </div>
 
-      <div class="cv3-tabpane" data-tab="design">
+      <button class="cv3-ed-secbtn" role="tab" data-tab="design" aria-selected="false" aria-controls="cv3-pane-design">
+        <span class="cv3-ed-secbtn-icon" aria-hidden="true">&#9881;</span>
+        <span class="cv3-ed-secbtn-label">Design</span>
+        <span class="cv3-ed-secbtn-chev" aria-hidden="true">&#9654;</span>
+      </button>
+      <div class="cv3-ed-pane" id="cv3-pane-design" role="tabpanel" data-tab="design">
         <label class="cv3-label">Title</label>
         <input type="text" id="cv3-title" class="cv3-input" placeholder="Wildlife of Lake Michigan">
 
@@ -223,15 +252,39 @@
           <option value="top-right">Top Right</option>
         </select>
       </div>
-    </aside>
-  </div>
-</div>
+    </div>
+
+    <div class="cv3-ed-rail-cta">
+      <button type="button" class="cv3-btn-primary" id="cv3-render-btn">Update Poster</button>
+      <a id="cv3-download" class="cv3-btn-primary" download style="display:none">Download Poster</a>
+    </div>
+  </aside>
+
+  <!-- Right column: poster preview -->
+  <main class="cv3-ed-main">
+    <div class="cv3-canvas-wrap">
+      <div id="cv3-canvas" class="cv3-canvas">
+        <div id="cv3-canvas-overlay" class="cv3-canvas-overlay" style="display:none">
+          <div class="cv3-spinner"></div>
+          <div>Composing&hellip;</div>
+        </div>
+      </div>
+    </div>
+    <div class="cv3-canvas-status">
+      <span id="cv3-status-msg" class="subtle">Drag animals to reposition. Click the title to edit it.</span>
+    </div>
+  </main>
+</section>
 
 <script>
 (function() {
   // ---------------- State ----------------
   const STYLES = {{ styles|tojson }};
+  const TOTAL_STEPS = 7;
+  const STEP_NAMES = ['', 'Where', 'Water type', 'Depth', 'Flow', 'Vegetation', 'Clarity', 'Include'];
   const state = {
+    mode: 'wizard',         // 'wizard' | 'editor'
+    wizardStep: 1,          // 1..7
     waterName: '',
     state: null,
     waterType: 'lake',
@@ -240,7 +293,7 @@
     vegetation: 'moderate',
     clarity: 'clear',
     categories: ['fish'],
-    selectedSpecies: [],   // [{slug, common_name, scientific_name, master_url, x, y, draw_width, draw_height, silhouette_bbox}]
+    selectedSpecies: [],
     style: 'scientific',
     title: '',
     subtitle: '',
@@ -257,18 +310,17 @@
     labelColor: '#1a1612',
     labelGap: 20,
     logoFilename: null,
-    logoUrl: null,     // For editor preview of uploaded logo
+    logoUrl: null,
     logoSize: 20,
     logoPosition: 'bottom-center',
-    logoXFrac: null,   // null => use logoPosition; otherwise fraction of canvas width
+    logoXFrac: null,
     logoYFrac: null,
-    titleXFrac: null,  // null => default centered top; otherwise fraction of canvas dims
-    titleYFrac: null,  // (subtitle stays grouped just below title at fixed gap)
-    universalScale: 1.0,  // Scales every species by this factor (preview + render)
+    titleXFrac: null,
+    titleYFrac: null,
+    universalScale: 1.0,
     canvasW: 5100,
     canvasH: 3300,
     lastRenderTime: null,
-    overlayShown: true,
     titleEdited: false,
   };
 
@@ -290,7 +342,103 @@
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     });
   }
-  function setStatus(msg) { $('cv3-status-msg').textContent = msg; }
+  function setStatus(msg) { const el = $('cv3-status-msg'); if (el) el.textContent = msg; }
+
+  // ---------------- Wizard navigation ----------------
+  function showWizardStep(n) {
+    state.wizardStep = n;
+    document.querySelectorAll('.cv3-wiz-step').forEach(function(s) {
+      s.classList.toggle('cv3-wiz-active', parseInt(s.dataset.step, 10) === n);
+    });
+    $('cv3-wiz-step-label').textContent = 'Step ' + n + ' of ' + TOTAL_STEPS;
+    $('cv3-wiz-step-name').textContent = STEP_NAMES[n] || '';
+    $('cv3-wiz-progress-fill').style.width = ((n / TOTAL_STEPS) * 100).toFixed(2) + '%';
+    $('cv3-wiz-back').disabled = (n === 1);
+    const next = $('cv3-wiz-next');
+    if (n === TOTAL_STEPS) {
+      next.textContent = 'What Lives Here →';
+      next.classList.add('cv3-wiz-next-final');
+    } else {
+      next.textContent = 'Next →';
+      next.classList.remove('cv3-wiz-next-final');
+    }
+    // Map needs invalidateSize when its container becomes visible.
+    if (n === 1 && map) {
+      setTimeout(function() { try { map.invalidateSize(); } catch(e){} }, 50);
+    }
+  }
+
+  function bindWizardNav() {
+    $('cv3-wiz-back').addEventListener('click', function() {
+      if (state.wizardStep > 1) showWizardStep(state.wizardStep - 1);
+    });
+    $('cv3-wiz-next').addEventListener('click', function() {
+      if (state.wizardStep < TOTAL_STEPS) {
+        showWizardStep(state.wizardStep + 1);
+      } else {
+        finishWizard();
+      }
+    });
+  }
+
+  function finishWizard() {
+    const btn = $('cv3-wiz-next');
+    btn.disabled = true;
+    btn.textContent = 'Finding species…';
+    const body = {
+      water_type: state.waterType,
+      depth: state.depth,
+      flow: state.flow,
+      vegetation: state.vegetation,
+      clarity: state.clarity,
+      categories: state.categories,
+      state: state.state,
+      offset: 0,
+    };
+    fetch('/api/recommend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        recommendCache.primary = data.primary || data.results || [];
+        recommendCache.secondary = data.secondary || [];
+        const top = recommendCache.primary.slice(0, 10);
+        state.selectedSpecies = top.map(function(sp) {
+          return {
+            slug: sp.slug,
+            common_name: sp.common_name,
+            scientific_name: sp.scientific_name || '',
+          };
+        });
+        switchToEditor();
+        renderSpeciesList();
+        scheduleLayout();
+      })
+      .catch(function() {
+        switchToEditor();
+      })
+      .finally(function() {
+        btn.disabled = false;
+        btn.textContent = 'What Lives Here →';
+      });
+  }
+
+  function switchToEditor() {
+    state.mode = 'editor';
+    $('cv3-wizard').style.display = 'none';
+    $('cv3-editor').style.display = '';
+    applyDefaultTitle();
+    drawCanvas();
+  }
+
+  function switchToWizard() {
+    state.mode = 'wizard';
+    $('cv3-editor').style.display = 'none';
+    $('cv3-wizard').style.display = '';
+    showWizardStep(1);
+  }
 
   // ---------------- Map (Leaflet) ----------------
   let map = null;
@@ -316,7 +464,6 @@
         state.state = stCode;
         const human = (addr.city || addr.town || addr.village || addr.county || '') + (stateName ? (', ' + stateName) : '');
         $('cv3-water-location').textContent = human ? ('Pinned: ' + human) : '';
-        refreshSpecies();
       })
       .catch(function() {
         $('cv3-water-location').textContent = 'Location set';
@@ -338,86 +485,29 @@
     return map[name] || null;
   }
 
-  // ---------------- Sample overlay ----------------
-  function dismissOverlay() {
-    if (!state.overlayShown) return;
-    state.overlayShown = false;
-    const dlg = $('cv3-sample-dialog');
-    const img = $('cv3-sample-img');
-    if (dlg) dlg.style.display = 'none';
-    if (img) img.style.display = 'none';
-  }
-
   // ---------------- Habitat sliders ----------------
   function bindHabitatSliders() {
     const ids = ['cv3-water-type','cv3-depth','cv3-flow','cv3-vegetation','cv3-clarity'];
     ids.forEach(function(id) {
       const el = $(id);
+      if (!el) return;
       const dim = el.dataset.dim;
       const values = el.dataset.values.split(',');
       const labels = el.dataset.labels.split(',');
       const valSpan = $(id + '-val');
       const img = $(id + '-img');
       el.addEventListener('input', function() {
-        dismissOverlay();
         const i = parseInt(el.value, 10);
         const v = values[i];
         const lbl = labels[i];
-        valSpan.textContent = lbl;
+        if (valSpan) valSpan.textContent = lbl;
         if (img) {
           img.src = '/static/habitat/' + dim + '_' + v + '.png';
           img.style.display = '';
         }
         const camel = dim.replace(/_([a-z])/g, function(_, c) { return c.toUpperCase(); });
         state[camel] = v;
-        debouncedRefresh();
       });
-    });
-  }
-
-  // ---------------- What Lives Here ----------------
-  function bindWhatLivesHere() {
-    const btn = $('cv3-what-lives-here');
-    if (!btn) return;
-    btn.addEventListener('click', function() {
-      btn.disabled = true;
-      btn.textContent = 'Finding species…';
-      const body = {
-        water_type: state.waterType,
-        depth: state.depth,
-        flow: state.flow,
-        vegetation: state.vegetation,
-        clarity: state.clarity,
-        categories: state.categories,
-        state: state.state,
-        offset: 0,
-      };
-      fetch('/api/recommend', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          recommendCache.primary = data.primary || data.results || [];
-          recommendCache.secondary = data.secondary || [];
-          const top = recommendCache.primary.slice(0, 10);
-          state.selectedSpecies = top.map(function(sp) {
-            return {
-              slug: sp.slug,
-              common_name: sp.common_name,
-              scientific_name: sp.scientific_name || '',
-            };
-          });
-          dismissOverlay();
-          renderSpeciesList();
-          scheduleLayout();
-        })
-        .catch(function() {})
-        .finally(function() {
-          btn.disabled = false;
-          btn.textContent = 'What Lives Here';
-        });
     });
   }
 
@@ -426,7 +516,6 @@
     $('cv3-cat-chips').addEventListener('change', function() {
       const checks = $('cv3-cat-chips').querySelectorAll('input[type=checkbox]');
       state.categories = Array.from(checks).filter(function(c) { return c.checked; }).map(function(c) { return c.value; });
-      debouncedRefresh();
     });
   }
 
@@ -455,20 +544,25 @@
       })
       .catch(function() {});
   }
-  const debouncedRefresh = debounce(refreshSpecies, 500);
 
   function renderSpeciesList() {
     const primary = recommendCache.primary;
     const secondary = recommendCache.secondary;
     const sel = new Set(state.selectedSpecies.map(function(s) { return s.slug; }));
-    $('cv3-species-primary').innerHTML = primary.map(function(sp) {
+    const primaryEl = $('cv3-species-primary');
+    const secondaryEl = $('cv3-species-secondary');
+    if (!primaryEl || !secondaryEl) return;
+    primaryEl.innerHTML = primary.map(function(sp) {
       return speciesCardHTML(sp, sel.has(sp.slug));
     }).join('');
-    $('cv3-species-secondary').innerHTML = secondary.map(function(sp) {
+    secondaryEl.innerHTML = secondary.map(function(sp) {
       return speciesCardHTML(sp, sel.has(sp.slug));
     }).join('');
-    $('cv3-show-more').style.display = secondary.length ? 'block' : 'none';
-    $('cv3-show-more').textContent = 'Show ' + secondary.length + ' more species';
+    const more = $('cv3-show-more');
+    if (more) {
+      more.style.display = secondary.length ? 'block' : 'none';
+      more.textContent = 'Show ' + secondary.length + ' more species';
+    }
   }
   function speciesCardHTML(sp, isSelected) {
     const img = '/image/output/master/' + state.style + '/' + sp.slug + '.png';
@@ -498,7 +592,6 @@
     if (idx >= 0) {
       state.selectedSpecies.splice(idx, 1);
     } else {
-      // Look up from recommend caches
       const all = recommendCache.primary.concat(recommendCache.secondary);
       const sp = all.find(function(s) { return s.slug === slug; });
       if (sp) {
@@ -531,7 +624,7 @@
       body: JSON.stringify({
         species_slugs: state.selectedSpecies.map(function(s) { return s.slug; }),
         style: state.style,
-        title: state.title || ('Wildlife of ' + ($('cv3-water-name').value || 'this place')),
+        title: state.title || ('Wildlife of ' + (state.waterName || 'this place')),
         subtitle: state.subtitle,
         background: state.bgColor,
         logo_filename: state.logoFilename,
@@ -550,7 +643,6 @@
         if (data.error) { setStatus('Layout error: ' + data.error); return; }
         state.canvasW = data.canvas_width;
         state.canvasH = data.canvas_height;
-        // Merge placements into selectedSpecies (preserve dragged positions for already-placed)
         const oldBySlug = {};
         state.selectedSpecies.forEach(function(s) { if (s._dragged) oldBySlug[s.slug] = s; });
         state.selectedSpecies = data.placements.map(function(p) {
@@ -572,14 +664,15 @@
   // ---------------- Canvas drawing (live editor) ----------------
   function drawCanvas() {
     const canvas = $('cv3-canvas');
+    if (!canvas) return;
     const wrap = canvas.parentElement;
-    // Compute scale based on container size, preserving aspect 5100x3300
     const padding = 32;
     const availW = wrap.clientWidth - padding;
     const availH = wrap.clientHeight - padding;
     const sW = availW / state.canvasW;
     const sH = availH / state.canvasH;
     canvasScale = Math.min(sW, sH);
+    if (!isFinite(canvasScale) || canvasScale <= 0) canvasScale = 1;
     const w = state.canvasW * canvasScale;
     const h = state.canvasH * canvasScale;
     canvas.style.width = w + 'px';
@@ -593,36 +686,29 @@
       canvas.style.backgroundImage = 'none';
     }
 
-    // Clear non-overlay/sample children
     Array.from(canvas.children).forEach(function(c) {
-      if (c.id !== 'cv3-canvas-overlay' && c.id !== 'cv3-sample-img' && c.id !== 'cv3-sample-dialog') {
+      if (c.id !== 'cv3-canvas-overlay') {
         canvas.removeChild(c);
       }
     });
 
     if (state.selectedSpecies.length === 0) {
-      setStatus(state.overlayShown ? 'Describe your water below, or click What Lives Here.' : '0 species placed.');
+      setStatus('No species placed. Pick some in the Species panel.');
       return;
     }
 
-    // Title + subtitle group — wrapped in one draggable container so the
-    // subtitle follows the title at a fixed gap.
     if (state.title || state.subtitle) {
       const titleGroup = document.createElement('div');
       titleGroup.className = 'cv3-ed-title-group';
       titleGroup.dataset.role = 'title-group';
-      // Default position: centered horizontally, top ~9% of canvas (matches
-      // renderer's title_band_h * 0.30 with title_band_h = canvas_h * 0.16
-      // → ~4.8% of canvas height) plus the editor's existing 3 * 100 = 300px
-      // offset which approximates that on a 3300-tall canvas.
-      const groupW = state.canvasW;  // full-width container; text-align:center inside
+      const groupW = state.canvasW;
       let gx, gy;
       if (state.titleXFrac != null && state.titleYFrac != null) {
         gx = state.titleXFrac * state.canvasW;
         gy = state.titleYFrac * state.canvasH;
       } else {
         gx = 0;
-        gy = 300;  // matches previous default top offset
+        gy = 300;
       }
       const dgx = gx * canvasScale;
       const dgy = gy * canvasScale;
@@ -655,7 +741,6 @@
       makeTitleDraggable(titleGroup);
     }
 
-    // Species
     const uScale = (typeof state.universalScale === 'number' && state.universalScale > 0) ? state.universalScale : 1.0;
     state.selectedSpecies.forEach(function(p, i) {
       if (typeof p.x !== 'number' || typeof p.draw_width !== 'number') return;
@@ -677,10 +762,10 @@
       const offX = -sb.l * imgW;
       const offY = -sb.t * imgH;
 
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'width:100%;height:100%;overflow:hidden;position:relative;';
-      wrap.innerHTML = '<img src="' + (p.master_url || '/image/output/master/' + state.style + '/' + p.slug + '.png') + '" style="position:absolute;width:' + imgW + 'px;height:' + imgH + 'px;left:' + offX + 'px;top:' + offY + 'px;pointer-events:none;" draggable="false">';
-      el.appendChild(wrap);
+      const wrapEl = document.createElement('div');
+      wrapEl.style.cssText = 'width:100%;height:100%;overflow:hidden;position:relative;';
+      wrapEl.innerHTML = '<img src="' + (p.master_url || '/image/output/master/' + state.style + '/' + p.slug + '.png') + '" style="position:absolute;width:' + imgW + 'px;height:' + imgH + 'px;left:' + offX + 'px;top:' + offY + 'px;pointer-events:none;" draggable="false">';
+      el.appendChild(wrapEl);
 
       const lbl = document.createElement('div');
       lbl.className = 'cv3-ed-label';
@@ -693,14 +778,10 @@
       makeDraggable(el);
     });
 
-    // Logo overlay (draggable). Rendered after species so it sits on top.
     if (state.logoUrl) {
       const logo = document.createElement('div');
       logo.className = 'cv3-ed-logo';
       logo.dataset.role = 'logo';
-      // Target logo box width = logoSize% of canvas width; height bounded
-      // similarly to renderer.py (canvas_h * size_pct * 0.4) — the actual
-      // displayed image is object-fit:contain so aspect ratio is preserved.
       const sizePct = (state.logoSize || 20) / 100;
       const boxW = state.canvasW * sizePct;
       const boxH = state.canvasH * sizePct * 0.4;
@@ -710,7 +791,6 @@
         lx = state.logoXFrac * state.canvasW;
         ly = state.logoYFrac * state.canvasH;
       } else {
-        // Match renderer.py named-position math.
         const pos = state.logoPosition || 'bottom-center';
         if (pos === 'bottom-left')        { lx = margin;                          ly = state.canvasH - boxH - margin; }
         else if (pos === 'bottom-right')  { lx = state.canvasW - boxW - margin;   ly = state.canvasH - boxH - margin; }
@@ -729,7 +809,6 @@
       makeLogoDraggable(logo, boxW, boxH);
     }
 
-    // Status
     const t = state.lastRenderTime ? state.lastRenderTime.toLocaleTimeString() : '';
     setStatus(state.selectedSpecies.length + ' species placed' + (t ? ' (last layout ' + t + ')' : '') + '. Drag to reposition.');
   }
@@ -737,7 +816,6 @@
   function makeTitleDraggable(el) {
     el.addEventListener('pointerdown', function(e) {
       if (e.button !== 0) return;
-      // Allow click-into contentEditable children for editing without drag.
       if (e.target !== el) {
         const isEditable = e.target.isContentEditable || e.target.classList.contains('cv3-ed-title') || e.target.classList.contains('cv3-ed-subtitle');
         if (isEditable) return;
@@ -789,13 +867,10 @@
         el.style.zIndex = '';
         el.removeEventListener('pointermove', onMove);
         el.removeEventListener('pointerup', onUp);
-        // Save as fractions of canvas dims so it survives style switches & resizes.
         const lx = parseFloat(el.style.left) / canvasScale;
         const ly = parseFloat(el.style.top) / canvasScale;
         state.logoXFrac = lx / state.canvasW;
         state.logoYFrac = ly / state.canvasH;
-        // Switch the position dropdown to a "custom" sentinel so the user knows
-        // their drag took precedence over the named position.
         const sel = $('cv3-logo-position');
         if (sel && !sel.querySelector('option[value="custom"]')) {
           const opt = document.createElement('option');
@@ -846,18 +921,22 @@
   }
 
   function showOverlay(on) {
-    $('cv3-canvas-overlay').style.display = on ? 'flex' : 'none';
+    const o = $('cv3-canvas-overlay');
+    if (o) o.style.display = on ? 'flex' : 'none';
   }
 
-  // ---------------- Tabs ----------------
-  function bindTabs() {
-    document.querySelectorAll('.cv3-tab').forEach(function(t) {
+  // ---------------- Editor section buttons (Species/Style/Design) ----------------
+  function bindSectionButtons() {
+    document.querySelectorAll('.cv3-ed-secbtn').forEach(function(t) {
       t.addEventListener('click', function() {
         const which = t.dataset.tab;
-        document.querySelectorAll('.cv3-tab').forEach(function(x) { x.classList.remove('cv3-tab-active'); });
-        t.classList.add('cv3-tab-active');
-        document.querySelectorAll('.cv3-tabpane').forEach(function(p) {
-          p.classList.toggle('cv3-tabpane-active', p.dataset.tab === which);
+        document.querySelectorAll('.cv3-ed-secbtn').forEach(function(x) {
+          const active = x.dataset.tab === which;
+          x.classList.toggle('cv3-ed-secbtn-active', active);
+          x.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        document.querySelectorAll('.cv3-ed-pane').forEach(function(p) {
+          p.classList.toggle('cv3-ed-pane-active', p.dataset.tab === which);
         });
       });
     });
@@ -866,6 +945,7 @@
   // ---------------- Style tiles ----------------
   function buildStyleTiles() {
     const grid = $('cv3-style-tiles');
+    if (!grid) return;
     grid.innerHTML = STYLES.filter(function(s) { return s.enabled !== false; }).map(function(s) {
       const slug = s.slug;
       const name = s.style_name || s.name || slug;
@@ -882,8 +962,6 @@
       if (!tile) return;
       state.style = tile.dataset.slug;
       grid.querySelectorAll('.cv3-style-tile').forEach(function(t) { t.classList.toggle('cv3-selected', t.dataset.slug === state.style); });
-      // Preserve any user-dragged positions; the layout merge step in callLayout()
-      // will re-apply them keyed by slug after the new style's layout returns.
       renderSpeciesList();
       scheduleLayout();
     });
@@ -891,7 +969,6 @@
 
   // ---------------- Design controls ----------------
   function applyDefaultTitle() {
-    // Set title from waterName if user hasn't manually edited the title field.
     if (state.titleEdited) return;
     const name = (state.waterName || '').trim();
     state.title = name ? ('Wildlife of ' + name) : 'Wildlife of [your water]';
@@ -909,7 +986,8 @@
     $('cv3-bg-color').addEventListener('input', function() { state.bgColor = this.value; drawCanvas(); });
     $('cv3-water-name').addEventListener('input', function() {
       state.waterName = this.value;
-      $('cv3-title').placeholder = 'Wildlife of ' + (this.value || 'Lake Michigan');
+      const tInp = $('cv3-title');
+      if (tInp) tInp.placeholder = 'Wildlife of ' + (this.value || 'Lake Michigan');
       applyDefaultTitle();
       drawCanvas();
     });
@@ -952,7 +1030,7 @@
           if (data.error) { setStatus('Logo upload failed: ' + data.error); return; }
           state.logoFilename = data.logo_filename;
           state.logoUrl = data.logo_url;
-          state.logoXFrac = null;   // Use named position until user drags.
+          state.logoXFrac = null;
           state.logoYFrac = null;
           setStatus('Logo uploaded.');
           drawCanvas();
@@ -973,7 +1051,7 @@
     });
     $('cv3-logo-position').addEventListener('change', function() {
       state.logoPosition = this.value;
-      state.logoXFrac = null;   // Named position overrides any prior drag.
+      state.logoXFrac = null;
       state.logoYFrac = null;
       drawCanvas();
     });
@@ -1017,7 +1095,6 @@
       gal.innerHTML = items.map(function(b) {
         return '<img src="' + esc(b.url) + '" data-filename="' + esc(b.filename) + '" data-url="' + esc(b.url) + '" alt="">';
       }).join('');
-      // Replace any previous click handler so it does not stack (and is not once-only).
       if (_bgGalleryHandler) gal.removeEventListener('click', _bgGalleryHandler);
       _bgGalleryHandler = function(e) {
         if (e.target.tagName === 'IMG') {
@@ -1051,7 +1128,8 @@
       });
   }, 300);
   function bindSearch() {
-    $('cv3-search').addEventListener('input', function() { debouncedSearch(this.value); });
+    const s = $('cv3-search');
+    if (s) s.addEventListener('input', function() { debouncedSearch(this.value); });
   }
 
   // ---------------- Render / Download ----------------
@@ -1111,7 +1189,7 @@
           if (data.error) { setStatus('Render error: ' + data.error); return; }
           const a = $('cv3-download');
           a.href = data.poster_url;
-          a.style.display = 'block';
+          a.style.display = 'inline-block';
           state.lastRenderTime = new Date();
           setStatus(state.selectedSpecies.length + ' species placed (rendered ' + state.lastRenderTime.toLocaleTimeString() + '). Click Download.');
         })
@@ -1123,22 +1201,37 @@
     $('cv3-render-btn').addEventListener('click', doRender);
   }
 
+  // ---------------- Restart wizard ----------------
+  function bindRestart() {
+    const r = $('cv3-restart');
+    if (r) r.addEventListener('click', switchToWizard);
+  }
+
   // ---------------- Init ----------------
   function init() {
     initMap();
     bindHabitatSliders();
     bindCategoryChips();
-    bindWhatLivesHere();
+    bindWizardNav();
     bindSpeciesClicks();
-    bindTabs();
+    bindSectionButtons();
     buildStyleTiles();
     bindDesignControls();
     bindSearch();
     bindRenderButton();
-    applyDefaultTitle();   // Set initial "Wildlife of [your water]" placeholder text
-    refreshSpecies();
-    drawCanvas();
-    window.addEventListener('resize', debounce(drawCanvas, 150));
+    bindRestart();
+    // Also keep the title input in sync as the user types in Step 1.
+    const wn = $('cv3-water-name');
+    if (wn) {
+      wn.addEventListener('input', function() {
+        state.waterName = this.value;
+        applyDefaultTitle();
+      });
+    }
+    showWizardStep(1);
+    window.addEventListener('resize', debounce(function() {
+      if (state.mode === 'editor') drawCanvas();
+    }, 150));
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
