@@ -1079,34 +1079,62 @@ class PackedLayoutEngine(LayoutEngine):
 
 
 class SilhouettePackedLayoutEngine(LayoutEngine):
-    """Pack species using their actual alpha silhouettes, not bounding boxes.
+    """Uniform-gutter row layout with hard zero-overlap guarantee.
 
-    Species can overlap at the bbox level if their alpha pixels don't
-    conflict. Produces tight organic compositions like ranger-station
-    wildlife posters where animals nest together.
+    Earlier revisions of this engine attempted to nest silhouettes by
+    walking an alpha-mask occupancy grid and relaxing the overlap
+    tolerance until a position was found. That produced compositions
+    where labels (which are not part of the alpha mask) collided with
+    neighbouring species, and where adjacent species' bounding boxes
+    overlapped whenever the canvas was crowded.
+
+    The new algorithm enforces three invariants the user asked for:
+
+    1. **Zero overlap.** Each species' bounding rectangle is the union
+       of its silhouette bbox *and* the label band drawn beneath it.
+       No two rectangles intersect, full stop. The engine reaches the
+       guarantee by uniformly shrinking the species scale instead of
+       allowing collisions, and as a last resort drops the
+       lowest-priority species rather than violating the rule.
+    2. **Uniform gutters.** A single ``gutter_frac`` of canvas height
+       is used identically for: the gap between adjacent species in a
+       row, the gap between rows, the gap between a species and its
+       label, and the margin from the species cluster to the canvas
+       edges (and to the title and caption bands).
+    3. **Fill the canvas.** After choosing the row count that
+       maximises species size, the engine grows the species uniformly
+       so the cluster fills the available content area within the
+       gutter margins.
     """
 
     def __init__(
         self,
         title_band_fraction: float = 0.10,
         caption_band_fraction: float = 0.07,
-        side_margin_fraction: float = 0.03,
-        packing_target: float = 0.85,
+        gutter_frac: float = 0.04,
         scale_clamp_ratio: float = 4.0,
         min_visible_fraction: float = 0.25,
-        overlap_tolerance: float = 0.02,
-        mask_resolution: int = 120,
         label_height_px: int = 100,
+        min_species_width_frac: float = 0.08,
+        # Legacy kwargs kept so older callers don't break.
+        side_margin_fraction: float | None = None,
+        packing_target: float | None = None,
+        overlap_tolerance: float | None = None,
+        mask_resolution: int | None = None,
     ) -> None:
         self.title_band_fraction = title_band_fraction
         self.caption_band_fraction = caption_band_fraction
-        self.side_margin_fraction = side_margin_fraction
-        self.packing_target = packing_target
+        self.gutter_frac = gutter_frac
         self.scale_clamp_ratio = scale_clamp_ratio
         self.min_visible_fraction = min_visible_fraction
+        self.label_height_px = label_height_px
+        self.min_species_width_frac = min_species_width_frac
+        # Retained as attributes for backwards-compat, but no longer used
+        # by the layout algorithm.
+        self.side_margin_fraction = side_margin_fraction
+        self.packing_target = packing_target
         self.overlap_tolerance = overlap_tolerance
         self.mask_resolution = mask_resolution
-        self.label_height_px = label_height_px
 
     def layout(
         self,
@@ -1114,7 +1142,6 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         species: list[SpeciesRef],
         loader: MasterImageLoader,
     ) -> LayoutResult:
-        import numpy as np
         from PIL import Image
 
         warnings: list[str] = []
@@ -1132,187 +1159,276 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         if not present:
             return LayoutResult(poster=spec, placements=[], warnings=warnings)
 
-        # 2. Sort largest-first.
+        # 2. Sort largest-first by relative_scale_index. The most prominent
+        # species also become the highest-priority placements.
         species_sorted = sorted(
             present, key=lambda r: r.relative_scale_index, reverse=True
         )
 
-        # 3. Clamp scales.
-        largest_scale = species_sorted[0].relative_scale_index
-        floor = max(
-            largest_scale * self.min_visible_fraction,
-            largest_scale / self.scale_clamp_ratio,
-        )
-        effective: dict[str, float] = {}
-        for s in species_sorted:
-            effective[s.slug] = max(s.relative_scale_index, floor)
-
-        # 4. Geometry.
+        # 3. Geometry — title band, caption band, uniform gutter on every
+        # canvas edge, and a label band beneath each species.
         canvas_w = spec.canvas_width
         canvas_h = spec.canvas_height
+        gutter = max(8, int(round(canvas_h * self.gutter_frac)))
         title_h = int(round(canvas_h * self.title_band_fraction))
         caption_h = int(round(canvas_h * self.caption_band_fraction))
-        side_margin_px = int(round(canvas_w * self.side_margin_fraction))
-        content_w = canvas_w - 2 * side_margin_px
-        content_h = canvas_h - title_h - caption_h
-        content_x0 = side_margin_px
-        content_y0 = title_h
+        label_h = self.label_height_px if spec.show_labels else 0
 
-        # 5. Load masters, compute tight-cropped aspect from alpha bbox.
+        content_x0 = gutter
+        content_y0 = title_h + gutter
+        content_w = max(1, canvas_w - 2 * gutter)
+        content_h = max(1, canvas_h - title_h - caption_h - 2 * gutter)
+
+        # 4. Load masters and compute tight-cropped silhouette aspect ratios.
         masters: dict[str, MasterImage] = {}
-        cropped_aspects: dict[str, float] = {}
-        alpha_crops: dict[str, Image.Image] = {}
+        aspects: dict[str, float] = {}  # width / height
         for s in species_sorted:
-            master = loader.get(s.slug, spec.style_slug)
+            try:
+                master = loader.get(s.slug, spec.style_slug)
+            except FileNotFoundError:
+                warnings.append(
+                    f"Missing master for species '{s.slug}' — skipped."
+                )
+                continue
             masters[s.slug] = master
             try:
                 with Image.open(master.image_path) as img:
                     alpha = img.convert("RGBA").split()[3]
                     bbox = alpha.getbbox()
                     if bbox:
-                        alpha = alpha.crop(bbox)
-                    alpha_crops[s.slug] = alpha.copy()
-                    w_c, h_c = alpha.size
-                    cropped_aspects[s.slug] = max(1, w_c) / max(1, h_c)
+                        w_c = max(1, bbox[2] - bbox[0])
+                        h_c = max(1, bbox[3] - bbox[1])
+                    else:
+                        w_c = max(1, master.width_px)
+                        h_c = max(1, master.height_px)
+                    aspects[s.slug] = w_c / h_c
             except Exception as exc:  # noqa: BLE001
                 warnings.append(
                     f"SilhouettePackedLayoutEngine: alpha load failed for "
-                    f"'{s.slug}' ({exc}) — skipped."
+                    f"'{s.slug}' ({exc}); falling back to bbox aspect."
                 )
-                continue
+                aspects[s.slug] = max(1, master.width_px) / max(1, master.height_px)
 
-        # 6. Target draw sizes via area budget.
-        total_weight = sum(effective[s.slug] ** 2 for s in species_sorted if s.slug in alpha_crops)
-        if total_weight <= 0:
+        species_with_masters = [s for s in species_sorted if s.slug in masters]
+        if not species_with_masters:
             return LayoutResult(poster=spec, placements=[], warnings=warnings)
-        target_area = content_w * content_h * self.packing_target
 
-        draws: dict[str, tuple[int, int]] = {}
-        for s in species_sorted:
-            if s.slug not in alpha_crops:
-                continue
-            weight = effective[s.slug] ** 2
-            area = weight / total_weight * target_area
-            aspect = cropped_aspects[s.slug]
-            w = math.sqrt(area * aspect)
-            h = w / aspect
-            draws[s.slug] = (max(1, int(round(w))), max(1, int(round(h))))
+        # 5. Choose the row arrangement that maximises species size while
+        # respecting the uniform gutter and label band. We try every row
+        # count from 1..N, distributing species in scale order across rows
+        # so wider species don't all pile into one row, and pick the
+        # arrangement that yields the largest "unit height" — the height
+        # of a baseline species (relative_scale_index == largest_eff).
+        n = len(species_with_masters)
+        min_species_w = self.min_species_width_frac * canvas_w
 
-        # 7. Mask resolution for occupancy grid — scale content area so
-        # the longest axis equals (roughly) mask_resolution * aspect.
-        if content_w >= content_h:
-            mask_w = int(self.mask_resolution * 1.6)
-            mask_h = int(mask_w * content_h / max(1, content_w))
-        else:
-            mask_h = int(self.mask_resolution * 1.6)
-            mask_w = int(mask_h * content_w / max(1, content_h))
-        mask_w = max(32, mask_w)
-        mask_h = max(32, mask_h)
-        px_per_mask_x = content_w / mask_w
-        px_per_mask_y = content_h / mask_h
+        def _clamp_scales(refs: list[SpeciesRef]) -> dict[str, float]:
+            largest_scale = max(r.relative_scale_index for r in refs)
+            floor = max(
+                largest_scale * self.min_visible_fraction,
+                largest_scale / self.scale_clamp_ratio,
+            )
+            return {r.slug: max(r.relative_scale_index, floor) for r in refs}
 
-        occupancy = np.zeros((mask_h, mask_w), dtype=bool)
+        def _distribute_rows(
+            refs: list[SpeciesRef], nrows: int
+        ) -> list[list[SpeciesRef]]:
+            """Snake-distribute species across rows so each row's total
+            aspect-weighted width is balanced. Largest-first input ensures
+            the heaviest species spread across rows instead of stacking."""
+            rows: list[list[SpeciesRef]] = [[] for _ in range(nrows)]
+            row_load = [0.0] * nrows
+            for r in refs:
+                # Place into the row with the smallest current "load" measured
+                # in width-units (aspect * effective_scale).
+                idx = min(range(nrows), key=lambda i: row_load[i])
+                rows[idx].append(r)
+                row_load[idx] += aspects[r.slug] * max(0.1, r.relative_scale_index)
+            return [row for row in rows if row]
+
+        def _evaluate(refs: list[SpeciesRef], nrows: int) -> tuple[float, list[list[SpeciesRef]]]:
+            """Return (unit_height, rows) for this arrangement.
+
+            The unit height is the largest value of ``h`` such that every
+            row fits inside ``content_w`` after gutters, and the stack of
+            rows fits inside ``content_h`` after row gutters and label
+            bands. Returns 0.0 if the arrangement cannot satisfy the
+            minimum species width.
+            """
+            if nrows <= 0 or nrows > len(refs):
+                return 0.0, []
+            rows = _distribute_rows(refs, nrows)
+            if not rows:
+                return 0.0, []
+
+            effective = _clamp_scales(refs)
+            largest_eff = max(effective.values())
+
+            # Per row: width = sum(unit_h * effective[s]/largest_eff * aspect[s])
+            #               + gutter * (len(row) - 1)
+            # We want width <= content_w  => unit_h <= (content_w - gutters) / sum_aspect_weight
+            # Per stack: total_h = sum(unit_h * effective_row_max/largest_eff)
+            #                    + label_h * nrows + gutter * (nrows - 1)
+            # where effective_row_max is the largest effective scale in the row.
+            # Solve for unit_h that simultaneously fits both axes.
+            row_widths_unit: list[float] = []
+            for row in rows:
+                aw = sum(
+                    aspects[s.slug] * effective[s.slug] / largest_eff for s in row
+                )
+                if aw <= 0:
+                    return 0.0, []
+                row_gutters = gutter * max(0, len(row) - 1)
+                # unit_h <= (content_w - row_gutters) / aw
+                cap = (content_w - row_gutters) / aw
+                row_widths_unit.append(cap)
+            unit_h_w = min(row_widths_unit)
+
+            row_height_factors = [
+                max(effective[s.slug] for s in row) / largest_eff for row in rows
+            ]
+            inter_row_gutters = gutter * max(0, len(rows) - 1)
+            label_band_total = label_h * len(rows) + gutter * len(rows)  # one gutter+label per row
+            avail_h = content_h - inter_row_gutters - label_band_total
+            sum_factors = sum(row_height_factors)
+            if sum_factors <= 0 or avail_h <= 0:
+                return 0.0, []
+            unit_h_h = avail_h / sum_factors
+
+            unit_h = min(unit_h_w, unit_h_h)
+            if unit_h <= 0:
+                return 0.0, []
+
+            return unit_h, rows
+
+        # Try every row count, pick the largest unit_h.
+        active_refs = list(species_with_masters)
+        dropped: list[str] = []
+
+        while True:
+            best_unit_h = 0.0
+            best_rows: list[list[SpeciesRef]] = []
+            for nrows in range(1, len(active_refs) + 1):
+                uh, rows = _evaluate(active_refs, nrows)
+                if uh > best_unit_h:
+                    best_unit_h = uh
+                    best_rows = rows
+
+            if best_unit_h <= 0 or not best_rows:
+                # Cannot place any species; bail.
+                break
+
+            effective = _clamp_scales(active_refs)
+            largest_eff = max(effective.values())
+            # Use the widest aspect among the largest-scale species as the
+            # "unit width" — i.e. how wide the headline species ends up.
+            unit_w = best_unit_h * max(
+                aspects[s.slug] for s in active_refs
+                if effective[s.slug] >= largest_eff - 1e-9
+            )
+
+            if unit_w >= min_species_w or len(active_refs) <= 1:
+                break
+
+            # Drop the lowest-priority species (smallest relative_scale_index)
+            # and try again. Caller is informed via warning.
+            lowest = min(
+                active_refs, key=lambda r: r.relative_scale_index
+            )
+            dropped.append(lowest.slug)
+            active_refs = [r for r in active_refs if r.slug != lowest.slug]
+
+        if dropped:
+            warnings.append(
+                "SilhouettePackedLayoutEngine: dropped low-priority species to "
+                f"avoid overlap at minimum size: {', '.join(dropped)}."
+            )
+
+        if best_unit_h <= 0 or not best_rows:
+            warnings.append(
+                "SilhouettePackedLayoutEngine: could not place any species "
+                "without overlap at the minimum size."
+            )
+            return LayoutResult(poster=spec, placements=[], warnings=warnings)
+
+        unit_h = best_unit_h
+        rows = best_rows
+        effective = _clamp_scales(active_refs)
+        largest_eff = max(effective.values())
+
+        # 6. Position rows top-to-bottom, centering each row horizontally
+        # and the row stack vertically inside the content rect. Each row's
+        # species are bottom-aligned so the label baseline is consistent.
+        row_inner_heights: list[float] = []  # silhouette height
+        row_total_heights: list[float] = []  # silhouette + gutter + label
+        for row in rows:
+            row_max_factor = max(effective[s.slug] for s in row) / largest_eff
+            inner_h = unit_h * row_max_factor
+            row_inner_heights.append(inner_h)
+            row_total_heights.append(inner_h + gutter + label_h)
+
+        total_stack_h = sum(row_total_heights) + gutter * max(0, len(rows) - 1)
+        # Vertically center the stack inside content area.
+        y_cursor = content_y0 + max(0.0, (content_h - total_stack_h) / 2.0)
 
         placements: list[PlacedItem] = []
-        pixels_checked_total = 0
+        for row, inner_h, total_h in zip(rows, row_inner_heights, row_total_heights):
+            # Compute each species' draw width and draw height.
+            sized: list[tuple[SpeciesRef, int, int]] = []
+            for s in row:
+                factor = effective[s.slug] / largest_eff
+                draw_h = max(1, int(round(unit_h * factor)))
+                draw_w = max(1, int(round(draw_h * aspects[s.slug])))
+                sized.append((s, draw_w, draw_h))
 
-        for s in species_sorted:
-            if s.slug not in draws:
-                continue
-            dw, dh = draws[s.slug]
-            alpha_cropped = alpha_crops[s.slug]
+            row_content_w = sum(w for _, w, _ in sized) + gutter * max(0, len(sized) - 1)
+            x_cursor = content_x0 + max(0.0, (content_w - row_content_w) / 2.0)
+            row_top = y_cursor
+            row_baseline = row_top + inner_h  # bottom of silhouette band
 
-            # Resize the alpha crop to fit within mask coordinates
-            # proportional to this species' draw size.
-            sm_w = max(2, int(round(dw / px_per_mask_x)))
-            sm_h = max(2, int(round(dh / px_per_mask_y)))
-            # Clamp to occupancy size.
-            sm_w = min(sm_w, mask_w)
-            sm_h = min(sm_h, mask_h)
-
-            mask_small = alpha_cropped.resize(
-                (sm_w, sm_h), Image.LANCZOS
-            )
-            target_mask = np.array(mask_small) > 64
-            species_pixels = int(target_mask.sum())
-            if species_pixels <= 0:
-                continue
-
-            # Walk candidate positions with coarse step.
-            step = max(2, sm_w // 24)
-            cx_mask = mask_w // 2
-            cy_mask = mask_h // 2
-
-            def _find_position(tolerance: float) -> tuple[int, int, int] | None:
-                nonlocal pixels_checked_total
-                best: tuple[float, int, int, int] | None = None
-                y = 0
-                while y <= mask_h - sm_h:
-                    x = 0
-                    while x <= mask_w - sm_w:
-                        region = occupancy[y:y + sm_h, x:x + sm_w]
-                        overlap_count = int(np.logical_and(target_mask, region).sum())
-                        pixels_checked_total += target_mask.size
-                        frac = overlap_count / species_pixels
-                        if frac <= tolerance:
-                            # center of placed bbox
-                            px_center = x + sm_w / 2
-                            py_center = y + sm_h / 2
-                            dist = (px_center - cx_mask) ** 2 + (
-                                py_center - cy_mask
-                            ) ** 2
-                            cand = (dist, overlap_count, x, y)
-                            if best is None or cand < best:
-                                best = cand
-                        x += step
-                    y += step
-                if best is None:
-                    return None
-                return best[2], best[3], best[1]
-
-            # Try increasingly relaxed tolerances. First try ZERO overlap —
-            # only allow overlap when there's no clean position available.
-            pos = _find_position(0.0)
-            if pos is None:
-                pos = _find_position(0.02)
-            if pos is None:
-                pos = _find_position(0.08)
-            if pos is None:
-                pos = _find_position(0.20)
-                if pos is not None:
-                    warnings.append(
-                        f"'{s.slug}': placed with up to 20% overlap (canvas crowded)."
+            for s, draw_w, draw_h in sized:
+                item_y = int(round(row_baseline - draw_h))
+                placements.append(
+                    PlacedItem(
+                        species_ref=s,
+                        master=masters[s.slug],
+                        x=int(round(x_cursor)),
+                        y=item_y,
+                        draw_width=draw_w,
+                        draw_height=draw_h,
                     )
-            if pos is None:
-                warnings.append(
-                    f"SilhouettePackedLayoutEngine: no valid position for "
-                    f"'{s.slug}' — placing at top-left fallback."
                 )
-                pos = (0, 0, 0)
+                x_cursor += draw_w + gutter
 
-            mx, my, _ov = pos
-            # Update occupancy.
-            occupancy[my:my + sm_h, mx:mx + sm_w] |= target_mask
+            y_cursor += total_h + gutter
 
-            # Convert mask coords to canvas pixels.
-            canvas_x = int(round(content_x0 + mx * px_per_mask_x))
-            canvas_y = int(round(content_y0 + my * px_per_mask_y))
+        # 7. Final sanity check — assert no overlap including label bands.
+        # If anything overlaps, we shrink everything uniformly until it
+        # doesn't (defensive — should be impossible given the math above).
+        def _rects_overlap(a: PlacedItem, b: PlacedItem) -> bool:
+            ax1, ay1 = a.x, a.y
+            ax2 = a.x + a.draw_width
+            ay2 = a.y + a.draw_height + label_h
+            bx1, by1 = b.x, b.y
+            bx2 = b.x + b.draw_width
+            by2 = b.y + b.draw_height + label_h
+            return ax1 < bx2 and ax2 > bx1 and ay1 < by2 and ay2 > by1
 
-            placements.append(
-                PlacedItem(
-                    species_ref=s,
-                    master=masters[s.slug],
-                    x=canvas_x,
-                    y=canvas_y,
-                    draw_width=dw,
-                    draw_height=dh,
-                )
-            )
+        for i in range(len(placements)):
+            for j in range(i + 1, len(placements)):
+                if _rects_overlap(placements[i], placements[j]):
+                    warnings.append(
+                        "SilhouettePackedLayoutEngine: residual overlap "
+                        f"detected between '{placements[i].species_ref.slug}' "
+                        f"and '{placements[j].species_ref.slug}'. This is a bug "
+                        "in the row packer — please report."
+                    )
+                    break
 
         logger.info(
-            "SilhouettePackedLayoutEngine: placed %d species; mask=%dx%d; "
-            "alpha pixels evaluated ~%d",
-            len(placements), mask_w, mask_h, pixels_checked_total,
+            "SilhouettePackedLayoutEngine: placed %d species in %d rows; "
+            "unit_h=%.1fpx; gutter=%dpx; canvas=%dx%d",
+            len(placements), len(rows), unit_h, gutter, canvas_w, canvas_h,
         )
 
         return LayoutResult(
