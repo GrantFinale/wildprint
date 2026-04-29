@@ -1265,17 +1265,38 @@ def api_list_backgrounds():
 @app.route("/api/public-backgrounds")
 @rate_limit(60)
 def api_public_backgrounds():
-    """List server-curated background images for the public editor."""
-    bg_dir = Path(PROJECT_ROOT) / "output" / "backgrounds"
-    if not bg_dir.exists():
-        return jsonify({"backgrounds": []})
+    """List server-curated background images for the public editor.
+
+    Pulls from two sources:
+      1) output/backgrounds/ — runtime-generated (mounted from a volume in
+         production); supports PNG and JPEG.
+      2) assets/backgrounds/ — repo-shipped seed library so the gallery is
+         never empty even before any backgrounds have been uploaded.
+    De-duplicates by filename (output/ wins on collision).
+    """
     items = []
-    for p in sorted(bg_dir.glob("*.png"), key=lambda x: x.stat().st_mtime, reverse=True):
-        rel = p.relative_to(Path(PROJECT_ROOT))
-        items.append({
-            "filename": p.name,
-            "url": f"/image/{rel}",
-        })
+    seen: set[str] = set()
+
+    runtime_dir = Path(PROJECT_ROOT) / "output" / "backgrounds"
+    if runtime_dir.exists():
+        runtime_files = list(runtime_dir.glob("*.png")) + list(runtime_dir.glob("*.jpg")) + list(runtime_dir.glob("*.jpeg"))
+        for p in sorted(runtime_files, key=lambda x: x.stat().st_mtime, reverse=True):
+            if p.name in seen:
+                continue
+            seen.add(p.name)
+            rel = p.relative_to(Path(PROJECT_ROOT))
+            items.append({"filename": p.name, "url": f"/image/{rel}"})
+
+    seed_dir = Path(PROJECT_ROOT) / "assets" / "backgrounds"
+    if seed_dir.exists():
+        seed_files = list(seed_dir.glob("*.png")) + list(seed_dir.glob("*.jpg")) + list(seed_dir.glob("*.jpeg"))
+        for p in sorted(seed_files, key=lambda x: x.name):
+            if p.name in seen:
+                continue
+            seen.add(p.name)
+            rel = p.relative_to(Path(PROJECT_ROOT))
+            items.append({"filename": p.name, "url": f"/image/{rel}"})
+
     return jsonify({"backgrounds": items[:50]})
 
 
@@ -1416,6 +1437,7 @@ def api_generate_poster():
         for cand in (
             Path(PROJECT_ROOT) / "output" / "uploads" / background_image_filename,
             Path(PROJECT_ROOT) / "output" / "backgrounds" / background_image_filename,
+            Path(PROJECT_ROOT) / "assets" / "backgrounds" / background_image_filename,
         ):
             if cand.exists():
                 renderer._background_image_path = cand
@@ -1493,6 +1515,7 @@ def api_render_custom():
     logo_filename = data.get("logo_filename")
     bg_image_filename = data.get("background_image_filename")
     logo_config = data.get("logo_config", {})
+    title_config = data.get("title_config", {}) or {}
 
     if not placements_data:
         return jsonify({"error": "No placements provided"}), 400
@@ -1615,11 +1638,20 @@ def api_render_custom():
         renderer._logo_x_frac = float(_xf)
         renderer._logo_y_frac = float(_yf)
 
-    # Handle background image — try uploads first, then server-curated backgrounds.
+    # Apply optional dragged title position. (subtitle stays grouped with title.)
+    _txf = title_config.get("x_frac")
+    _tyf = title_config.get("y_frac")
+    if _txf is not None and _tyf is not None:
+        renderer._title_x_frac = float(_txf)
+        renderer._title_y_frac = float(_tyf)
+
+    # Handle background image — try uploads first, then server-curated
+    # backgrounds (runtime-generated, then repo-shipped seed library).
     if bg_image_filename:
         candidates = [
             Path(PROJECT_ROOT) / "output" / "uploads" / bg_image_filename,
             Path(PROJECT_ROOT) / "output" / "backgrounds" / bg_image_filename,
+            Path(PROJECT_ROOT) / "assets" / "backgrounds" / bg_image_filename,
         ]
         for cand in candidates:
             if cand.exists():

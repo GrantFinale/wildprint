@@ -200,6 +200,11 @@
         <input type="range" id="cv3-label-gap" min="0" max="200" value="20">
 
         <hr class="cv3-divider">
+        <label class="cv3-label">Image scale (all species): <span id="cv3-univ-scale-val">1.00</span>x</label>
+        <input type="range" id="cv3-univ-scale" min="0.5" max="1.5" step="0.05" value="1.0">
+        <button type="button" class="cv3-btn-sec" id="cv3-title-reset">Reset title position</button>
+
+        <hr class="cv3-divider">
         <label class="cv3-label">Logo</label>
         <input type="file" id="cv3-logo-upload" accept="image/png,image/jpeg" style="display:none">
         <button type="button" class="cv3-btn-sec" onclick="document.getElementById('cv3-logo-upload').click()">Upload Logo</button>
@@ -257,6 +262,9 @@
     logoPosition: 'bottom-center',
     logoXFrac: null,   // null => use logoPosition; otherwise fraction of canvas width
     logoYFrac: null,
+    titleXFrac: null,  // null => default centered top; otherwise fraction of canvas dims
+    titleYFrac: null,  // (subtitle stays grouped just below title at fixed gap)
+    universalScale: 1.0,  // Scales every species by this factor (preview + render)
     canvasW: 5100,
     canvasH: 3300,
     lastRenderTime: null,
@@ -597,35 +605,66 @@
       return;
     }
 
-    // Title
-    if (state.title) {
-      const titleDiv = document.createElement('div');
-      titleDiv.className = 'cv3-ed-title';
-      titleDiv.contentEditable = 'true';
-      titleDiv.textContent = state.title;
-      titleDiv.style.cssText = 'position:absolute;top:' + (3 * canvasScale * 100) + 'px;left:0;right:0;text-align:center;font-family:\'' + state.titleFont + '\',Georgia,serif;font-size:' + (state.titleSize * canvasScale) + 'px;color:' + state.titleColor + ';font-weight:' + (state.titleBold ? '700' : '700') + ';font-style:' + (state.titleItalic ? 'italic' : 'normal') + ';outline:none;cursor:text;';
-      titleDiv.addEventListener('blur', function() { state.title = titleDiv.textContent; });
-      canvas.appendChild(titleDiv);
-    }
-    if (state.subtitle) {
-      const subDiv = document.createElement('div');
-      subDiv.className = 'cv3-ed-subtitle';
-      subDiv.contentEditable = 'true';
-      subDiv.textContent = state.subtitle;
-      subDiv.style.cssText = 'position:absolute;top:' + (8 * canvasScale * 100) + 'px;left:0;right:0;text-align:center;font-family:\'' + state.titleFont + '\',Georgia,serif;font-size:' + (state.titleSize * 0.35 * canvasScale) + 'px;color:' + state.titleColor + ';font-style:italic;outline:none;cursor:text;';
-      subDiv.addEventListener('blur', function() { state.subtitle = subDiv.textContent; });
-      canvas.appendChild(subDiv);
+    // Title + subtitle group — wrapped in one draggable container so the
+    // subtitle follows the title at a fixed gap.
+    if (state.title || state.subtitle) {
+      const titleGroup = document.createElement('div');
+      titleGroup.className = 'cv3-ed-title-group';
+      titleGroup.dataset.role = 'title-group';
+      // Default position: centered horizontally, top ~9% of canvas (matches
+      // renderer's title_band_h * 0.30 with title_band_h = canvas_h * 0.16
+      // → ~4.8% of canvas height) plus the editor's existing 3 * 100 = 300px
+      // offset which approximates that on a 3300-tall canvas.
+      const groupW = state.canvasW;  // full-width container; text-align:center inside
+      let gx, gy;
+      if (state.titleXFrac != null && state.titleYFrac != null) {
+        gx = state.titleXFrac * state.canvasW;
+        gy = state.titleYFrac * state.canvasH;
+      } else {
+        gx = 0;
+        gy = 300;  // matches previous default top offset
+      }
+      const dgx = gx * canvasScale;
+      const dgy = gy * canvasScale;
+      titleGroup.style.cssText = 'position:absolute;left:' + dgx + 'px;top:' + dgy + 'px;width:' + (groupW * canvasScale) + 'px;cursor:grab;user-select:none;';
+
+      if (state.title) {
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'cv3-ed-title';
+        titleDiv.contentEditable = 'true';
+        titleDiv.textContent = state.title;
+        titleDiv.style.cssText = 'text-align:center;font-family:\'' + state.titleFont + '\',Georgia,serif;font-size:' + (state.titleSize * canvasScale) + 'px;color:' + state.titleColor + ';font-weight:' + (state.titleBold ? '700' : '700') + ';font-style:' + (state.titleItalic ? 'italic' : 'normal') + ';outline:none;line-height:1.05;';
+        titleDiv.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+        titleDiv.addEventListener('pointerdown', function(e) { e.stopPropagation(); });
+        titleDiv.addEventListener('blur', function() { state.title = titleDiv.textContent; });
+        titleGroup.appendChild(titleDiv);
+      }
+      if (state.subtitle) {
+        const subDiv = document.createElement('div');
+        subDiv.className = 'cv3-ed-subtitle';
+        subDiv.contentEditable = 'true';
+        subDiv.textContent = state.subtitle;
+        subDiv.style.cssText = 'text-align:center;font-family:\'' + state.titleFont + '\',Georgia,serif;font-size:' + (state.titleSize * 0.35 * canvasScale) + 'px;color:' + state.titleColor + ';font-style:italic;outline:none;margin-top:' + (state.titleSize * 0.4 * canvasScale) + 'px;line-height:1.05;';
+        subDiv.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+        subDiv.addEventListener('pointerdown', function(e) { e.stopPropagation(); });
+        subDiv.addEventListener('blur', function() { state.subtitle = subDiv.textContent; });
+        titleGroup.appendChild(subDiv);
+      }
+
+      canvas.appendChild(titleGroup);
+      makeTitleDraggable(titleGroup);
     }
 
     // Species
+    const uScale = (typeof state.universalScale === 'number' && state.universalScale > 0) ? state.universalScale : 1.0;
     state.selectedSpecies.forEach(function(p, i) {
       if (typeof p.x !== 'number' || typeof p.draw_width !== 'number') return;
       const el = document.createElement('div');
       el.className = 'cv3-ed-species';
       el.dataset.index = i;
       el.dataset.slug = p.slug;
-      const dw = p.draw_width * canvasScale;
-      const dh = p.draw_height * canvasScale;
+      const dw = p.draw_width * uScale * canvasScale;
+      const dh = p.draw_height * uScale * canvasScale;
       const dx = p.x * canvasScale;
       const dy = p.y * canvasScale;
       el.style.cssText = 'position:absolute;left:' + dx + 'px;top:' + dy + 'px;width:' + dw + 'px;height:' + dh + 'px;cursor:grab;user-select:none;';
@@ -693,6 +732,41 @@
     // Status
     const t = state.lastRenderTime ? state.lastRenderTime.toLocaleTimeString() : '';
     setStatus(state.selectedSpecies.length + ' species placed' + (t ? ' (last layout ' + t + ')' : '') + '. Drag to reposition.');
+  }
+
+  function makeTitleDraggable(el) {
+    el.addEventListener('pointerdown', function(e) {
+      if (e.button !== 0) return;
+      // Allow click-into contentEditable children for editing without drag.
+      if (e.target !== el) {
+        const isEditable = e.target.isContentEditable || e.target.classList.contains('cv3-ed-title') || e.target.classList.contains('cv3-ed-subtitle');
+        if (isEditable) return;
+      }
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      el.style.cursor = 'grabbing';
+      el.style.zIndex = '99';
+      const startX = e.clientX, startY = e.clientY;
+      const origLeft = parseFloat(el.style.left) || 0;
+      const origTop = parseFloat(el.style.top) || 0;
+      function onMove(e2) {
+        el.style.left = (origLeft + (e2.clientX - startX)) + 'px';
+        el.style.top = (origTop + (e2.clientY - startY)) + 'px';
+      }
+      function onUp(e2) {
+        el.releasePointerCapture(e2.pointerId);
+        el.style.cursor = 'grab';
+        el.style.zIndex = '';
+        el.removeEventListener('pointermove', onMove);
+        el.removeEventListener('pointerup', onUp);
+        const lx = parseFloat(el.style.left) / canvasScale;
+        const ly = parseFloat(el.style.top) / canvasScale;
+        state.titleXFrac = lx / state.canvasW;
+        state.titleYFrac = ly / state.canvasH;
+      }
+      el.addEventListener('pointermove', onMove);
+      el.addEventListener('pointerup', onUp);
+    });
   }
 
   function makeLogoDraggable(el, boxW, boxH) {
@@ -912,6 +986,23 @@
     $('cv3-label-size').addEventListener('input', function() { state.labelSize = parseInt(this.value, 10); $('cv3-label-size-val').textContent = this.value; drawCanvas(); });
     $('cv3-label-color').addEventListener('input', function() { state.labelColor = this.value; drawCanvas(); });
     $('cv3-label-gap').addEventListener('input', function() { state.labelGap = parseInt(this.value, 10); $('cv3-label-gap-val').textContent = this.value; drawCanvas(); });
+
+    const univ = $('cv3-univ-scale');
+    if (univ) {
+      univ.addEventListener('input', function() {
+        state.universalScale = parseFloat(this.value);
+        $('cv3-univ-scale-val').textContent = state.universalScale.toFixed(2);
+        drawCanvas();
+      });
+    }
+    const tReset = $('cv3-title-reset');
+    if (tReset) {
+      tReset.addEventListener('click', function() {
+        state.titleXFrac = null;
+        state.titleYFrac = null;
+        drawCanvas();
+      });
+    }
   }
 
   let _bgGalleryHandler = null;
@@ -973,12 +1064,13 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           placements: state.selectedSpecies.map(function(p) {
+            const us = (typeof state.universalScale === 'number' && state.universalScale > 0) ? state.universalScale : 1.0;
             return {
               slug: p.slug,
               x: p.x || 0,
               y: p.y || 0,
-              draw_width: p.draw_width || 800,
-              draw_height: p.draw_height || 600,
+              draw_width: Math.max(1, Math.round((p.draw_width || 800) * us)),
+              draw_height: Math.max(1, Math.round((p.draw_height || 600) * us)),
             };
           }),
           canvas_width: state.canvasW,
@@ -988,6 +1080,7 @@
           background: state.bgColor,
           background_image_filename: state.bgFilename,
           style: state.style,
+          universal_scale: state.universalScale,
           text_config: {
             title_font: state.titleFont,
             title_size: state.titleSize,
@@ -998,6 +1091,10 @@
             label_size: state.labelSize,
             label_color: state.labelColor,
             label_gap: state.labelGap,
+          },
+          title_config: {
+            x_frac: state.titleXFrac,
+            y_frac: state.titleYFrac,
           },
           logo_filename: state.logoFilename,
           logo_config: {

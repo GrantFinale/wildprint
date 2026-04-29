@@ -1102,18 +1102,52 @@ class EditorialMultiRenderer(PosterRenderer):
             )
 
         # 1. Title block — title + italic subtitle (or empty) + ornamental rule.
-        _draw_title_block(
-            draw=draw,
-            canvas_w=canvas_w,
-            title_band_h=title_band_h,
-            title=spec.title or "",
-            italic_secondary=spec.subtitle,
-            bold_font=title_font,
-            italic_font=scientific_font,
-            title_color=self.title_color,
-            secondary_color=self.scientific_color,
-            rule_color=self.rule_color,
-        )
+        # If the editor passed explicit (x_frac, y_frac) for the title group,
+        # render the title + subtitle at those fractional canvas coords (no
+        # ornamental rule, since the user picked their own placement).
+        _title_xf = getattr(self, "_title_x_frac", None)
+        _title_yf = getattr(self, "_title_y_frac", None)
+        if _title_xf is not None and _title_yf is not None:
+            title_text = spec.title or ""
+            tx_origin = int(round(float(_title_xf) * canvas_w))
+            ty_origin = int(round(float(_title_yf) * canvas_h))
+            sub_text = spec.subtitle or ""
+            cur_y = ty_origin
+            if title_text:
+                tw, th = _text_size(draw, title_text, title_font)
+                # Center horizontally within the canvas, but offset by the
+                # group's left position (tx_origin acts like left edge of a
+                # canvas-wide centering box — same convention as client).
+                title_x = tx_origin + (canvas_w - tw) // 2
+                draw.text(
+                    (title_x, cur_y),
+                    title_text,
+                    font=title_font,
+                    fill=self.title_color,
+                )
+                cur_y += th + int(self.title_font_size * 0.4)
+            if sub_text:
+                sw, sh = _text_size(draw, sub_text, scientific_font)
+                sub_x = tx_origin + (canvas_w - sw) // 2
+                draw.text(
+                    (sub_x, cur_y),
+                    sub_text,
+                    font=scientific_font,
+                    fill=self.scientific_color,
+                )
+        else:
+            _draw_title_block(
+                draw=draw,
+                canvas_w=canvas_w,
+                title_band_h=title_band_h,
+                title=spec.title or "",
+                italic_secondary=spec.subtitle,
+                bold_font=title_font,
+                italic_font=scientific_font,
+                title_color=self.title_color,
+                secondary_color=self.scientific_color,
+                rule_color=self.rule_color,
+            )
 
         # 2. Paste each placed item and draw its label.
         # Detect shelf density: group placements by y-position (±80px)
