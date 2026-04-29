@@ -1563,6 +1563,23 @@ class EditorialMultiRenderer(PosterRenderer):
         leader_count = 0
         fallback_count = 0
 
+        # Track placed label rects so subsequent labels can hard-check
+        # AABB-vs-AABB collision (not just the lossy occupancy mask). This
+        # was the root cause of label-on-label overwrites at N>=12.
+        placed_label_rects: list[tuple[int, int, int, int]] = []
+
+        # Visual breathing room — labels that touch edge-to-edge read as one
+        # word. Inflate every existing label rect by this many px in all
+        # directions before testing the new candidate.
+        label_pad_px = max(12, int(self.label_letter_spacing * 3))
+
+        def _label_collides(lx: int, ly: int, lw: int, lh: int) -> bool:
+            for rx1, ry1, rx2, ry2 in placed_label_rects:
+                if (lx < rx2 + label_pad_px and lx + lw + label_pad_px > rx1
+                        and ly < ry2 + label_pad_px and ly + lh + label_pad_px > ry1):
+                    return True
+            return False
+
         for placed in ordered:
             sp = placed.species_ref
             lw, lh, common_w, common_h = _measure_label(sp)
@@ -1584,22 +1601,56 @@ class EditorialMultiRenderer(PosterRenderer):
 
             chosen: tuple[int, int] | None = None
             for _name, cx0, cy0 in candidates:
-                if _fits(cx0, cy0, lw, lh):
+                if _fits(cx0, cy0, lw, lh) and not _label_collides(cx0, cy0, lw, lh):
                     chosen = (cx0, cy0)
                     break
 
+            # If none of the cardinal candidates work, scan vertically below
+            # the species in steps until we find a y that clears every prior
+            # label rect. This guarantees no label-on-label overlap even at
+            # high density — at worst the label sits a bit further from its
+            # silhouette and the leader line gets longer.
             if chosen is None:
-                # Fallback: inline below, accept overlap.
+                step = max(8, lh // 4)
+                # Try below first, then above, drifting outward.
+                for direction in (1, -1):
+                    if chosen is not None:
+                        break
+                    for dist in range(0, canvas_h, step):
+                        ty = (sy + sh + gap + dist) if direction > 0 else (sy - lh - gap - dist)
+                        tx = sx + sw // 2 - lw // 2
+                        if tx < 0 or tx + lw > canvas_w:
+                            continue
+                        if ty < 0 or ty + lh > canvas_h:
+                            continue
+                        if _label_collides(tx, ty, lw, lh):
+                            continue
+                        # Accept even if occupancy says "full" — labels
+                        # never collide, that's the priority.
+                        chosen = (tx, ty)
+                        break
+
+            if chosen is None:
+                # Last-resort fallback: inline below, but slot it down by
+                # the height of any colliding label rect so we still avoid
+                # exact label-on-label overwrite.
                 inline_x = sx + sw // 2 - lw // 2
                 inline_y = sy + sh + self.label_gap_px
+                # Walk down until clear.
+                guard = 0
+                while _label_collides(inline_x, inline_y, lw, lh) and guard < 200:
+                    inline_y += max(8, lh // 4)
+                    guard += 1
                 _draw_label_block(inline_x, inline_y, lw, sp, common_w, common_h)
                 _mark(inline_x, inline_y, lw, lh)
+                placed_label_rects.append((inline_x, inline_y, inline_x + lw, inline_y + lh))
                 fallback_count += 1
                 continue
 
             lx, ly = chosen
             _draw_label_block(lx, ly, lw, sp, common_w, common_h)
             _mark(lx, ly, lw, lh)
+            placed_label_rects.append((lx, ly, lx + lw, ly + lh))
 
             # Draw leader from species-edge nearest point to label-edge nearest point.
             # Pick nearest points on each rect toward the other's center.

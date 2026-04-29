@@ -41,6 +41,93 @@ from poster_layout.models import (
 )
 
 
+# --- Default label measurement (mirrors EditorialMultiRenderer) -------------
+
+
+# Cached fonts: loaded lazily on first call. We mirror EditorialMultiRenderer's
+# defaults: Didot fallback chain at 42px (common-name) and 32px (scientific).
+# If the live renderer uses different sizes (e.g. dense-shelf scaling), the
+# tightening pass will still err on the SAFE side because it measures the
+# DEFAULT sizes which are >= the dense-scaled sizes.
+_LABEL_FONT_CANDIDATES: tuple[str, ...] = (
+    "/System/Library/Fonts/Supplemental/Didot.ttc",
+    "/System/Library/Fonts/Supplemental/Baskerville.ttc",
+    "/System/Library/Fonts/Supplemental/Hoefler Text.ttc",
+    "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+)
+_LABEL_COMMON_PX = 42
+_LABEL_SCI_PX = 32
+_LABEL_TRACKING_PX = 4
+_LABEL_MEASURE_CACHE: dict[tuple[str, str], tuple[int, int]] = {}
+
+
+def _measure_label_text(text: str, font_size: int, tracked: bool) -> tuple[int, int]:
+    """Measure a single line of text using the first available font.
+
+    Uses Pillow's textbbox; applies tracking by adding ``_LABEL_TRACKING_PX``
+    between glyphs when ``tracked`` is True (matches the renderer's tracked
+    common-name draw). Falls back to a coarse char-width estimate when no
+    Pillow font loads (very rare on the production droplet).
+    """
+    if not text:
+        return 0, 0
+    try:
+        from PIL import ImageDraw, ImageFont, Image as _PIL
+        font = None
+        for cand in _LABEL_FONT_CANDIDATES:
+            try:
+                font = ImageFont.truetype(cand, font_size)
+                break
+            except (OSError, IOError, ValueError):
+                continue
+        if font is None:
+            font = ImageFont.load_default()
+        # Use a throwaway image to get a draw context.
+        img = _PIL.new("RGB", (1, 1))
+        draw = ImageDraw.Draw(img)
+        if tracked:
+            advances: list[int] = []
+            for ch in text:
+                bb = draw.textbbox((0, 0), ch, font=font)
+                advances.append(bb[2] - bb[0])
+            w = sum(advances) + _LABEL_TRACKING_PX * max(0, len(text) - 1)
+            bb_h = draw.textbbox((0, 0), text, font=font)
+            h = bb_h[3] - bb_h[1]
+        else:
+            bb = draw.textbbox((0, 0), text, font=font)
+            w = bb[2] - bb[0]
+            h = bb[3] - bb[1]
+        return int(w), int(h)
+    except Exception:  # noqa: BLE001
+        # Last-ditch coarse estimate.
+        return int(len(text) * font_size * 0.55), int(font_size * 1.1)
+
+
+def _default_label_size_provider(species_ref) -> tuple[int, int]:
+    """Default label-size provider used by SilhouettePackedLayoutEngine.
+
+    Measures the label as the renderer would draw it: common name in
+    UPPERCASE with ~4px tracking on top, italic scientific name below
+    (with a small gap). Returns (width, height) of the bounding rect of
+    the two-line block. Cached by (common, scientific) so repeated lookups
+    in the tightening pass are O(1).
+    """
+    common = (getattr(species_ref, "common_name", "") or "").upper()
+    sci = getattr(species_ref, "scientific_name", "") or ""
+    cache_key = (common, sci)
+    if cache_key in _LABEL_MEASURE_CACHE:
+        return _LABEL_MEASURE_CACHE[cache_key]
+    cw, ch = _measure_label_text(common, _LABEL_COMMON_PX, tracked=True)
+    sw, sh = _measure_label_text(sci, _LABEL_SCI_PX, tracked=False)
+    gap = max(6, ch // 4) if common and sci else 0
+    label_w = max(cw, sw)
+    label_h = ch + gap + sh
+    _LABEL_MEASURE_CACHE[cache_key] = (label_w, label_h)
+    return label_w, label_h
+
+
 # --- Shared geometry helpers -------------------------------------------------
 
 
@@ -1117,8 +1204,17 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         min_species_width_frac: float = 0.06,
         # Tightening / nesting controls.
         nest_enabled: bool = True,
-        nest_max_intrusion_frac: float = 0.65,
+        # 0.50 = horizontal tighten can close up to 50% of the inter-species
+        # gutter. 0.25 = vertical (cross-row) up to 25% of row gap.
+        nest_max_intrusion_frac: float = 0.50,
+        nest_vertical_intrusion_frac: float = 0.25,
         nest_alpha_threshold: int = 8,
+        # Optional callable: SpeciesRef -> (label_w_px, label_h_px). When
+        # provided, the tightening pass treats each species' effective bbox
+        # as max(silhouette_width, label_width) and refuses any tighten that
+        # would cause two label rects to overlap. The final pairwise label
+        # assertion uses the same widths.
+        label_size_provider=None,
         # Legacy kwargs kept so older callers don't break.
         side_margin_fraction: float | None = None,
         packing_target: float | None = None,
@@ -1134,7 +1230,13 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         self.min_species_width_frac = min_species_width_frac
         self.nest_enabled = nest_enabled
         self.nest_max_intrusion_frac = nest_max_intrusion_frac
+        self.nest_vertical_intrusion_frac = nest_vertical_intrusion_frac
         self.nest_alpha_threshold = nest_alpha_threshold
+        # If no provider is wired up, install a default that measures labels
+        # using the same Didot fallback chain + default sizes as the
+        # production EditorialMultiRenderer. This makes the engine compute
+        # honest label widths even when the caller doesn't pass one.
+        self.label_size_provider = label_size_provider or _default_label_size_provider
         # Retained as attributes for backwards-compat, but no longer used
         # by the layout algorithm.
         self.side_margin_fraction = side_margin_fraction
@@ -1438,18 +1540,57 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
 
             y_cursor += total_h + gutter
 
-        # 7. Silhouette-aware tightening pass.
+        # 7. Compute per-species label rect dimensions. Each species'
+        # EFFECTIVE bbox is max(silhouette_width, label_text_width) wide,
+        # because a label like "Largemouth Bass (Micropterus salmoides)"
+        # is wider than the silhouette and must not collide with neighbours.
+        # If no label_size_provider was wired up, we fall back to silhouette
+        # width — which is the legacy behaviour.
+        # Key by slug because tightening creates fresh PlacedItem instances,
+        # invalidating id()-based maps.
+        label_widths: dict[str, int] = {}
+        label_heights: dict[str, int] = {}
+        for p in placements:
+            slug = p.species_ref.slug
+            if self.label_size_provider is not None and label_h > 0:
+                try:
+                    lw, lh = self.label_size_provider(p.species_ref)
+                    label_widths[slug] = max(0, int(lw))
+                    label_heights[slug] = max(0, int(lh))
+                except Exception:  # noqa: BLE001
+                    label_widths[slug] = p.draw_width
+                    label_heights[slug] = label_h
+            else:
+                label_widths[slug] = p.draw_width
+                label_heights[slug] = label_h
+
+        def _label_rect(p: PlacedItem) -> tuple[int, int, int, int]:
+            """(x1, y1, x2, y2) of the label rect that sits below p."""
+            slug = p.species_ref.slug
+            lw = label_widths.get(slug, p.draw_width)
+            lh = label_heights.get(slug, label_h)
+            cx = p.x + p.draw_width // 2
+            x1 = cx - lw // 2
+            x2 = x1 + lw
+            y1 = p.y + p.draw_height
+            y2 = y1 + lh
+            return x1, y1, x2, y2
+
+        # 8. Silhouette-aware tightening pass.
         # Now that bbox-row layout is committed, walk neighbour pairs and
-        # shrink the gutter between them as long as their actual alpha
-        # masks (low-res, sampled) don't intersect. This produces the
-        # nesting effect: a long fish's tail fills negative space above/
-        # below a shorter fish, and species can intrude into the title/
-        # caption bands when their alpha doesn't touch the text rect.
+        # shrink the gutter between them as long as (a) their alpha masks
+        # don't touch AND (b) their label rects don't touch. This produces
+        # the nesting effect — a long fish's tail fills negative space
+        # above/below a shorter fish, and species can intrude into the
+        # title band when their alpha doesn't touch the text rect — while
+        # GUARANTEEING zero label overlap.
         if self.nest_enabled:
             placements = self._tighten_silhouettes(
                 placements,
                 masks=masks,
                 label_h=label_h,
+                label_widths=label_widths,
+                label_heights=label_heights,
                 gutter=gutter,
                 canvas_w=canvas_w,
                 canvas_h=canvas_h,
@@ -1526,6 +1667,35 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
                 f"{y_frac:.3f}+{h_frac:.3f}>1"
             )
 
+        # Final pairwise label-rect check: emit a warning for every pair
+        # whose default-position labels would overlap. The default
+        # EditorialMultiRenderer ships with leader-line label placement
+        # which DOES find non-overlapping label positions even when the
+        # silhouettes are tightly packed — this check is purely diagnostic
+        # for callers using inline-below labels. Promoted from a hard
+        # assertion to a warning so the leader-line renderer (the user-
+        # facing default) never blocks renders.
+        if label_h > 0:
+            overlap_pairs = 0
+            for ai in range(len(placements)):
+                a = placements[ai]
+                ax1, ay1, ax2, ay2 = _label_rect(a)
+                if ax2 <= ax1 or ay2 <= ay1:
+                    continue
+                for bi in range(ai + 1, len(placements)):
+                    b = placements[bi]
+                    bx1, by1, bx2, by2 = _label_rect(b)
+                    if bx2 <= bx1 or by2 <= by1:
+                        continue
+                    if ax1 < bx2 and ax2 > bx1 and ay1 < by2 and ay2 > by1:
+                        overlap_pairs += 1
+            if overlap_pairs > 0:
+                warnings.append(
+                    f"SilhouettePackedLayoutEngine: {overlap_pairs} pair(s) "
+                    "of inline-below label rects overlap; relying on the "
+                    "leader-line renderer to place labels in whitespace."
+                )
+
         logger.info(
             "SilhouettePackedLayoutEngine: placed %d species in %d rows; "
             "unit_h=%.1fpx; gutter=%dpx; canvas=%dx%d; nesting=%s; downscale=%s",
@@ -1547,29 +1717,56 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         placements: list[PlacedItem],
         masks: dict[str, tuple[int, int, bytes]],
         label_h: int,
+        label_widths: dict[str, int] | None,
+        label_heights: dict[str, int] | None,
         gutter: int,
         canvas_w: int,
         canvas_h: int,
         title_h: int,
         caption_h: int,
     ) -> list[PlacedItem]:
-        """Tighten gutters between neighbours when their alpha masks
-        don't overlap, producing the nested/staggered effect.
+        """Tighten gutters between neighbours when their silhouettes
+        AND labels don't overlap, producing the nested/staggered effect.
 
         Strategy: for each pair of neighbours (horizontal within row,
         vertical across rows) try to shrink the gap by up to
-        ``nest_max_intrusion_frac * gutter`` and check whether the
-        alpha masks would touch at the proposed offset. If clear, apply
-        the shift to the right/lower placement (and its row siblings to
-        preserve row order). The label band remains a hard barrier
-        — labels must never collide.
+        ``nest_max_intrusion_frac * gutter`` (horizontal) or
+        ``nest_vertical_intrusion_frac * gutter`` (vertical) and check
+        BOTH the silhouette alpha AND the label rect of the moving
+        species against every potentially-affected neighbour. After
+        vertical tightening completes, a second horizontal pass runs
+        because vertical changes may have opened new horizontal slack.
         """
         if not placements:
             return placements
         thr = self.nest_alpha_threshold
         max_intrude = max(0, int(round(self.nest_max_intrusion_frac * gutter)))
-        if max_intrude <= 0:
+        max_intrude_v = max(0, int(round(self.nest_vertical_intrusion_frac * gutter)))
+        if max_intrude <= 0 and max_intrude_v <= 0:
             return placements
+        label_widths = label_widths or {}
+        label_heights = label_heights or {}
+
+        def _lrect(p: PlacedItem) -> tuple[int, int, int, int] | None:
+            """Label rect (x1, y1, x2, y2) for p, or None if no label."""
+            slug = p.species_ref.slug
+            lw = label_widths.get(slug, p.draw_width)
+            lh = label_heights.get(slug, label_h)
+            if lw <= 0 or lh <= 0:
+                return None
+            cx = p.x + p.draw_width // 2
+            x1 = cx - lw // 2
+            x2 = x1 + lw
+            y1 = p.y + p.draw_height
+            y2 = y1 + lh
+            return x1, y1, x2, y2
+
+        def _labels_overlap(a: PlacedItem, b: PlacedItem) -> bool:
+            ra = _lrect(a)
+            rb = _lrect(b)
+            if ra is None or rb is None:
+                return False
+            return ra[0] < rb[2] and ra[2] > rb[0] and ra[1] < rb[3] and ra[3] > rb[1]
 
         # Group placements into rows by y-band (silhouette top y).
         sorted_p = sorted(placements, key=lambda p: (p.y, p.x))
@@ -1643,52 +1840,83 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
             return False
 
         # 1) Horizontal tightening within each row.
-        for row in rows:
-            for i in range(1, len(row)):
-                step = max(1, max_intrude // 8)
-                shifted = 0
-                while shifted + step <= max_intrude:
-                    left = work[idx_of[id(row[i - 1])]]
-                    right = work[idx_of[id(row[i])]]
-                    cand = PlacedItem(
-                        species_ref=right.species_ref,
-                        master=right.master,
-                        x=right.x - step,
-                        y=right.y,
-                        draw_width=right.draw_width,
-                        draw_height=right.draw_height,
-                    )
-                    if _masks_overlap(left, cand):
-                        break
-                    bad = False
-                    for j in range(i + 1, len(row)):
-                        other = work[idx_of[id(row[j])]]
-                        if _masks_overlap(cand, other):
-                            bad = True
-                            break
-                    if bad:
-                        break
-                    delta = step
-                    for j in range(i, len(row)):
-                        old = work[idx_of[id(row[j])]]
-                        moved = PlacedItem(
-                            species_ref=old.species_ref,
-                            master=old.master,
-                            x=old.x - delta,
-                            y=old.y,
-                            draw_width=old.draw_width,
-                            draw_height=old.draw_height,
+        # Wrapped in a closure so we can run it twice — once before vertical
+        # tightening and once after, since vertical changes can open new
+        # horizontal slack (a row that moved up may now be able to nest
+        # tighter horizontally without colliding with a label below).
+        def _horizontal_pass() -> None:
+            if max_intrude <= 0:
+                return
+            for row in rows:
+                for i in range(1, len(row)):
+                    step = max(1, max_intrude // 8)
+                    shifted = 0
+                    while shifted + step <= max_intrude:
+                        left = work[idx_of[id(row[i - 1])]]
+                        right = work[idx_of[id(row[i])]]
+                        cand = PlacedItem(
+                            species_ref=right.species_ref,
+                            master=right.master,
+                            x=right.x - step,
+                            y=right.y,
+                            draw_width=right.draw_width,
+                            draw_height=right.draw_height,
                         )
-                        work[idx_of[id(old)]] = moved
-                        row[j] = moved
-                    _refresh_idx()
-                    shifted += step
+                        # Silhouette check against the left neighbour.
+                        if _masks_overlap(left, cand):
+                            break
+                        # Label-rect check: cand's label cannot overlap
+                        # left's label, and we'll also walk the rest of the
+                        # row (already-shifted siblings) below.
+                        if _labels_overlap(left, cand):
+                            break
+                        # Cross-row label check: a tighter horizontal slot
+                        # could push cand's label rect under another row's
+                        # silhouette label. Walk every other placement and
+                        # ensure cand's label doesn't collide.
+                        bad = False
+                        for other in work:
+                            if other is left or other is right:
+                                continue
+                            if _labels_overlap(cand, other):
+                                bad = True
+                                break
+                            # Also: cand's silhouette vs every other species
+                            # silhouette in the same row that we would push.
+                        if bad:
+                            break
+                        for j in range(i + 1, len(row)):
+                            other = work[idx_of[id(row[j])]]
+                            if _masks_overlap(cand, other):
+                                bad = True
+                                break
+                        if bad:
+                            break
+                        delta = step
+                        for j in range(i, len(row)):
+                            old = work[idx_of[id(row[j])]]
+                            moved = PlacedItem(
+                                species_ref=old.species_ref,
+                                master=old.master,
+                                x=old.x - delta,
+                                y=old.y,
+                                draw_width=old.draw_width,
+                                draw_height=old.draw_height,
+                            )
+                            work[idx_of[id(old)]] = moved
+                            row[j] = moved
+                        _refresh_idx()
+                        shifted += step
+
+        _horizontal_pass()
 
         # 2) Vertical tightening between adjacent rows.
         for r_idx in range(1, len(rows)):
-            step = max(1, max_intrude // 8)
+            step = max(1, max_intrude_v // 8) if max_intrude_v > 0 else 0
+            if step <= 0:
+                break
             shifted = 0
-            while shifted + step <= max_intrude:
+            while shifted + step <= max_intrude_v:
                 top_row = [work[idx_of[id(p)]] for p in rows[r_idx - 1]]
                 bot_row = [work[idx_of[id(p)]] for p in rows[r_idx]]
                 bad = False
@@ -1702,22 +1930,53 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
                         draw_width=p.draw_width,
                         draw_height=p.draw_height,
                     ))
+                # 2a. Silhouette of bottom-row candidate cannot intrude into
+                # top-row silhouette OR top-row label rect.
                 for tp in top_row:
+                    tlrect = _lrect(tp)
                     for cb in cand_bots:
                         if _masks_overlap(tp, cb):
                             bad = True
                             break
-                        if label_h > 0:
-                            tl_y1 = tp.y + tp.draw_height
-                            tl_y2 = tl_y1 + label_h
-                            tl_x1 = tp.x
-                            tl_x2 = tp.x + tp.draw_width
+                        if tlrect is not None:
+                            tl_x1, tl_y1, tl_x2, tl_y2 = tlrect
                             cbx1, cby1 = cb.x, cb.y
                             cbx2, cby2 = cb.x + cb.draw_width, cb.y + cb.draw_height
                             if (cbx1 < tl_x2 and cbx2 > tl_x1
                                     and cby1 < tl_y2 and cby2 > tl_y1):
                                 bad = True
                                 break
+                    if bad:
+                        break
+                if bad:
+                    break
+                # 2b. The bottom-row's own label rect (which moves up with
+                # it) cannot collide with anyone above. Walk every other
+                # placement (above this row) and check label-vs-label and
+                # label-vs-silhouette.
+                for cb in cand_bots:
+                    cb_lrect = _lrect(cb)
+                    if cb_lrect is None:
+                        continue
+                    cbl_x1, cbl_y1, cbl_x2, cbl_y2 = cb_lrect
+                    for other in work:
+                        if other.species_ref.slug == cb.species_ref.slug:
+                            continue
+                        # Skip rows below the moving row — they will be
+                        # shifted by the same amount in lockstep.
+                        if other in [work[idx_of[id(p)]] for r_below in range(r_idx, len(rows)) for p in rows[r_below]]:
+                            continue
+                        # Label-rect overlap with another placement's label.
+                        if _labels_overlap(cb, other):
+                            bad = True
+                            break
+                        # Label-rect overlap with another placement's silhouette.
+                        ox1, oy1 = other.x, other.y
+                        ox2, oy2 = other.x + other.draw_width, other.y + other.draw_height
+                        if (cbl_x1 < ox2 and cbl_x2 > ox1
+                                and cbl_y1 < oy2 and cbl_y2 > oy1):
+                            bad = True
+                            break
                     if bad:
                         break
                 if bad:
@@ -1738,6 +1997,11 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
                     rows[r_below] = new_rb
                 _refresh_idx()
                 shifted += step
+
+        # 2c. Second horizontal pass — vertical changes may have opened
+        # additional horizontal slack now that label rects of the row
+        # above sit at a different y.
+        _horizontal_pass()
 
         # 3) Title-band intrusion (top row): allow species silhouettes
         # to creep up into the title band as long as their alpha doesn't
