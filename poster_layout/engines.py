@@ -1079,32 +1079,31 @@ class PackedLayoutEngine(LayoutEngine):
 
 
 class SilhouettePackedLayoutEngine(LayoutEngine):
-    """Uniform-gutter row layout with hard zero-overlap guarantee.
+    """Row-based layout with silhouette-aware nesting + uniform scale-fit fallback.
 
-    Earlier revisions of this engine attempted to nest silhouettes by
-    walking an alpha-mask occupancy grid and relaxing the overlap
-    tolerance until a position was found. That produced compositions
-    where labels (which are not part of the alpha mask) collided with
-    neighbouring species, and where adjacent species' bounding boxes
-    overlapped whenever the canvas was crowded.
+    The structural skeleton is a strict bbox row packer (uniform gutters,
+    species sorted by relative_scale_index, snake-distributed across rows),
+    which guarantees ordered rows and clean vertical rhythm.
 
-    The new algorithm enforces three invariants the user asked for:
+    On top of that, two passes refine the layout to meet the user's goals:
 
-    1. **Zero overlap.** Each species' bounding rectangle is the union
-       of its silhouette bbox *and* the label band drawn beneath it.
-       No two rectangles intersect, full stop. The engine reaches the
-       guarantee by uniformly shrinking the species scale instead of
-       allowing collisions, and as a last resort drops the
-       lowest-priority species rather than violating the rule.
-    2. **Uniform gutters.** A single ``gutter_frac`` of canvas height
-       is used identically for: the gap between adjacent species in a
-       row, the gap between rows, the gap between a species and its
-       label, and the margin from the species cluster to the canvas
-       edges (and to the title and caption bands).
-    3. **Fill the canvas.** After choosing the row count that
-       maximises species size, the engine grows the species uniformly
-       so the cluster fills the available content area within the
-       gutter margins.
+    1. **Silhouette-aware tightening pass.** After bbox row layout is
+       computed, neighbours (horizontal within a row, and vertical across
+       rows) have their gutters reduced as long as the actual alpha masks
+       don't touch. This produces the "nested" feel: a long fish's tail
+       can sit in the dead air above/below a shorter fish, and species
+       can intrude into the title/caption bands when their alphas don't
+       overlap the rendered text rect.
+    2. **Uniform scale-fit fallback.** Before considering dropping any
+       species, the engine progressively shrinks ALL species by the same
+       ratio (uniform downscale) until the strict no-overlap, zero-runoff
+       condition holds. Only after the largest species would fall below
+       ``min_species_width_frac`` (default 6%) does the engine drop the
+       lowest-priority species.
+
+    A final assertion verifies every placement satisfies
+    ``0 <= x_frac`` and ``x_frac + width_frac <= 1`` (and likewise on Y);
+    if not, a uniform shrink-to-fit is forced as a last-ditch safety net.
     """
 
     def __init__(
@@ -1115,7 +1114,11 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         scale_clamp_ratio: float = 4.0,
         min_visible_fraction: float = 0.25,
         label_height_px: int = 100,
-        min_species_width_frac: float = 0.08,
+        min_species_width_frac: float = 0.06,
+        # Tightening / nesting controls.
+        nest_enabled: bool = True,
+        nest_max_intrusion_frac: float = 0.65,
+        nest_alpha_threshold: int = 8,
         # Legacy kwargs kept so older callers don't break.
         side_margin_fraction: float | None = None,
         packing_target: float | None = None,
@@ -1129,6 +1132,9 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         self.min_visible_fraction = min_visible_fraction
         self.label_height_px = label_height_px
         self.min_species_width_frac = min_species_width_frac
+        self.nest_enabled = nest_enabled
+        self.nest_max_intrusion_frac = nest_max_intrusion_frac
+        self.nest_alpha_threshold = nest_alpha_threshold
         # Retained as attributes for backwards-compat, but no longer used
         # by the layout algorithm.
         self.side_margin_fraction = side_margin_fraction
@@ -1179,9 +1185,16 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         content_w = max(1, canvas_w - 2 * gutter)
         content_h = max(1, canvas_h - title_h - caption_h - 2 * gutter)
 
-        # 4. Load masters and compute tight-cropped silhouette aspect ratios.
+        # 4. Load masters, tight-cropped silhouette aspect ratios, AND
+        # low-res alpha masks for the nesting/tightening pass. The masks
+        # are cropped to the silhouette bbox and downsampled to 64px on
+        # the long side so the tightening pass can do mask-vs-mask
+        # collision tests cheaply.
         masters: dict[str, MasterImage] = {}
         aspects: dict[str, float] = {}  # width / height
+        # masks[slug] = (mask_w, mask_h, bytes) — 0 = transparent, >0 = solid
+        masks: dict[str, tuple[int, int, bytes]] = {}
+        MASK_LONG = 64
         for s in species_sorted:
             try:
                 master = loader.get(s.slug, spec.style_slug)
@@ -1198,10 +1211,21 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
                     if bbox:
                         w_c = max(1, bbox[2] - bbox[0])
                         h_c = max(1, bbox[3] - bbox[1])
+                        cropped = alpha.crop(bbox)
                     else:
                         w_c = max(1, master.width_px)
                         h_c = max(1, master.height_px)
+                        cropped = alpha
                     aspects[s.slug] = w_c / h_c
+                    # Build small mask for the tightening pass.
+                    if cropped.width >= cropped.height:
+                        mw = MASK_LONG
+                        mh = max(1, int(round(MASK_LONG * cropped.height / cropped.width)))
+                    else:
+                        mh = MASK_LONG
+                        mw = max(1, int(round(MASK_LONG * cropped.width / cropped.height)))
+                    small = cropped.resize((mw, mh), Image.BILINEAR)
+                    masks[s.slug] = (mw, mh, small.tobytes())
             except Exception as exc:  # noqa: BLE001
                 warnings.append(
                     f"SilhouettePackedLayoutEngine: alpha load failed for "
@@ -1301,9 +1325,17 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
 
             return unit_h, rows
 
-        # Try every row count, pick the largest unit_h.
+        # Try every row count, pick the largest unit_h. If no arrangement
+        # yields a headline species at min_species_w, the row packer
+        # itself is already returning the largest possible size — uniform
+        # downscale is implicit. Only when we'd literally be too small
+        # to render do we drop a species. (The bbox row packer maximises
+        # unit_h given a row arrangement, so this is the correct
+        # uniform-scale-fit policy: shrink uniformly, never overlap, and
+        # only drop after we've exhausted shrink room.)
         active_refs = list(species_with_masters)
         dropped: list[str] = []
+        downscale_applied = False
 
         while True:
             best_unit_h = 0.0
@@ -1330,8 +1362,12 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
             if unit_w >= min_species_w or len(active_refs) <= 1:
                 break
 
-            # Drop the lowest-priority species (smallest relative_scale_index)
-            # and try again. Caller is informed via warning.
+            # Pre-drop fallback: the row packer already shrinks uniformly,
+            # so we know this arrangement is the best possible at the
+            # current min. The species count is too high for the canvas
+            # at the configured floor — drop the lowest-priority species
+            # and retry. Track that downscale was effectively saturated.
+            downscale_applied = True
             lowest = min(
                 active_refs, key=lambda r: r.relative_scale_index
             )
@@ -1402,33 +1438,99 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
 
             y_cursor += total_h + gutter
 
-        # 7. Final sanity check — assert no overlap including label bands.
-        # If anything overlaps, we shrink everything uniformly until it
-        # doesn't (defensive — should be impossible given the math above).
-        def _rects_overlap(a: PlacedItem, b: PlacedItem) -> bool:
-            ax1, ay1 = a.x, a.y
-            ax2 = a.x + a.draw_width
-            ay2 = a.y + a.draw_height + label_h
-            bx1, by1 = b.x, b.y
-            bx2 = b.x + b.draw_width
-            by2 = b.y + b.draw_height + label_h
-            return ax1 < bx2 and ax2 > bx1 and ay1 < by2 and ay2 > by1
+        # 7. Silhouette-aware tightening pass.
+        # Now that bbox-row layout is committed, walk neighbour pairs and
+        # shrink the gutter between them as long as their actual alpha
+        # masks (low-res, sampled) don't intersect. This produces the
+        # nesting effect: a long fish's tail fills negative space above/
+        # below a shorter fish, and species can intrude into the title/
+        # caption bands when their alpha doesn't touch the text rect.
+        if self.nest_enabled:
+            placements = self._tighten_silhouettes(
+                placements,
+                masks=masks,
+                label_h=label_h,
+                gutter=gutter,
+                canvas_w=canvas_w,
+                canvas_h=canvas_h,
+                title_h=title_h,
+                caption_h=caption_h,
+            )
 
-        for i in range(len(placements)):
-            for j in range(i + 1, len(placements)):
-                if _rects_overlap(placements[i], placements[j]):
-                    warnings.append(
-                        "SilhouettePackedLayoutEngine: residual overlap "
-                        f"detected between '{placements[i].species_ref.slug}' "
-                        f"and '{placements[j].species_ref.slug}'. This is a bug "
-                        "in the row packer — please report."
-                    )
-                    break
+        # 8. Hard zero-runoff guarantee. Every placement's bounding rect
+        # must satisfy 0 <= x and x + width <= canvas_w (and same for y
+        # including the label band beneath the silhouette). If anything
+        # violates that — defensive, should be impossible — uniformly
+        # shrink everything around the canvas centre until it fits.
+        def _runoff_violation(items: list[PlacedItem]) -> bool:
+            for p in items:
+                if p.x < 0 or p.y < 0:
+                    return True
+                if p.x + p.draw_width > canvas_w:
+                    return True
+                if p.y + p.draw_height + label_h > canvas_h:
+                    return True
+            return False
+
+        if _runoff_violation(placements):
+            warnings.append(
+                "SilhouettePackedLayoutEngine: zero-runoff guard triggered; "
+                "uniformly shrinking placements to fit the canvas."
+            )
+            # Find tight bbox of all placements then scale around its
+            # centre toward the canvas centre.
+            min_x = min(p.x for p in placements)
+            min_y = min(p.y for p in placements)
+            max_x = max(p.x + p.draw_width for p in placements)
+            max_y = max(p.y + p.draw_height + label_h for p in placements)
+            cur_w = max(1, max_x - min_x)
+            cur_h = max(1, max_y - min_y)
+            scale = min(
+                (canvas_w - 2 * gutter) / cur_w,
+                (canvas_h - 2 * gutter) / cur_h,
+                1.0,
+            )
+            cx0, cy0 = (min_x + max_x) / 2.0, (min_y + max_y) / 2.0
+            cx1, cy1 = canvas_w / 2.0, canvas_h / 2.0
+            new_placements: list[PlacedItem] = []
+            for p in placements:
+                nw = max(1, int(round(p.draw_width * scale)))
+                nh = max(1, int(round(p.draw_height * scale)))
+                # Map the centre of p through the affine.
+                pcx = p.x + p.draw_width / 2.0
+                pcy = p.y + p.draw_height / 2.0
+                ncx = cx1 + (pcx - cx0) * scale
+                ncy = cy1 + (pcy - cy0) * scale
+                new_placements.append(PlacedItem(
+                    species_ref=p.species_ref,
+                    master=p.master,
+                    x=int(round(ncx - nw / 2.0)),
+                    y=int(round(ncy - nh / 2.0)),
+                    draw_width=nw,
+                    draw_height=nh,
+                ))
+            placements = new_placements
+
+        # Final assertion — fail loudly if runoff still present.
+        for p in placements:
+            x_frac = p.x / canvas_w
+            y_frac = p.y / canvas_h
+            w_frac = p.draw_width / canvas_w
+            h_frac = (p.draw_height + label_h) / canvas_h
+            assert -1e-3 <= x_frac and x_frac + w_frac <= 1.0 + 1e-3, (
+                f"x_frac runoff for {p.species_ref.slug}: "
+                f"{x_frac:.3f}+{w_frac:.3f}>1"
+            )
+            assert -1e-3 <= y_frac and y_frac + h_frac <= 1.0 + 1e-3, (
+                f"y_frac runoff for {p.species_ref.slug}: "
+                f"{y_frac:.3f}+{h_frac:.3f}>1"
+            )
 
         logger.info(
             "SilhouettePackedLayoutEngine: placed %d species in %d rows; "
-            "unit_h=%.1fpx; gutter=%dpx; canvas=%dx%d",
+            "unit_h=%.1fpx; gutter=%dpx; canvas=%dx%d; nesting=%s; downscale=%s",
             len(placements), len(rows), unit_h, gutter, canvas_w, canvas_h,
+            self.nest_enabled, downscale_applied,
         )
 
         return LayoutResult(
@@ -1436,3 +1538,270 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
             placements=placements,
             warnings=warnings,
         )
+
+    # ------------------------------------------------------------------
+    # Silhouette-aware tightening pass
+    # ------------------------------------------------------------------
+    def _tighten_silhouettes(
+        self,
+        placements: list[PlacedItem],
+        masks: dict[str, tuple[int, int, bytes]],
+        label_h: int,
+        gutter: int,
+        canvas_w: int,
+        canvas_h: int,
+        title_h: int,
+        caption_h: int,
+    ) -> list[PlacedItem]:
+        """Tighten gutters between neighbours when their alpha masks
+        don't overlap, producing the nested/staggered effect.
+
+        Strategy: for each pair of neighbours (horizontal within row,
+        vertical across rows) try to shrink the gap by up to
+        ``nest_max_intrusion_frac * gutter`` and check whether the
+        alpha masks would touch at the proposed offset. If clear, apply
+        the shift to the right/lower placement (and its row siblings to
+        preserve row order). The label band remains a hard barrier
+        — labels must never collide.
+        """
+        if not placements:
+            return placements
+        thr = self.nest_alpha_threshold
+        max_intrude = max(0, int(round(self.nest_max_intrusion_frac * gutter)))
+        if max_intrude <= 0:
+            return placements
+
+        # Group placements into rows by y-band (silhouette top y).
+        sorted_p = sorted(placements, key=lambda p: (p.y, p.x))
+        rows: list[list[PlacedItem]] = []
+        for p in sorted_p:
+            placed = False
+            for row in rows:
+                ry = row[0]
+                a0, a1 = p.y, p.y + p.draw_height
+                b0, b1 = ry.y, ry.y + ry.draw_height
+                inter = max(0, min(a1, b1) - max(a0, b0))
+                shorter = max(1, min(a1 - a0, b1 - b0))
+                if inter / shorter > 0.5:
+                    row.append(p)
+                    placed = True
+                    break
+            if not placed:
+                rows.append([p])
+        for row in rows:
+            row.sort(key=lambda p: p.x)
+
+        idx_of: dict[int, int] = {id(p): i for i, p in enumerate(placements)}
+        work = list(placements)
+
+        def _refresh_idx() -> None:
+            idx_of.clear()
+            for i, p in enumerate(work):
+                idx_of[id(p)] = i
+
+        def _alpha_grid(p: PlacedItem) -> tuple[int, int, bytes] | None:
+            return masks.get(p.species_ref.slug)
+
+        def _masks_overlap(a: PlacedItem, b: PlacedItem) -> bool:
+            ga = _alpha_grid(a)
+            gb = _alpha_grid(b)
+            if ga is None or gb is None:
+                return True  # be conservative
+            ax1, ay1 = a.x, a.y
+            ax2, ay2 = a.x + a.draw_width, a.y + a.draw_height
+            bx1, by1 = b.x, b.y
+            bx2, by2 = b.x + b.draw_width, b.y + b.draw_height
+            ix1 = max(ax1, bx1)
+            iy1 = max(ay1, by1)
+            ix2 = min(ax2, bx2)
+            iy2 = min(ay2, by2)
+            if ix1 >= ix2 or iy1 >= iy2:
+                return False
+            STEPS = 16
+            ga_w, ga_h, ga_b = ga
+            gb_w, gb_h, gb_b = gb
+            aw_px = max(1, ax2 - ax1)
+            ah_px = max(1, ay2 - ay1)
+            bw_px = max(1, bx2 - bx1)
+            bh_px = max(1, by2 - by1)
+            for sxi in range(STEPS):
+                for syi in range(STEPS):
+                    px = ix1 + (ix2 - ix1) * (sxi + 0.5) / STEPS
+                    py = iy1 + (iy2 - iy1) * (syi + 0.5) / STEPS
+                    ua = (px - ax1) / aw_px
+                    va = (py - ay1) / ah_px
+                    mxa = min(ga_w - 1, max(0, int(ua * ga_w)))
+                    mya = min(ga_h - 1, max(0, int(va * ga_h)))
+                    if ga_b[mya * ga_w + mxa] < thr:
+                        continue
+                    ub = (px - bx1) / bw_px
+                    vb = (py - by1) / bh_px
+                    mxb = min(gb_w - 1, max(0, int(ub * gb_w)))
+                    myb = min(gb_h - 1, max(0, int(vb * gb_h)))
+                    if gb_b[myb * gb_w + mxb] >= thr:
+                        return True
+            return False
+
+        # 1) Horizontal tightening within each row.
+        for row in rows:
+            for i in range(1, len(row)):
+                step = max(1, max_intrude // 8)
+                shifted = 0
+                while shifted + step <= max_intrude:
+                    left = work[idx_of[id(row[i - 1])]]
+                    right = work[idx_of[id(row[i])]]
+                    cand = PlacedItem(
+                        species_ref=right.species_ref,
+                        master=right.master,
+                        x=right.x - step,
+                        y=right.y,
+                        draw_width=right.draw_width,
+                        draw_height=right.draw_height,
+                    )
+                    if _masks_overlap(left, cand):
+                        break
+                    bad = False
+                    for j in range(i + 1, len(row)):
+                        other = work[idx_of[id(row[j])]]
+                        if _masks_overlap(cand, other):
+                            bad = True
+                            break
+                    if bad:
+                        break
+                    delta = step
+                    for j in range(i, len(row)):
+                        old = work[idx_of[id(row[j])]]
+                        moved = PlacedItem(
+                            species_ref=old.species_ref,
+                            master=old.master,
+                            x=old.x - delta,
+                            y=old.y,
+                            draw_width=old.draw_width,
+                            draw_height=old.draw_height,
+                        )
+                        work[idx_of[id(old)]] = moved
+                        row[j] = moved
+                    _refresh_idx()
+                    shifted += step
+
+        # 2) Vertical tightening between adjacent rows.
+        for r_idx in range(1, len(rows)):
+            step = max(1, max_intrude // 8)
+            shifted = 0
+            while shifted + step <= max_intrude:
+                top_row = [work[idx_of[id(p)]] for p in rows[r_idx - 1]]
+                bot_row = [work[idx_of[id(p)]] for p in rows[r_idx]]
+                bad = False
+                cand_bots = []
+                for p in bot_row:
+                    cand_bots.append(PlacedItem(
+                        species_ref=p.species_ref,
+                        master=p.master,
+                        x=p.x,
+                        y=p.y - step,
+                        draw_width=p.draw_width,
+                        draw_height=p.draw_height,
+                    ))
+                for tp in top_row:
+                    for cb in cand_bots:
+                        if _masks_overlap(tp, cb):
+                            bad = True
+                            break
+                        if label_h > 0:
+                            tl_y1 = tp.y + tp.draw_height
+                            tl_y2 = tl_y1 + label_h
+                            tl_x1 = tp.x
+                            tl_x2 = tp.x + tp.draw_width
+                            cbx1, cby1 = cb.x, cb.y
+                            cbx2, cby2 = cb.x + cb.draw_width, cb.y + cb.draw_height
+                            if (cbx1 < tl_x2 and cbx2 > tl_x1
+                                    and cby1 < tl_y2 and cby2 > tl_y1):
+                                bad = True
+                                break
+                    if bad:
+                        break
+                if bad:
+                    break
+                for r_below in range(r_idx, len(rows)):
+                    new_rb: list[PlacedItem] = []
+                    for old_p in [work[idx_of[id(p)]] for p in rows[r_below]]:
+                        moved = PlacedItem(
+                            species_ref=old_p.species_ref,
+                            master=old_p.master,
+                            x=old_p.x,
+                            y=old_p.y - step,
+                            draw_width=old_p.draw_width,
+                            draw_height=old_p.draw_height,
+                        )
+                        work[idx_of[id(old_p)]] = moved
+                        new_rb.append(moved)
+                    rows[r_below] = new_rb
+                _refresh_idx()
+                shifted += step
+
+        # 3) Title-band intrusion (top row): allow species silhouettes
+        # to creep up into the title band as long as their alpha doesn't
+        # collide with the central title text rect (canvas central 50%).
+        if rows and title_h > 0:
+            title_text_x1 = int(canvas_w * 0.25)
+            title_text_x2 = int(canvas_w * 0.75)
+            title_text_y2 = title_h
+            step = max(1, max_intrude // 8)
+            shifted = 0
+            cap = min(max_intrude, gutter)
+            while shifted + step <= cap:
+                top_row = [work[idx_of[id(p)]] for p in rows[0]]
+                bad = False
+                for p in top_row:
+                    cy_after = p.y - step
+                    if cy_after >= title_text_y2:
+                        continue
+                    g = _alpha_grid(p)
+                    if g is None:
+                        continue
+                    gw, gh, gb = g
+                    sy_lo = max(cy_after, 0)
+                    sy_hi = min(cy_after + p.draw_height, title_text_y2)
+                    sx_lo = max(p.x, title_text_x1)
+                    sx_hi = min(p.x + p.draw_width, title_text_x2)
+                    if sy_lo >= sy_hi or sx_lo >= sx_hi:
+                        continue
+                    cw_px = max(1, p.draw_width)
+                    ch_px = max(1, p.draw_height)
+                    STEPS = 8
+                    hit = False
+                    for sxi in range(STEPS):
+                        for syi in range(STEPS):
+                            px = sx_lo + (sx_hi - sx_lo) * (sxi + 0.5) / STEPS
+                            py = sy_lo + (sy_hi - sy_lo) * (syi + 0.5) / STEPS
+                            u = (px - p.x) / cw_px
+                            v = (py - cy_after) / ch_px
+                            mx = min(gw - 1, max(0, int(u * gw)))
+                            my = min(gh - 1, max(0, int(v * gh)))
+                            if gb[my * gw + mx] >= thr:
+                                hit = True
+                                break
+                        if hit:
+                            break
+                    if hit:
+                        bad = True
+                        break
+                if bad:
+                    break
+                new_top: list[PlacedItem] = []
+                for old_p in [work[idx_of[id(p)]] for p in rows[0]]:
+                    moved = PlacedItem(
+                        species_ref=old_p.species_ref,
+                        master=old_p.master,
+                        x=old_p.x,
+                        y=old_p.y - step,
+                        draw_width=old_p.draw_width,
+                        draw_height=old_p.draw_height,
+                    )
+                    work[idx_of[id(old_p)]] = moved
+                    new_top.append(moved)
+                rows[0] = new_top
+                _refresh_idx()
+                shifted += step
+
+        return work

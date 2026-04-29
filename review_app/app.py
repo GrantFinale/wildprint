@@ -1262,6 +1262,54 @@ def api_list_backgrounds():
     return jsonify({"backgrounds": items[:24]})
 
 
+# Map a 2-letter US state code to the geographic region tags used by
+# assets/backgrounds/regions.json. A state can match multiple tags
+# ("MI" -> midwest + great_lakes); priority order is most-specific first.
+_STATE_REGION_TAGS: dict[str, list[str]] = {
+    # Northeast
+    "ME": ["northeast"], "NH": ["northeast"], "VT": ["northeast"],
+    "MA": ["northeast"], "RI": ["northeast"], "CT": ["northeast"],
+    "NY": ["northeast"], "NJ": ["northeast"], "PA": ["northeast"],
+    # Southeast
+    "VA": ["southeast", "appalachian"], "WV": ["southeast", "appalachian"],
+    "NC": ["southeast", "appalachian"], "SC": ["southeast"],
+    "GA": ["southeast"], "FL": ["southeast", "florida", "tropical", "wetland"],
+    "AL": ["southeast"], "MS": ["southeast"], "LA": ["southeast", "bayou", "swamp"],
+    "AR": ["southeast"], "TN": ["southeast", "appalachian"],
+    "KY": ["southeast", "appalachian"],
+    # Midwest / Great Lakes / Plains
+    "OH": ["midwest", "great_lakes"], "MI": ["midwest", "great_lakes"],
+    "IN": ["midwest"], "IL": ["midwest"],
+    "WI": ["midwest", "great_lakes"], "MN": ["midwest", "great_lakes"],
+    "IA": ["midwest", "plains", "prairie"], "MO": ["midwest"],
+    "ND": ["midwest", "plains", "prairie"], "SD": ["midwest", "plains", "prairie"],
+    "NE": ["midwest", "plains", "prairie"], "KS": ["midwest", "plains", "prairie"],
+    # Southwest / Texas / Mountain West
+    "TX": ["southwest", "texas", "hill_country"], "OK": ["southwest", "plains"],
+    "NM": ["southwest", "desert"], "AZ": ["southwest", "desert"],
+    "MT": ["mountain_west", "alpine"], "WY": ["mountain_west", "alpine"],
+    "CO": ["mountain_west", "alpine"], "UT": ["mountain_west", "desert"],
+    "ID": ["mountain_west"], "NV": ["mountain_west", "desert"],
+    # Pacific / California / Alaska / Hawaii
+    "WA": ["pacific_northwest", "coast"], "OR": ["pacific_northwest", "coast"],
+    "CA": ["california", "coast"], "AK": ["alaska"], "HI": ["tropical", "coast"],
+    # Mid-Atlantic
+    "DE": ["northeast"], "MD": ["northeast"], "DC": ["northeast"],
+}
+
+
+def _load_background_regions() -> dict[str, list[str]]:
+    """Load assets/backgrounds/regions.json: filename -> list[tag]."""
+    regions_file = Path(PROJECT_ROOT) / "assets" / "backgrounds" / "regions.json"
+    if not regions_file.exists():
+        return {}
+    try:
+        with open(regions_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
 @app.route("/api/public-backgrounds")
 @rate_limit(60)
 def api_public_backgrounds():
@@ -1273,7 +1321,15 @@ def api_public_backgrounds():
       2) assets/backgrounds/ — repo-shipped seed library so the gallery is
          never empty even before any backgrounds have been uploaded.
     De-duplicates by filename (output/ wins on collision).
+
+    Optional query: ?state=<two-letter-code>. When provided, each
+    background's regions.json tags are scored against the state's
+    region tags and results are sorted by relevance (matching first).
     """
+    state_code = (request.args.get("state") or "").strip().upper()
+    region_tags = _STATE_REGION_TAGS.get(state_code, []) if state_code else []
+    bg_regions = _load_background_regions()
+
     items = []
     seen: set[str] = set()
 
@@ -1285,7 +1341,11 @@ def api_public_backgrounds():
                 continue
             seen.add(p.name)
             rel = p.relative_to(Path(PROJECT_ROOT))
-            items.append({"filename": p.name, "url": f"/image/{rel}"})
+            items.append({
+                "filename": p.name,
+                "url": f"/image/{rel}",
+                "regions": bg_regions.get(p.name, []),
+            })
 
     seed_dir = Path(PROJECT_ROOT) / "assets" / "backgrounds"
     if seed_dir.exists():
@@ -1295,7 +1355,20 @@ def api_public_backgrounds():
                 continue
             seen.add(p.name)
             rel = p.relative_to(Path(PROJECT_ROOT))
-            items.append({"filename": p.name, "url": f"/image/{rel}"})
+            items.append({
+                "filename": p.name,
+                "url": f"/image/{rel}",
+                "regions": bg_regions.get(p.name, []),
+            })
+
+    if region_tags:
+        # Score each background by intersection size with the state's
+        # region tags; preserve original order within equal-score buckets.
+        def _score(item: dict) -> int:
+            return sum(1 for t in item.get("regions", []) if t in region_tags)
+        scored = list(enumerate(items))
+        scored.sort(key=lambda pair: (-_score(pair[1]), pair[0]))
+        items = [it for _, it in scored]
 
     return jsonify({"backgrounds": items[:50]})
 

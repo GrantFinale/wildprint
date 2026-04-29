@@ -1334,6 +1334,9 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
   color: #fff;
   border-color: var(--cv3-accent);
 }
+.cv3-ed-cat-chips { margin-bottom: 0.5rem; gap: 0.25rem; }
+.cv3-ed-cat-chips .cv3-chip { padding: 0.2rem 0.5rem; font-size: 0.7rem; }
+.cv3-species-search { margin-top: 0.25rem; }
 .cv3-tabs {
   display: flex;
   gap: 0;

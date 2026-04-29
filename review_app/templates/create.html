@@ -146,7 +146,16 @@
         <span class="cv3-ed-secbtn-chev" aria-hidden="true">&#9654;</span>
       </button>
       <div class="cv3-ed-pane cv3-ed-pane-active" id="cv3-pane-species" role="tabpanel" data-tab="species">
-        <input type="text" id="cv3-search" class="cv3-input" placeholder="Search species&hellip;">
+        <div class="cv3-cat-chips cv3-ed-cat-chips" id="cv3-ed-cat-chips" aria-label="Filter species by category">
+          <label class="cv3-chip"><input type="checkbox" value="fish"><span>Fish</span></label>
+          <label class="cv3-chip"><input type="checkbox" value="bird"><span>Birds</span></label>
+          <label class="cv3-chip"><input type="checkbox" value="turtle"><span>Turtles</span></label>
+          <label class="cv3-chip"><input type="checkbox" value="mammal"><span>Mammals</span></label>
+          <label class="cv3-chip"><input type="checkbox" value="reptile"><span>Reptiles</span></label>
+          <label class="cv3-chip"><input type="checkbox" value="amphibian"><span>Amphibians</span></label>
+          <label class="cv3-chip"><input type="checkbox" value="insect"><span>Insects</span></label>
+        </div>
+        <input type="text" id="cv3-search" class="cv3-input cv3-species-search" placeholder="Search species&hellip;">
         <div id="cv3-species-primary" class="cv3-species-list"></div>
         <div class="cv3-loadmore-wrap">
           <button class="cv3-link" id="cv3-show-more" style="display:none">Show more species</button>
@@ -429,6 +438,7 @@
     state.mode = 'editor';
     $('cv3-wizard').style.display = 'none';
     $('cv3-editor').style.display = '';
+    syncCategoryChipsFromState();
     applyDefaultTitle();
     drawCanvas();
   }
@@ -512,11 +522,43 @@
   }
 
   // ---------------- Categories ----------------
-  function bindCategoryChips() {
-    $('cv3-cat-chips').addEventListener('change', function() {
-      const checks = $('cv3-cat-chips').querySelectorAll('input[type=checkbox]');
-      state.categories = Array.from(checks).filter(function(c) { return c.checked; }).map(function(c) { return c.value; });
+  function syncCategoryChipsFromState() {
+    ['cv3-cat-chips', 'cv3-ed-cat-chips'].forEach(function(gid) {
+      const grp = $(gid);
+      if (!grp) return;
+      grp.querySelectorAll('input[type=checkbox]').forEach(function(c) {
+        c.checked = state.categories.indexOf(c.value) >= 0;
+      });
     });
+  }
+  function readCategoriesFromGroup(gid) {
+    const grp = $(gid);
+    if (!grp) return null;
+    const checks = grp.querySelectorAll('input[type=checkbox]');
+    return Array.from(checks).filter(function(c) { return c.checked; }).map(function(c) { return c.value; });
+  }
+  function bindCategoryChips() {
+    // Wizard step 7 (initial selection).
+    const wiz = $('cv3-cat-chips');
+    if (wiz) {
+      wiz.addEventListener('change', function() {
+        const cats = readCategoriesFromGroup('cv3-cat-chips');
+        if (cats !== null) state.categories = cats;
+        syncCategoryChipsFromState();
+      });
+    }
+    // Editor species panel (mirror of wizard categories; refreshes list).
+    const ed = $('cv3-ed-cat-chips');
+    if (ed) {
+      ed.addEventListener('change', function() {
+        const cats = readCategoriesFromGroup('cv3-ed-cat-chips');
+        if (cats === null) return;
+        state.categories = cats;
+        syncCategoryChipsFromState();
+        refreshSpecies();
+      });
+    }
+    syncCategoryChipsFromState();
   }
 
   // ---------------- /api/recommend ----------------
@@ -1085,7 +1127,10 @@
 
   let _bgGalleryHandler = null;
   function loadBgGallery() {
-    fetch('/api/public-backgrounds').then(function(r) { return r.json(); }).then(function(data) {
+    const url = state.state
+      ? '/api/public-backgrounds?state=' + encodeURIComponent(state.state)
+      : '/api/public-backgrounds';
+    fetch(url).then(function(r) { return r.json(); }).then(function(data) {
       const gal = $('cv3-bg-gallery');
       const items = data.backgrounds || [];
       if (items.length === 0) {

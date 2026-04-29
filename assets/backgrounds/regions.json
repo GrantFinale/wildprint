@@ -1,0 +1,148 @@
+{
+  "appalachian_stream.jpg": [
+    "southeast",
+    "appalachian",
+    "stream",
+    "mountain"
+  ],
+  "appalachian_stream.png": [
+    "southeast",
+    "appalachian",
+    "stream",
+    "mountain"
+  ],
+  "california_coastal.jpg": [
+    "california",
+    "coast",
+    "estuary"
+  ],
+  "california_coastal.png": [
+    "california",
+    "coast",
+    "estuary"
+  ],
+  "desert_oasis.jpg": [
+    "southwest",
+    "desert",
+    "canyon"
+  ],
+  "desert_oasis.png": [
+    "southwest",
+    "desert",
+    "canyon"
+  ],
+  "florida_wetland.jpg": [
+    "southeast",
+    "florida",
+    "wetland",
+    "tropical"
+  ],
+  "florida_wetland.png": [
+    "southeast",
+    "florida",
+    "wetland",
+    "tropical"
+  ],
+  "midwest_lake.jpg": [
+    "midwest",
+    "great_lakes",
+    "lake"
+  ],
+  "midwest_lake.png": [
+    "midwest",
+    "great_lakes",
+    "lake"
+  ],
+  "midwest_river.jpg": [
+    "midwest",
+    "river"
+  ],
+  "midwest_river.png": [
+    "midwest",
+    "river"
+  ],
+  "northeast_pond.jpg": [
+    "northeast",
+    "pond",
+    "forest"
+  ],
+  "northeast_pond.png": [
+    "northeast",
+    "pond",
+    "forest"
+  ],
+  "plains_prairie_pothole.jpg": [
+    "midwest",
+    "plains",
+    "prairie",
+    "wetland"
+  ],
+  "plains_prairie_pothole.png": [
+    "midwest",
+    "plains",
+    "prairie",
+    "wetland"
+  ],
+  "pnw_coast.jpg": [
+    "pacific_northwest",
+    "coast"
+  ],
+  "pnw_coast.png": [
+    "pacific_northwest",
+    "coast"
+  ],
+  "pnw_stream.jpg": [
+    "pacific_northwest",
+    "stream",
+    "forest"
+  ],
+  "pnw_stream.png": [
+    "pacific_northwest",
+    "stream",
+    "forest"
+  ],
+  "rocky_alpine_lake.jpg": [
+    "mountain_west",
+    "alpine",
+    "lake"
+  ],
+  "rocky_alpine_lake.png": [
+    "mountain_west",
+    "alpine",
+    "lake"
+  ],
+  "southeast_bayou.jpg": [
+    "southeast",
+    "bayou",
+    "swamp",
+    "wetland"
+  ],
+  "southeast_bayou.png": [
+    "southeast",
+    "bayou",
+    "swamp",
+    "wetland"
+  ],
+  "southeast_marsh.jpg": [
+    "southeast",
+    "marsh",
+    "wetland"
+  ],
+  "southeast_marsh.png": [
+    "southeast",
+    "marsh",
+    "wetland"
+  ],
+  "texas_hill_country.jpg": [
+    "southwest",
+    "texas",
+    "river",
+    "hill_country"
+  ],
+  "texas_hill_country.png": [
+    "southwest",
+    "texas",
+    "river",
+    "hill_country"
+  ]
+}
