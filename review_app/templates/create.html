@@ -234,6 +234,15 @@
         <label class="cv3-label">Label color</label>
         <input type="color" id="cv3-label-color" value="#1a1612">
 
+        <label class="cv3-label" style="display:flex;align-items:center;gap:0.5rem">
+          <input type="checkbox" id="cv3-label-stroke-enabled" style="margin:0">
+          Label outline (stroke)
+        </label>
+        <label class="cv3-label">Outline color</label>
+        <input type="color" id="cv3-label-stroke-color" value="#ffffff">
+        <label class="cv3-label">Outline thickness: <span id="cv3-label-stroke-width-val">2</span>px</label>
+        <input type="range" id="cv3-label-stroke-width" min="0" max="8" value="2" step="1">
+
         <label class="cv3-label">Gap below fish: <span id="cv3-label-gap-val">20</span></label>
         <input type="range" id="cv3-label-gap" min="0" max="200" value="20">
 
@@ -318,6 +327,9 @@
     labelSize: 42,
     labelColor: '#1a1612',
     labelGap: 20,
+    labelStrokeEnabled: false,
+    labelStrokeColor: '#ffffff',
+    labelStrokeWidth: 2,
     logoFilename: null,
     logoUrl: null,
     logoSize: 20,
@@ -1105,6 +1117,16 @@
     $('cv3-label-font').addEventListener('change', function() { state.labelFont = this.value; drawCanvas(); });
     $('cv3-label-size').addEventListener('input', function() { state.labelSize = parseInt(this.value, 10); $('cv3-label-size-val').textContent = this.value; drawCanvas(); });
     $('cv3-label-color').addEventListener('input', function() { state.labelColor = this.value; drawCanvas(); });
+    var strokeEnabledEl = $('cv3-label-stroke-enabled');
+    if (strokeEnabledEl) strokeEnabledEl.addEventListener('change', function() { state.labelStrokeEnabled = this.checked; drawCanvas(); });
+    var strokeColorEl = $('cv3-label-stroke-color');
+    if (strokeColorEl) strokeColorEl.addEventListener('input', function() { state.labelStrokeColor = this.value; drawCanvas(); });
+    var strokeWidthEl = $('cv3-label-stroke-width');
+    if (strokeWidthEl) strokeWidthEl.addEventListener('input', function() {
+      state.labelStrokeWidth = parseInt(this.value, 10);
+      $('cv3-label-stroke-width-val').textContent = this.value;
+      drawCanvas();
+    });
     $('cv3-label-gap').addEventListener('input', function() { state.labelGap = parseInt(this.value, 10); $('cv3-label-gap-val').textContent = this.value; drawCanvas(); });
 
     const univ = $('cv3-univ-scale');
@@ -1214,6 +1236,11 @@
             label_size: state.labelSize,
             label_color: state.labelColor,
             label_gap: state.labelGap,
+            label_stroke: {
+              enabled: !!state.labelStrokeEnabled,
+              color: state.labelStrokeColor,
+              width: state.labelStrokeWidth,
+            },
           },
           title_config: {
             x_frac: state.titleXFrac,

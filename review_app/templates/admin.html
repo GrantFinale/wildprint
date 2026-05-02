@@ -49,6 +49,7 @@
         <th>Category</th>
         <th>Regions</th>
         <th>Scale</th>
+        <th title="Per-species size multiplier applied on top of relative_scale_index. 1.0 = unchanged. Range 0.3–2.5.">Scale &times;</th>
         <th>Scientific</th>
         <th>Watercolor</th>
         <th>Engraving</th>
@@ -119,7 +120,7 @@ function populateCategoryFilter() {
 function renderTable(species) {
   const tbody = document.getElementById('species-tbody');
   if (species.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--fg-muted)">No species match the current filters.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--fg-muted)">No species match the current filters.</td></tr>';
     return;
   }
   tbody.innerHTML = species.map(sp => {
@@ -137,12 +138,22 @@ function renderTable(species) {
     const masterCell = (has) => has
       ? '<span class="master-status has">&check;</span>'
       : '<span class="master-status missing">&cross;</span>';
+    const scaleOvr = (typeof sp.scale_override === 'number') ? sp.scale_override : 1.0;
+    const scaleCell = `
+      <div class="scale-override-cell" data-slug="${sp.slug}" style="display:flex;gap:0.25rem;align-items:center">
+        <input type="number" step="0.05" min="0.3" max="2.5" value="${scaleOvr.toFixed(2)}"
+               class="scale-override-input" style="width:4.5rem"
+               aria-label="Scale override for ${sp.common_name}">
+        <button type="button" class="btn btn-sm scale-override-save">Save</button>
+        <span class="scale-override-status subtle" style="font-size:0.7rem"></span>
+      </div>`;
     return `<tr>
       <td>${thumbHtml}</td>
       <td><strong>${sp.common_name}</strong><br><em class="sci-name" style="font-size:0.75rem">${sp.scientific_name}</em></td>
       <td><span class="${catClass}">${sp.category}</span></td>
       <td>${regions}</td>
       <td>${sp.relative_scale_index}</td>
+      <td>${scaleCell}</td>
       <td>${masterCell(hasSci)}</td>
       <td>${masterCell(hasWc)}</td>
       <td>${masterCell(hasVe)}</td>
@@ -150,6 +161,42 @@ function renderTable(species) {
     </tr>`;
   }).join('');
 }
+
+// Delegated save handler for scale_override.
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.scale-override-save');
+  if (!btn) return;
+  const cell = btn.closest('.scale-override-cell');
+  if (!cell) return;
+  const slug = cell.dataset.slug;
+  const input = cell.querySelector('.scale-override-input');
+  const status = cell.querySelector('.scale-override-status');
+  const val = parseFloat(input.value);
+  if (!Number.isFinite(val) || val < 0.3 || val > 2.5) {
+    status.textContent = 'Invalid';
+    status.style.color = '#c33';
+    return;
+  }
+  status.textContent = 'Saving...';
+  status.style.color = '';
+  fetch('/admin/species/' + encodeURIComponent(slug) + '/scale', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({scale: val}),
+  }).then(r => r.json()).then(data => {
+    if (data.error) {
+      status.textContent = 'Error: ' + data.error;
+      status.style.color = '#c33';
+    } else {
+      status.textContent = 'Saved';
+      status.style.color = '#2a7';
+      setTimeout(() => { status.textContent = ''; }, 1800);
+    }
+  }).catch(err => {
+    status.textContent = 'Error: ' + err.message;
+    status.style.color = '#c33';
+  });
+});
 
 function applyFilters() {
   const search = document.getElementById('admin-search').value.toLowerCase();

@@ -46,6 +46,7 @@ from config.settings import (
     SPECIES_JSON,
     STYLES_JSON,
     MANIFEST_PATH,
+    METADATA_DIR,
 )
 from scripts.build_manifest import load_manifest, save_manifest, find_record
 from scripts.select_master import mark_selected, copy_masters
@@ -173,8 +174,53 @@ def _load_json(path) -> list:
     return data if isinstance(data, list) else []
 
 
+SPECIES_OVERRIDES_PATH: Path = METADATA_DIR / "species_overrides.json"
+
+
+def _load_species_overrides() -> dict[str, dict]:
+    """Load admin-edited per-species overrides (e.g. scale_override).
+
+    Stored in ``metadata/species_overrides.json`` — a volume-mounted
+    location that persists across deploys. Schema is a flat dict keyed
+    by slug, with editable fields as values:
+
+        {"smallmouth_bass": {"scale_override": 1.2}, ...}
+    """
+    try:
+        with open(SPECIES_OVERRIDES_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            return data
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        pass
+    return {}
+
+
+def _save_species_overrides(data: dict[str, dict]) -> None:
+    """Persist overrides JSON. Creates METADATA_DIR if missing."""
+    METADATA_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = SPECIES_OVERRIDES_PATH.with_suffix(".json.tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, sort_keys=True)
+    tmp.replace(SPECIES_OVERRIDES_PATH)
+
+
 def load_species() -> list[dict]:
-    return _load_json(SPECIES_JSON)
+    base = _load_json(SPECIES_JSON)
+    overrides = _load_species_overrides()
+    if not overrides:
+        return base
+    merged = []
+    for sp in base:
+        if not isinstance(sp, dict):
+            merged.append(sp)
+            continue
+        slug = sp.get("slug")
+        if slug and slug in overrides:
+            ovr = overrides[slug] or {}
+            sp = {**sp, **{k: v for k, v in ovr.items() if v is not None}}
+        merged.append(sp)
+    return merged
 
 
 def load_styles() -> list[dict]:
@@ -1439,13 +1485,15 @@ def api_generate_poster():
         rec = species_by_slug.get(slug)
         if rec is None:
             continue
+        scale_ovr = float(rec.get("scale_override", 1.0) or 1.0)
+        scale_ovr = max(0.3, min(2.5, scale_ovr))
         species_refs.append(
             SpeciesRef(
                 slug=rec["slug"],
                 common_name=rec["common_name"],
                 scientific_name=rec.get("scientific_name", ""),
                 category=rec.get("category", ""),
-                relative_scale_index=float(rec.get("relative_scale_index", 1.0)),
+                relative_scale_index=float(rec.get("relative_scale_index", 1.0)) * scale_ovr,
                 habitat_tags=list(rec.get("habitat_tags", [])),
             )
         )
@@ -1693,6 +1741,20 @@ def api_render_custom():
         renderer._label_override_color = text_config["label_color"]
     renderer._disable_adaptive_palette = True
 
+    # Optional label outline / stroke (Pillow draw.text stroke_*).
+    label_stroke = text_config.get("label_stroke") or {}
+    if label_stroke.get("enabled"):
+        try:
+            sw = int(label_stroke.get("width", 2))
+        except (TypeError, ValueError):
+            sw = 2
+        sw = max(0, min(16, sw))
+        renderer._label_stroke_width = sw
+        renderer._label_stroke_fill = label_stroke.get("color", "#ffffff")
+    else:
+        renderer._label_stroke_width = 0
+        renderer._label_stroke_fill = None
+
     # Disable leader lines for custom layout (user positioned manually)
     renderer.leader_line_labels = False
 
@@ -1800,6 +1862,7 @@ def admin_data():
             "category": category,
             "geographic_range": sp.get("geographic_range", []),
             "relative_scale_index": sp.get("relative_scale_index", 1.0),
+            "scale_override": float(sp.get("scale_override", 1.0) or 1.0),
             "has_master": has_master,
         })
 
@@ -1841,6 +1904,37 @@ def admin_data():
         },
         "coverage_gaps": coverage_gaps,
     })
+
+
+@app.route("/admin/species/<slug>/scale", methods=["POST"])
+@admin_required
+def admin_set_species_scale(slug: str):
+    """Set per-species scale_override. Persisted to volume-mounted JSON."""
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        scale = float(data.get("scale", 1.0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "scale must be a number"}), 400
+    if not (0.3 <= scale <= 2.5):
+        return jsonify({"error": "scale must be between 0.3 and 2.5"}), 400
+
+    # Verify slug exists in the base catalog.
+    base = _load_json(SPECIES_JSON)
+    if not any(isinstance(sp, dict) and sp.get("slug") == slug for sp in base):
+        return jsonify({"error": f"unknown species slug: {slug}"}), 404
+
+    overrides = _load_species_overrides()
+    entry = dict(overrides.get(slug) or {})
+    if abs(scale - 1.0) < 1e-6:
+        entry.pop("scale_override", None)
+    else:
+        entry["scale_override"] = round(scale, 4)
+    if entry:
+        overrides[slug] = entry
+    else:
+        overrides.pop(slug, None)
+    _save_species_overrides(overrides)
+    return jsonify({"slug": slug, "scale_override": entry.get("scale_override", 1.0)})
 
 
 # ---------------------------------------------------------------------------

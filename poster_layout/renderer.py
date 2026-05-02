@@ -433,21 +433,23 @@ def _draw_species_label(
     sci_color: str,
     label_gap_px: int,
     common_letter_spacing: int = 4,
+    stroke_width: int = 0,
+    stroke_fill: str | None = None,
 ) -> None:
-    """Draw a centered two-line label below a placed item.
-
-    Line 1 is the common name in tracked small caps; line 2 is the
-    scientific name in italic. The label is anchored ``label_gap_px``
-    below the placed item's bottom edge and centered on its horizontal
-    midpoint.
-    """
+    """Draw a centered two-line label below a placed item."""
     sp = placed.species_ref
     cx_canvas = placed.x + placed.draw_width // 2
     label_top = placed.y + placed.draw_height + label_gap_px
+    _kwargs_common = {"font": common_font, "fill": common_color}
+    _kwargs_sci = {"font": scientific_font, "fill": sci_color}
+    if stroke_width and stroke_width > 0 and stroke_fill:
+        _kwargs_common["stroke_width"] = int(stroke_width)
+        _kwargs_common["stroke_fill"] = stroke_fill
+        _kwargs_sci["stroke_width"] = int(stroke_width)
+        _kwargs_sci["stroke_fill"] = stroke_fill
 
     common = (sp.common_name or "").upper()
     if common:
-        # Measure with tracking applied so we can center it.
         advances: list[int] = []
         for ch in common:
             cw, _ = _text_size(draw, ch, common_font)
@@ -456,7 +458,7 @@ def _draw_species_label(
         _, common_h = _text_size(draw, common, common_font)
         x_cursor = cx_canvas - common_w // 2
         for ch, adv in zip(common, advances):
-            draw.text((x_cursor, label_top), ch, font=common_font, fill=common_color)
+            draw.text((x_cursor, label_top), ch, **_kwargs_common)
             x_cursor += adv + common_letter_spacing
         next_top = label_top + common_h + max(6, common_h // 4)
     else:
@@ -466,7 +468,52 @@ def _draw_species_label(
     if sci:
         sci_w, _sci_h = _text_size(draw, sci, scientific_font)
         sci_x = cx_canvas - sci_w // 2
-        draw.text((sci_x, next_top), sci, font=scientific_font, fill=sci_color)
+        draw.text((sci_x, next_top), sci, **_kwargs_sci)
+
+
+def _draw_species_label_at(
+    draw: ImageDraw.ImageDraw,
+    placed: PlacedItem,
+    label_x: int,
+    label_y: int,
+    label_w: int,
+    common_font: ImageFont.ImageFont,
+    scientific_font: ImageFont.ImageFont,
+    common_color: str,
+    sci_color: str,
+    common_letter_spacing: int = 4,
+    stroke_width: int = 0,
+    stroke_fill: str | None = None,
+) -> None:
+    """Draw the two-line label at an EXPLICIT (label_x, label_y) anchor,
+    centering each line within ``label_w``. Used by the collision-aware
+    inline-label pass that has already resolved a non-overlapping slot.
+    """
+    sp = placed.species_ref
+    cx = label_x + label_w // 2
+    _kwargs_common = {"font": common_font, "fill": common_color}
+    _kwargs_sci = {"font": scientific_font, "fill": sci_color}
+    if stroke_width and stroke_width > 0 and stroke_fill:
+        _kwargs_common["stroke_width"] = int(stroke_width)
+        _kwargs_common["stroke_fill"] = stroke_fill
+        _kwargs_sci["stroke_width"] = int(stroke_width)
+        _kwargs_sci["stroke_fill"] = stroke_fill
+
+    common = (sp.common_name or "").upper()
+    cur_y = label_y
+    if common:
+        advances = [_text_size(draw, ch, common_font)[0] for ch in common]
+        common_w = sum(advances) + common_letter_spacing * max(0, len(common) - 1)
+        _, common_h = _text_size(draw, common, common_font)
+        cursor = cx - common_w // 2
+        for ch, adv in zip(common, advances):
+            draw.text((cursor, cur_y), ch, **_kwargs_common)
+            cursor += adv + common_letter_spacing
+        cur_y += common_h + max(6, common_h // 4)
+    sci = sp.scientific_name or ""
+    if sci:
+        sw, _sh = _text_size(draw, sci, scientific_font)
+        draw.text((cx - sw // 2, cur_y), sci, **_kwargs_sci)
 
 
 class PillowPosterRenderer(PosterRenderer):
@@ -1188,20 +1235,144 @@ class EditorialMultiRenderer(PosterRenderer):
                 caption_band_h=caption_band_h,
             )
         else:
-            for placed in result.placements:
+            # Inline-below labels with hard collision avoidance. Compute
+            # each label's REAL rect using actual font metrics for the
+            # rendered text, then walk placements and shift any colliding
+            # label DOWN (then LEFT/RIGHT as last-resort) until its AABB
+            # does not intersect any already-placed label's AABB nor any
+            # other species' silhouette bbox. This is the fix for the
+            # BLACK CRAPPIE / YELLOW PERCH overlap visible in the editor's
+            # /api/render-custom path (which sets leader_line_labels=False
+            # to preserve user drag positions).
+            _label_color = self._label_override_color or self.title_color
+            _label_sci_color = self._label_override_color or self.scientific_color
+            label_pad_px = max(8, int(self.label_letter_spacing * 2))
+            label_gap_px = self.label_gap_px
+
+            def _measure_label_dims(
+                placed: PlacedItem, common_f, scientific_f, common_spacing
+            ) -> tuple[int, int]:
+                sp = placed.species_ref
+                common = (sp.common_name or "").upper()
+                sci = sp.scientific_name or ""
+                cw = ch = 0
+                if common:
+                    advances = [_text_size(draw, c, common_f)[0] for c in common]
+                    cw = sum(advances) + common_spacing * max(0, len(common) - 1)
+                    _, ch = _text_size(draw, common, common_f)
+                sw = sh = 0
+                if sci:
+                    sw, sh = _text_size(draw, sci, scientific_f)
+                gap = max(6, ch // 4) if (common and sci) else 0
+                lw = max(cw, sw)
+                lh = ch + gap + sh
+                return max(0, lw), max(0, lh)
+
+            # Plan all label positions first.
+            placed_label_rects: list[tuple[int, int, int, int]] = []
+            silhouette_rects: list[tuple[int, int, int, int]] = [
+                (p.x, p.y, p.x + p.draw_width, p.y + p.draw_height)
+                for p in result.placements
+            ]
+
+            def _label_collides(lx: int, ly: int, lw: int, lh: int,
+                                self_idx: int) -> bool:
+                ax1, ay1 = lx - label_pad_px, ly - label_pad_px
+                ax2, ay2 = lx + lw + label_pad_px, ly + lh + label_pad_px
+                for rx1, ry1, rx2, ry2 in placed_label_rects:
+                    if ax1 < rx2 and ax2 > rx1 and ay1 < ry2 and ay2 > ry1:
+                        return True
+                for i, (sx1, sy1, sx2, sy2) in enumerate(silhouette_rects):
+                    if i == self_idx:
+                        continue
+                    if ax1 < sx2 and ax2 > sx1 and ay1 < sy2 and ay2 > sy1:
+                        return True
+                return False
+
+            # Place largest-first so smaller species' labels yield to bigger.
+            order = sorted(
+                range(len(result.placements)),
+                key=lambda i: -(result.placements[i].draw_width
+                                * result.placements[i].draw_height),
+            )
+            label_positions: dict[int, tuple[int, int, int, int]] = {}  # idx -> (x,y,lw,lh)
+            for idx in order:
+                placed = result.placements[idx]
                 bucket = placed.y // 80 * 80
                 is_dense = len(shelves.get(bucket, [])) > 4
-                _label_color = self._label_override_color or self.title_color
-                _label_sci_color = self._label_override_color or self.scientific_color
-                _draw_species_label(
+                cf = dense_common if is_dense else label_common_regular
+                sf = dense_italic if is_dense else label_italic_font
+                csp = dense_spacing if is_dense else self.label_letter_spacing
+                lw, lh = _measure_label_dims(placed, cf, sf, csp)
+                if lw <= 0 or lh <= 0:
+                    continue
+                cx = placed.x + placed.draw_width // 2
+                lx0 = cx - lw // 2
+                ly0 = placed.y + placed.draw_height + label_gap_px
+                # Walk DOWN in steps; if we run off the canvas, walk LEFT or
+                # RIGHT (label centered under fish but offset).
+                step = max(8, lh // 4)
+                chosen = None
+                # Try sliding down first.
+                ly = ly0
+                guard = 0
+                while ly + lh < spec.canvas_height and guard < 200:
+                    if not _label_collides(lx0, ly, lw, lh, idx):
+                        chosen = (lx0, ly)
+                        break
+                    ly += step
+                    guard += 1
+                # If no slot below, try just above the silhouette.
+                if chosen is None:
+                    ly = placed.y - lh - label_gap_px
+                    guard = 0
+                    while ly > 0 and guard < 200:
+                        if not _label_collides(lx0, ly, lw, lh, idx):
+                            chosen = (lx0, ly)
+                            break
+                        ly -= step
+                        guard += 1
+                # Last resort: keep at default y but shift X.
+                if chosen is None:
+                    for dx in range(0, spec.canvas_width // 2, max(16, lw // 4)):
+                        for sign in (1, -1):
+                            tx = lx0 + sign * dx
+                            if tx < 0 or tx + lw > spec.canvas_width:
+                                continue
+                            if not _label_collides(tx, ly0, lw, lh, idx):
+                                chosen = (tx, ly0)
+                                break
+                        if chosen is not None:
+                            break
+                if chosen is None:
+                    chosen = (lx0, ly0)  # accept overlap as absolute fallback
+                lx, ly = chosen
+                label_positions[idx] = (lx, ly, lw, lh)
+                placed_label_rects.append((lx, ly, lx + lw, ly + lh))
+
+            # Now actually draw, in original placement order.
+            for idx, placed in enumerate(result.placements):
+                if idx not in label_positions:
+                    continue
+                lx, ly, lw, lh = label_positions[idx]
+                bucket = placed.y // 80 * 80
+                is_dense = len(shelves.get(bucket, [])) > 4
+                cf = dense_common if is_dense else label_common_regular
+                sf = dense_italic if is_dense else label_italic_font
+                csp = dense_spacing if is_dense else self.label_letter_spacing
+                _draw_species_label_at(
                     draw=draw,
                     placed=placed,
-                    common_font=dense_common if is_dense else label_common_regular,
-                    scientific_font=dense_italic if is_dense else label_italic_font,
+                    label_x=lx,
+                    label_y=ly,
+                    label_w=lw,
+                    common_font=cf,
+                    scientific_font=sf,
                     common_color=_label_color,
                     sci_color=_label_sci_color,
-                    label_gap_px=self.label_gap_px,
-                    common_letter_spacing=dense_spacing if is_dense else self.label_letter_spacing,
+                    common_letter_spacing=csp,
+                    stroke_width=getattr(self, "_label_stroke_width", 0),
+                    stroke_fill=getattr(self, "_label_stroke_fill", None),
                 )
 
         # 2b. Border plants — decorative waterline strip above caption band.
@@ -1534,11 +1705,20 @@ class EditorialMultiRenderer(PosterRenderer):
             common = (sp.common_name or "").upper()
             spacing = self.label_letter_spacing
             cx = lx + lw // 2
+            stroke_w = int(getattr(self, "_label_stroke_width", 0) or 0)
+            stroke_f = getattr(self, "_label_stroke_fill", None)
+            kw_common = {"font": common_font, "fill": label_color}
+            kw_sci = {"font": scientific_font, "fill": scientific_color}
+            if stroke_w > 0 and stroke_f:
+                kw_common["stroke_width"] = stroke_w
+                kw_common["stroke_fill"] = stroke_f
+                kw_sci["stroke_width"] = stroke_w
+                kw_sci["stroke_fill"] = stroke_f
             if common:
                 advances = [_text_size(draw, ch, common_font)[0] for ch in common]
                 cursor = cx - common_w // 2
                 for ch, adv in zip(common, advances):
-                    draw.text((cursor, ly), ch, font=common_font, fill=label_color)
+                    draw.text((cursor, ly), ch, **kw_common)
                     cursor += adv + spacing
                 next_top = ly + common_h + max(6, common_h // 4)
             else:
@@ -1546,10 +1726,7 @@ class EditorialMultiRenderer(PosterRenderer):
             sci = sp.scientific_name or ""
             if sci:
                 sw, _sh = _text_size(draw, sci, scientific_font)
-                draw.text(
-                    (cx - sw // 2, next_top), sci, font=scientific_font,
-                    fill=scientific_color,
-                )
+                draw.text((cx - sw // 2, next_top), sci, **kw_sci)
 
         # Place labels largest-first (so tiny species get the leftover whitespace).
         ordered = sorted(

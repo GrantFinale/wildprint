@@ -1205,10 +1205,19 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         # Tightening / nesting controls.
         nest_enabled: bool = True,
         # 0.50 = horizontal tighten can close up to 50% of the inter-species
-        # gutter. 0.25 = vertical (cross-row) up to 25% of row gap.
+        # gutter. The vertical/title intrusion frac is now a fraction of
+        # CONTENT HEIGHT (not gutter) so short fish can dive deeply into
+        # tall fish' dead air; previous 0.25 * gutter was ~30 px which
+        # produced no visible staggering at 3300 px canvases.
         nest_max_intrusion_frac: float = 0.50,
-        nest_vertical_intrusion_frac: float = 0.25,
+        nest_vertical_intrusion_frac: float = 0.45,
         nest_alpha_threshold: int = 8,
+        # Within-row vertical staggering: per-species allow Y to vary from
+        # the row baseline. Each species' silhouette can move up by up to
+        # ``stagger_within_row_frac * row_inner_height`` as long as its
+        # alpha + label rect don't collide with anything above. Set 0 to
+        # disable (preserves the legacy bottom-aligned baseline).
+        stagger_within_row_frac: float = 0.85,
         # Optional callable: SpeciesRef -> (label_w_px, label_h_px). When
         # provided, the tightening pass treats each species' effective bbox
         # as max(silhouette_width, label_width) and refuses any tighten that
@@ -1232,6 +1241,7 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         self.nest_max_intrusion_frac = nest_max_intrusion_frac
         self.nest_vertical_intrusion_frac = nest_vertical_intrusion_frac
         self.nest_alpha_threshold = nest_alpha_threshold
+        self.stagger_within_row_frac = stagger_within_row_frac
         # If no provider is wired up, install a default that measures labels
         # using the same Didot fallback chain + default sizes as the
         # production EditorialMultiRenderer. This makes the engine compute
@@ -1741,7 +1751,11 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
             return placements
         thr = self.nest_alpha_threshold
         max_intrude = max(0, int(round(self.nest_max_intrusion_frac * gutter)))
-        max_intrude_v = max(0, int(round(self.nest_vertical_intrusion_frac * gutter)))
+        # Vertical intrusion is now a fraction of canvas HEIGHT (was: gutter,
+        # which was tiny — ~30 px on a 3300 px canvas — and produced no
+        # visible staggering). 0.45 * canvas_h gives short fish enough room
+        # to dive deeply into a tall fish's dead air above their row.
+        max_intrude_v = max(0, int(round(self.nest_vertical_intrusion_frac * canvas_h)))
         if max_intrude <= 0 and max_intrude_v <= 0:
             return placements
         label_widths = label_widths or {}
@@ -1910,93 +1924,101 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
 
         _horizontal_pass()
 
-        # 2) Vertical tightening between adjacent rows.
-        for r_idx in range(1, len(rows)):
-            step = max(1, max_intrude_v // 8) if max_intrude_v > 0 else 0
-            if step <= 0:
-                break
-            shifted = 0
-            while shifted + step <= max_intrude_v:
-                top_row = [work[idx_of[id(p)]] for p in rows[r_idx - 1]]
-                bot_row = [work[idx_of[id(p)]] for p in rows[r_idx]]
-                bad = False
-                cand_bots = []
-                for p in bot_row:
-                    cand_bots.append(PlacedItem(
-                        species_ref=p.species_ref,
-                        master=p.master,
-                        x=p.x,
-                        y=p.y - step,
-                        draw_width=p.draw_width,
-                        draw_height=p.draw_height,
-                    ))
-                # 2a. Silhouette of bottom-row candidate cannot intrude into
-                # top-row silhouette OR top-row label rect.
-                for tp in top_row:
-                    tlrect = _lrect(tp)
-                    for cb in cand_bots:
-                        if _masks_overlap(tp, cb):
-                            bad = True
-                            break
-                        if tlrect is not None:
-                            tl_x1, tl_y1, tl_x2, tl_y2 = tlrect
-                            cbx1, cby1 = cb.x, cb.y
-                            cbx2, cby2 = cb.x + cb.draw_width, cb.y + cb.draw_height
-                            if (cbx1 < tl_x2 and cbx2 > tl_x1
-                                    and cby1 < tl_y2 and cby2 > tl_y1):
-                                bad = True
-                                break
-                    if bad:
-                        break
-                if bad:
-                    break
-                # 2b. The bottom-row's own label rect (which moves up with
-                # it) cannot collide with anyone above. Walk every other
-                # placement (above this row) and check label-vs-label and
-                # label-vs-silhouette.
-                for cb in cand_bots:
-                    cb_lrect = _lrect(cb)
-                    if cb_lrect is None:
-                        continue
+        # 2) Per-species vertical pull-up. For every species (any row),
+        # try to move its silhouette UP by as much as possible without
+        # colliding (alpha vs alpha, label vs alpha, label vs label) with
+        # anything above. This produces dramatic vertical staggering: a
+        # short fish under a tall pike's tail rises into the dead air,
+        # and small fish in the bottom row rise to fill the gap below
+        # the row above. The motion is INDEPENDENT per species — no
+        # lockstep row shifts — so different fish in the same row can
+        # end up at different Y values, which is exactly the user's
+        # request for natural staggering.
+        def _collides_above(cand: PlacedItem, ignore: PlacedItem) -> bool:
+            """True if cand collides with any placement above (alpha or
+            label rect), excluding `ignore` (the original instance)."""
+            cb_lrect = _lrect(cand)
+            for other in work:
+                if other is ignore:
+                    continue
+                if other.species_ref.slug == cand.species_ref.slug:
+                    continue
+                # Silhouette vs silhouette.
+                if _masks_overlap(cand, other):
+                    return True
+                # Silhouette vs label rect of `other`.
+                ol = _lrect(other)
+                if ol is not None:
+                    ox1, oy1, ox2, oy2 = ol
+                    if (cand.x < ox2 and cand.x + cand.draw_width > ox1
+                            and cand.y < oy2 and cand.y + cand.draw_height > oy1):
+                        return True
+                # Label of cand vs silhouette/label of other.
+                if cb_lrect is not None:
                     cbl_x1, cbl_y1, cbl_x2, cbl_y2 = cb_lrect
-                    for other in work:
-                        if other.species_ref.slug == cb.species_ref.slug:
-                            continue
-                        # Skip rows below the moving row — they will be
-                        # shifted by the same amount in lockstep.
-                        if other in [work[idx_of[id(p)]] for r_below in range(r_idx, len(rows)) for p in rows[r_below]]:
-                            continue
-                        # Label-rect overlap with another placement's label.
-                        if _labels_overlap(cb, other):
-                            bad = True
-                            break
-                        # Label-rect overlap with another placement's silhouette.
-                        ox1, oy1 = other.x, other.y
-                        ox2, oy2 = other.x + other.draw_width, other.y + other.draw_height
-                        if (cbl_x1 < ox2 and cbl_x2 > ox1
-                                and cbl_y1 < oy2 and cbl_y2 > oy1):
-                            bad = True
-                            break
-                    if bad:
-                        break
-                if bad:
-                    break
-                for r_below in range(r_idx, len(rows)):
-                    new_rb: list[PlacedItem] = []
-                    for old_p in [work[idx_of[id(p)]] for p in rows[r_below]]:
-                        moved = PlacedItem(
-                            species_ref=old_p.species_ref,
-                            master=old_p.master,
-                            x=old_p.x,
-                            y=old_p.y - step,
-                            draw_width=old_p.draw_width,
-                            draw_height=old_p.draw_height,
-                        )
-                        work[idx_of[id(old_p)]] = moved
-                        new_rb.append(moved)
-                    rows[r_below] = new_rb
-                _refresh_idx()
-                shifted += step
+                    ox1, oy1 = other.x, other.y
+                    ox2, oy2 = other.x + other.draw_width, other.y + other.draw_height
+                    if (cbl_x1 < ox2 and cbl_x2 > ox1
+                            and cbl_y1 < oy2 and cbl_y2 > oy1):
+                        return True
+                    if ol is not None:
+                        olx1, oly1, olx2, oly2 = ol
+                        if (cbl_x1 < olx2 and cbl_x2 > olx1
+                                and cbl_y1 < oly2 and cbl_y2 > oly1):
+                            return True
+            return False
+
+        if max_intrude_v > 0:
+            # Process species in y-descending order so bottom rows move
+            # first (and don't have anything below to chase). Use
+            # binary-search-style probe to find the largest valid shift.
+            for placed in sorted(list(work), key=lambda p: -p.y):
+                cur = work[idx_of[id(placed)]] if id(placed) in idx_of else placed
+                # Skip if not in work anymore (defensive).
+                if cur is None:
+                    continue
+                # Don't push past canvas top.
+                upper_bound = min(max_intrude_v, max(0, cur.y - title_h - max(0, gutter // 2)))
+                if upper_bound <= 0:
+                    continue
+                # Binary search for the largest shift that doesn't collide.
+                lo, hi = 0, upper_bound
+                best = 0
+                # Coarse scan first for speed (16 candidate steps).
+                STEPS = 16
+                for k in range(1, STEPS + 1):
+                    cand_dy = int(upper_bound * k / STEPS)
+                    if cand_dy <= best:
+                        continue
+                    cand = PlacedItem(
+                        species_ref=cur.species_ref,
+                        master=cur.master,
+                        x=cur.x,
+                        y=cur.y - cand_dy,
+                        draw_width=cur.draw_width,
+                        draw_height=cur.draw_height,
+                    )
+                    if not _collides_above(cand, cur):
+                        best = cand_dy
+                    else:
+                        break  # monotonic — once it collides, larger shifts also collide
+                if best > 0:
+                    moved = PlacedItem(
+                        species_ref=cur.species_ref,
+                        master=cur.master,
+                        x=cur.x,
+                        y=cur.y - best,
+                        draw_width=cur.draw_width,
+                        draw_height=cur.draw_height,
+                    )
+                    work[idx_of[id(cur)]] = moved
+                    # Also update the rows-grouping so subsequent passes see fresh state.
+                    for row in rows:
+                        for j, rp in enumerate(row):
+                            if id(rp) == id(cur):
+                                row[j] = moved
+                                break
+                    _refresh_idx()
 
         # 2c. Second horizontal pass — vertical changes may have opened
         # additional horizontal slack now that label rects of the row
@@ -2006,13 +2028,15 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         # 3) Title-band intrusion (top row): allow species silhouettes
         # to creep up into the title band as long as their alpha doesn't
         # collide with the central title text rect (canvas central 50%).
+        # Cap is now meaningful — up to half the title band — so the top
+        # of the canvas isn't blocked by an arbitrary gutter-sized limit.
         if rows and title_h > 0:
             title_text_x1 = int(canvas_w * 0.25)
             title_text_x2 = int(canvas_w * 0.75)
             title_text_y2 = title_h
-            step = max(1, max_intrude // 8)
+            cap = max(0, title_h // 2)
+            step = max(1, cap // 16) if cap > 0 else 0
             shifted = 0
-            cap = min(max_intrude, gutter)
             while shifted + step <= cap:
                 top_row = [work[idx_of[id(p)]] for p in rows[0]]
                 bad = False
