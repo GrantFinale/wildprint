@@ -208,25 +208,67 @@ def _load_json(path) -> list:
 
 
 SPECIES_OVERRIDES_PATH: Path = METADATA_DIR / "species_overrides.json"
+ADMIN_SETTINGS_PATH: Path = METADATA_DIR / "admin_settings.json"
+
+# species_scale clamp (Task C): absolute size weights, range 0.7-1.5.
+# Applied directly as the species' relative_scale_index in the layout
+# engine (no longer a multiplier on top of the catalog's rsi).
+SPECIES_SCALE_MIN = 0.7
+SPECIES_SCALE_MAX = 1.5
+# global_size_variance clamp (Task D): re-shapes the spread of effective
+# scales around 1.0. variance=1.0 keeps scales as-is; 0.0 collapses every
+# species to 1.0 (uniform); 2.0 doubles the spread.
+GLOBAL_VARIANCE_MIN = 0.0
+GLOBAL_VARIANCE_MAX = 2.0
+# Floor when global variance amplifies a small scale below the clamp.
+EFFECTIVE_SCALE_FLOOR = 0.5
 
 
 def _load_species_overrides() -> dict[str, dict]:
-    """Load admin-edited per-species overrides (e.g. scale_override).
+    """Load admin-edited per-species overrides (e.g. species_scale).
 
     Stored in ``metadata/species_overrides.json`` — a volume-mounted
     location that persists across deploys. Schema is a flat dict keyed
-    by slug, with editable fields as values:
+    by slug:
 
-        {"smallmouth_bass": {"scale_override": 1.2}, ...}
+        {"smallmouth_bass": {"species_scale": 1.0}, ...}
+
+    Legacy: older deploys wrote ``scale_override`` (range 0.3-2.5,
+    multiplier on rsi). On read, those entries are migrated in-memory
+    to ``species_scale`` clamped to 0.7-1.5.
     """
     try:
         with open(SPECIES_OVERRIDES_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
-        if isinstance(data, dict):
-            return data
     except (FileNotFoundError, json.JSONDecodeError, OSError):
-        pass
-    return {}
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    migrated: dict[str, dict] = {}
+    for slug, entry in data.items():
+        if not isinstance(entry, dict):
+            continue
+        new_entry = dict(entry)
+        if "species_scale" not in new_entry and "scale_override" in new_entry:
+            try:
+                old = float(new_entry.pop("scale_override"))
+            except (TypeError, ValueError):
+                old = None
+            if old is not None:
+                new_entry["species_scale"] = max(
+                    SPECIES_SCALE_MIN, min(SPECIES_SCALE_MAX, round(old, 4))
+                )
+        # Clamp existing species_scale into the new range.
+        if "species_scale" in new_entry:
+            try:
+                v = float(new_entry["species_scale"])
+                new_entry["species_scale"] = max(
+                    SPECIES_SCALE_MIN, min(SPECIES_SCALE_MAX, round(v, 4))
+                )
+            except (TypeError, ValueError):
+                new_entry.pop("species_scale", None)
+        migrated[slug] = new_entry
+    return migrated
 
 
 def _save_species_overrides(data: dict[str, dict]) -> None:
@@ -236,6 +278,52 @@ def _save_species_overrides(data: dict[str, dict]) -> None:
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, sort_keys=True)
     tmp.replace(SPECIES_OVERRIDES_PATH)
+
+
+def _load_admin_settings() -> dict:
+    """Load global admin settings (e.g. global_size_variance).
+
+    Stored in ``metadata/admin_settings.json``. Returns an empty dict
+    when the file is missing or unreadable.
+    """
+    try:
+        with open(ADMIN_SETTINGS_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            return data
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        pass
+    return {}
+
+
+def _save_admin_settings(data: dict) -> None:
+    """Persist the admin settings JSON atomically."""
+    METADATA_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = ADMIN_SETTINGS_PATH.with_suffix(".json.tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, sort_keys=True)
+    tmp.replace(ADMIN_SETTINGS_PATH)
+
+
+def _global_size_variance() -> float:
+    """Current global size variance multiplier. Default 1.0."""
+    raw = _load_admin_settings().get("global_size_variance", 1.0)
+    try:
+        v = float(raw)
+    except (TypeError, ValueError):
+        return 1.0
+    return max(GLOBAL_VARIANCE_MIN, min(GLOBAL_VARIANCE_MAX, v))
+
+
+def _effective_species_scale(species_scale: float, variance: float) -> float:
+    """Compute the effective scale for a species given the global variance.
+
+    effective = 1.0 + (species_scale - 1.0) * variance
+    Then clamp to a sane floor so 0-variance + small species doesn't go
+    sub-visible.
+    """
+    eff = 1.0 + (float(species_scale) - 1.0) * float(variance)
+    return max(EFFECTIVE_SCALE_FLOOR, eff)
 
 
 # ---------------------------------------------------------------------------
@@ -1805,20 +1893,39 @@ def api_generate_poster():
     all_species = load_species()
     species_by_slug = {sp["slug"]: sp for sp in all_species}
 
+    # Tasks C+D: scale value is now ABSOLUTE — species_scale (range 0.7-1.5)
+    # IS the effective relative scale, optionally re-spread by global_size_variance.
+    # We deliberately ignore the catalog's relative_scale_index here so the admin
+    # slider drives sizing directly.
+    variance = _global_size_variance()
     species_refs = []
     for slug in species_slugs:
         rec = species_by_slug.get(slug)
         if rec is None:
             continue
-        scale_ovr = float(rec.get("scale_override", 1.0) or 1.0)
-        scale_ovr = max(0.3, min(2.5, scale_ovr))
+        sp_scale_raw = rec.get("species_scale")
+        if sp_scale_raw is None:
+            # Legacy fallback: use rsi normalized via the same tier mapping
+            # we seeded the catalog with — but clamp to the new range.
+            rsi = float(rec.get("relative_scale_index", 1.0) or 1.0)
+            if rsi >= 2.5: sp_scale_raw = 1.5
+            elif rsi >= 1.5: sp_scale_raw = 1.2
+            elif rsi >= 0.7: sp_scale_raw = 1.0
+            elif rsi >= 0.4: sp_scale_raw = 0.8
+            else: sp_scale_raw = 0.7
+        try:
+            species_scale = float(sp_scale_raw)
+        except (TypeError, ValueError):
+            species_scale = 1.0
+        species_scale = max(SPECIES_SCALE_MIN, min(SPECIES_SCALE_MAX, species_scale))
+        effective = _effective_species_scale(species_scale, variance)
         species_refs.append(
             SpeciesRef(
                 slug=rec["slug"],
                 common_name=rec["common_name"],
                 scientific_name=rec.get("scientific_name", ""),
                 category=rec.get("category", ""),
-                relative_scale_index=float(rec.get("relative_scale_index", 1.0)) * scale_ovr,
+                relative_scale_index=effective,
                 habitat_tags=list(rec.get("habitat_tags", [])),
             )
         )
@@ -2231,6 +2338,16 @@ def admin_data():
         else:
             with_none += 1
 
+        # Task C: species_scale is the absolute size weight (0.7-1.5).
+        sp_scale = sp.get("species_scale")
+        if sp_scale is None:
+            # Fallback if a legacy entry is missing the field.
+            sp_scale = 1.0
+        try:
+            sp_scale = float(sp_scale)
+        except (TypeError, ValueError):
+            sp_scale = 1.0
+        sp_scale = max(SPECIES_SCALE_MIN, min(SPECIES_SCALE_MAX, sp_scale))
         species_data.append({
             "slug": slug,
             "common_name": sp.get("common_name", slug),
@@ -2238,7 +2355,7 @@ def admin_data():
             "category": category,
             "geographic_range": sp.get("geographic_range", []),
             "relative_scale_index": sp.get("relative_scale_index", 1.0),
-            "scale_override": float(sp.get("scale_override", 1.0) or 1.0),
+            "species_scale": sp_scale,
             "has_master": has_master,
         })
 
@@ -2278,6 +2395,13 @@ def admin_data():
             "with_some_masters": with_some,
             "with_no_masters": with_none,
         },
+        "settings": {
+            "global_size_variance": _global_size_variance(),
+            "species_scale_min": SPECIES_SCALE_MIN,
+            "species_scale_max": SPECIES_SCALE_MAX,
+            "global_variance_min": GLOBAL_VARIANCE_MIN,
+            "global_variance_max": GLOBAL_VARIANCE_MAX,
+        },
         "coverage_gaps": coverage_gaps,
     })
 
@@ -2285,32 +2409,76 @@ def admin_data():
 @app.route("/admin/species/<slug>/scale", methods=["POST"])
 @admin_required
 def admin_set_species_scale(slug: str):
-    """Set per-species scale_override. Persisted to volume-mounted JSON."""
+    """Set per-species absolute scale (Task C). Persisted to volume-mounted JSON
+    under the new ``species_scale`` key, range 0.7-1.5."""
     data = request.get_json(force=True, silent=True) or {}
     try:
         scale = float(data.get("scale", 1.0))
     except (TypeError, ValueError):
         return jsonify({"error": "scale must be a number"}), 400
-    if not (0.3 <= scale <= 2.5):
-        return jsonify({"error": "scale must be between 0.3 and 2.5"}), 400
+    if not (SPECIES_SCALE_MIN <= scale <= SPECIES_SCALE_MAX):
+        return jsonify({
+            "error": f"scale must be between {SPECIES_SCALE_MIN} and {SPECIES_SCALE_MAX}"
+        }), 400
 
-    # Verify slug exists in the base catalog.
+    # Verify slug exists in the base catalog and look up its catalog default.
     base = _load_json(SPECIES_JSON)
-    if not any(isinstance(sp, dict) and sp.get("slug") == slug for sp in base):
+    base_rec = next(
+        (sp for sp in base if isinstance(sp, dict) and sp.get("slug") == slug),
+        None,
+    )
+    if base_rec is None:
         return jsonify({"error": f"unknown species slug: {slug}"}), 404
+
+    base_default = base_rec.get("species_scale", 1.0)
+    try:
+        base_default = float(base_default)
+    except (TypeError, ValueError):
+        base_default = 1.0
 
     overrides = _load_species_overrides()
     entry = dict(overrides.get(slug) or {})
-    if abs(scale - 1.0) < 1e-6:
-        entry.pop("scale_override", None)
+    # Drop any legacy field
+    entry.pop("scale_override", None)
+    if abs(scale - base_default) < 1e-6:
+        # User-set value matches the catalog default — no override needed.
+        entry.pop("species_scale", None)
     else:
-        entry["scale_override"] = round(scale, 4)
+        entry["species_scale"] = round(scale, 4)
     if entry:
         overrides[slug] = entry
     else:
         overrides.pop(slug, None)
     _save_species_overrides(overrides)
-    return jsonify({"slug": slug, "scale_override": entry.get("scale_override", 1.0)})
+    return jsonify({"slug": slug, "species_scale": entry.get("species_scale", base_default)})
+
+
+@app.route("/admin/settings/global_size_variance", methods=["POST"])
+@admin_required
+def admin_set_global_size_variance():
+    """Set the global species-size variance multiplier. Range 0.0-2.0.
+
+    Effect on each species' effective scale (Task D):
+      effective_scale = 1.0 + (species_scale - 1.0) * global_size_variance
+
+    1.0 = scales work as authored. 0.0 = uniform sizing. 2.0 = doubled spread.
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        v = float(data.get("global_size_variance", 1.0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "global_size_variance must be a number"}), 400
+    if not (GLOBAL_VARIANCE_MIN <= v <= GLOBAL_VARIANCE_MAX):
+        return jsonify({
+            "error": (
+                f"global_size_variance must be between "
+                f"{GLOBAL_VARIANCE_MIN} and {GLOBAL_VARIANCE_MAX}"
+            )
+        }), 400
+    settings = _load_admin_settings()
+    settings["global_size_variance"] = round(v, 4)
+    _save_admin_settings(settings)
+    return jsonify({"global_size_variance": settings["global_size_variance"]})
 
 
 # ---------------------------------------------------------------------------

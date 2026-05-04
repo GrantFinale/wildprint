@@ -6,6 +6,21 @@
   <h1>Species Catalog Admin</h1>
   <p class="subtle">Manage the species catalog, track master image coverage, and generate missing assets.</p>
 
+  <section class="admin-section" id="global-settings-section" style="border:1px solid var(--border,#333);padding:1rem 1.25rem;border-radius:8px;margin-bottom:1.25rem">
+    <h2 style="margin-top:0">Global Sizing</h2>
+    <p class="subtle" style="margin-top:0">
+      <strong>Global size variance</strong> re-spreads every species' authored scale around 1.0.
+      <em>1.0</em> = scales as authored. <em>0.0</em> = uniform sizing. <em>2.0</em> = doubled spread between apex predators and small fish.
+    </p>
+    <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+      <label for="global-variance-slider" style="font-weight:600">Variance</label>
+      <input type="range" id="global-variance-slider" min="0" max="2" step="0.05" value="1" style="flex:1;min-width:240px">
+      <input type="number" id="global-variance-num" min="0" max="2" step="0.05" value="1" style="width:5rem">
+      <button type="button" id="btn-save-variance" class="btn btn-primary">Save</button>
+      <span id="variance-status" class="subtle" style="font-size:0.8rem"></span>
+    </div>
+  </section>
+
   <section class="admin-section">
     <h2>Background Gallery</h2>
     <p class="subtle">Generated landscape backgrounds for use in posters. Click "Generate" to create a new one via Flux Pro Ultra + Real-ESRGAN 4x.</p>
@@ -48,8 +63,7 @@
         <th>Name</th>
         <th>Category</th>
         <th>Regions</th>
-        <th>Scale</th>
-        <th title="Per-species size multiplier applied on top of relative_scale_index. 1.0 = unchanged. Range 0.3–2.5.">Scale &times;</th>
+        <th title="Absolute species scale (Task C): the size weight relative to a unit. Range 0.7–1.5. Apex predators 1.5, large 1.2, medium 1.0, small 0.8, tiny 0.7.">Scale</th>
         <th>Scientific</th>
         <th>Watercolor</th>
         <th>Engraving</th>
@@ -72,6 +86,14 @@ async function loadAdminData() {
   renderSummary();
   populateCategoryFilter();
   renderTable(allSpecies);
+  // Hydrate the global variance slider from server-side settings.
+  const settings = (data && data.settings) || {};
+  const v = (typeof settings.global_size_variance === 'number')
+    ? settings.global_size_variance : 1.0;
+  const slider = document.getElementById('global-variance-slider');
+  const num = document.getElementById('global-variance-num');
+  if (slider) slider.value = String(v);
+  if (num) num.value = v.toFixed(2);
 }
 
 function renderSummary() {
@@ -120,7 +142,7 @@ function populateCategoryFilter() {
 function renderTable(species) {
   const tbody = document.getElementById('species-tbody');
   if (species.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--fg-muted)">No species match the current filters.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--fg-muted)">No species match the current filters.</td></tr>';
     return;
   }
   tbody.innerHTML = species.map(sp => {
@@ -138,21 +160,20 @@ function renderTable(species) {
     const masterCell = (has) => has
       ? '<span class="master-status has">&check;</span>'
       : '<span class="master-status missing">&cross;</span>';
-    const scaleOvr = (typeof sp.scale_override === 'number') ? sp.scale_override : 1.0;
+    const spScale = (typeof sp.species_scale === 'number') ? sp.species_scale : 1.0;
     const scaleCell = `
-      <div class="scale-override-cell" data-slug="${sp.slug}" style="display:flex;gap:0.25rem;align-items:center">
-        <input type="number" step="0.05" min="0.3" max="2.5" value="${scaleOvr.toFixed(2)}"
-               class="scale-override-input" style="width:4.5rem"
-               aria-label="Scale override for ${sp.common_name}">
-        <button type="button" class="btn btn-sm scale-override-save">Save</button>
-        <span class="scale-override-status subtle" style="font-size:0.7rem"></span>
+      <div class="species-scale-cell" data-slug="${sp.slug}" style="display:flex;gap:0.25rem;align-items:center">
+        <input type="number" step="0.05" min="0.7" max="1.5" value="${spScale.toFixed(2)}"
+               class="species-scale-input" style="width:4.5rem"
+               aria-label="Species scale for ${sp.common_name}">
+        <button type="button" class="btn btn-sm species-scale-save">Save</button>
+        <span class="species-scale-status subtle" style="font-size:0.7rem"></span>
       </div>`;
     return `<tr>
       <td>${thumbHtml}</td>
       <td><strong>${sp.common_name}</strong><br><em class="sci-name" style="font-size:0.75rem">${sp.scientific_name}</em></td>
       <td><span class="${catClass}">${sp.category}</span></td>
       <td>${regions}</td>
-      <td>${sp.relative_scale_index}</td>
       <td>${scaleCell}</td>
       <td>${masterCell(hasSci)}</td>
       <td>${masterCell(hasWc)}</td>
@@ -162,18 +183,18 @@ function renderTable(species) {
   }).join('');
 }
 
-// Delegated save handler for scale_override.
+// Delegated save handler for per-species absolute scale (Task C).
 document.addEventListener('click', function(e) {
-  const btn = e.target.closest('.scale-override-save');
+  const btn = e.target.closest('.species-scale-save');
   if (!btn) return;
-  const cell = btn.closest('.scale-override-cell');
+  const cell = btn.closest('.species-scale-cell');
   if (!cell) return;
   const slug = cell.dataset.slug;
-  const input = cell.querySelector('.scale-override-input');
-  const status = cell.querySelector('.scale-override-status');
+  const input = cell.querySelector('.species-scale-input');
+  const status = cell.querySelector('.species-scale-status');
   const val = parseFloat(input.value);
-  if (!Number.isFinite(val) || val < 0.3 || val > 2.5) {
-    status.textContent = 'Invalid';
+  if (!Number.isFinite(val) || val < 0.7 || val > 1.5) {
+    status.textContent = 'Invalid (0.7-1.5)';
     status.style.color = '#c33';
     return;
   }
@@ -197,6 +218,46 @@ document.addEventListener('click', function(e) {
     status.style.color = '#c33';
   });
 });
+
+// Global size variance slider (Task D).
+(function bindGlobalVariance() {
+  const slider = document.getElementById('global-variance-slider');
+  const num = document.getElementById('global-variance-num');
+  const status = document.getElementById('variance-status');
+  const btn = document.getElementById('btn-save-variance');
+  if (!slider || !num || !btn) return;
+
+  function syncFrom(src) {
+    const v = parseFloat(src.value);
+    if (Number.isFinite(v)) {
+      slider.value = String(v);
+      num.value = v.toFixed(2);
+    }
+  }
+  slider.addEventListener('input', function() { syncFrom(slider); });
+  num.addEventListener('input', function() { syncFrom(num); });
+
+  btn.addEventListener('click', function() {
+    const v = parseFloat(num.value);
+    if (!Number.isFinite(v) || v < 0 || v > 2) {
+      status.textContent = 'Invalid (0-2)'; status.style.color = '#c33'; return;
+    }
+    status.textContent = 'Saving...'; status.style.color = '';
+    fetch('/admin/settings/global_size_variance', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({global_size_variance: v}),
+    }).then(r => r.json()).then(data => {
+      if (data.error) {
+        status.textContent = 'Error: ' + data.error; status.style.color = '#c33';
+      } else {
+        status.textContent = 'Saved'; status.style.color = '#2a7';
+        setTimeout(() => { status.textContent = ''; }, 1800);
+      }
+    }).catch(err => {
+      status.textContent = 'Error: ' + err.message; status.style.color = '#c33';
+    });
+  });
+})();
 
 function applyFilters() {
   const search = document.getElementById('admin-search').value.toLowerCase();

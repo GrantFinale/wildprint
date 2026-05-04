@@ -1195,7 +1195,11 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
 
     def __init__(
         self,
-        title_band_fraction: float = 0.10,
+        # 0.22 matches the renderer's actual two-line title block:
+        #   preheader_y (0.06) + preheader (~0.03) + gap (0.018) + title (0.09)
+        # ≈ 0.20, plus a small safety pad. Previously this was 0.10 which
+        # let the top-row pike's silhouette overlap the rendered title text.
+        title_band_fraction: float = 0.22,
         caption_band_fraction: float = 0.07,
         gutter_frac: float = 0.04,
         scale_clamp_ratio: float = 4.0,
@@ -1212,6 +1216,12 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         nest_max_intrusion_frac: float = 0.50,
         nest_vertical_intrusion_frac: float = 0.45,
         nest_alpha_threshold: int = 8,
+        # Title-band intrusion: when True, the top row of silhouettes is
+        # allowed to creep up into the title band (avoiding the central
+        # title text rect via alpha probes). In practice this collides
+        # with the flanking rules and frequently occludes the main title
+        # — so it ships disabled. Set True to restore the legacy creep.
+        nest_into_title_band: bool = False,
         # Within-row vertical staggering: per-species allow Y to vary from
         # the row baseline. Each species' silhouette can move up by up to
         # ``stagger_within_row_frac * row_inner_height`` as long as its
@@ -1250,6 +1260,7 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         self.nest_max_intrusion_frac = nest_max_intrusion_frac
         self.nest_vertical_intrusion_frac = nest_vertical_intrusion_frac
         self.nest_alpha_threshold = nest_alpha_threshold
+        self.nest_into_title_band = nest_into_title_band
         self.stagger_within_row_frac = stagger_within_row_frac
         self.varied_y_slots = varied_y_slots
         self.varied_y_slot_count = max(2, int(varied_y_slot_count))
@@ -2064,7 +2075,10 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         # collide with the central title text rect (canvas central 50%).
         # Cap is now meaningful — up to half the title band — so the top
         # of the canvas isn't blocked by an arbitrary gutter-sized limit.
-        if rows and title_h > 0:
+        # Gated by nest_into_title_band (default off): the top-row pike
+        # was reliably eating the title text + flanking rules, and the
+        # aesthetic loss of forbidding the creep is small.
+        if self.nest_into_title_band and rows and title_h > 0:
             title_text_x1 = int(canvas_w * 0.25)
             title_text_x2 = int(canvas_w * 0.75)
             title_text_y2 = title_h

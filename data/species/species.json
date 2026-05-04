@@ -27,7 +27,8 @@
       "southeast",
       "mountain_west"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.2
   },
   {
     "common_name": "Largemouth Bass",
@@ -54,7 +55,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.5
   },
   {
     "common_name": "Northern Pike",
@@ -85,7 +87,8 @@
       "mountain_west",
       "alaska"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.5
   },
   {
     "common_name": "Bowfin",
@@ -114,7 +117,8 @@
       "southeast",
       "midwest"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.5
   },
   {
     "common_name": "Bluegill",
@@ -141,7 +145,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 0.8
   },
   {
     "common_name": "Black Crappie",
@@ -168,7 +173,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.0
   },
   {
     "common_name": "Rock Bass",
@@ -196,7 +202,8 @@
       "northeast",
       "midwest"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.0
   },
   {
     "common_name": "Pumpkinseed Sunfish",
@@ -224,7 +231,8 @@
       "northeast",
       "midwest"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 0.8
   },
   {
     "common_name": "Yellow Perch",
@@ -253,7 +261,8 @@
       "midwest",
       "mountain_west"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.0
   },
   {
     "common_name": "Channel Catfish",
@@ -281,7 +290,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.5
   },
   {
     "common_name": "Bullhead Catfish",
@@ -309,7 +319,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.0
   },
   {
     "common_name": "Common Carp",
@@ -336,7 +347,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.5
   },
   {
     "common_name": "White Sucker",
@@ -366,7 +378,8 @@
       "midwest",
       "mountain_west"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.2
   },
   {
     "common_name": "Painted Turtle",
@@ -394,7 +407,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.0
   },
   {
     "common_name": "Red-eared Slider",
@@ -424,7 +438,8 @@
       "midwest",
       "southwest"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.0
   },
   {
     "common_name": "Common Snapping Turtle",
@@ -454,7 +469,8 @@
       "southeast",
       "midwest"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.2
   },
   {
     "common_name": "Eastern Box Turtle",
@@ -483,7 +499,8 @@
       "northeast",
       "southeast"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Spiny Softshell Turtle",
@@ -512,7 +529,8 @@
       "southeast",
       "northeast"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Great Blue Heron",
@@ -540,7 +558,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.5
   },
   {
     "common_name": "Belted Kingfisher",
@@ -568,7 +587,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.0
   },
   {
     "common_name": "Common Loon",
@@ -599,7 +619,8 @@
       "pacific_northwest",
       "alaska"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.5
   },
   {
     "common_name": "Osprey",
@@ -627,7 +648,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.5
   },
   {
     "common_name": "Mallard",
@@ -654,7 +676,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.2
   },
   {
     "common_name": "Wood Duck",
@@ -684,7 +707,8 @@
       "midwest",
       "pacific_northwest"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "American Bittern",
@@ -715,7 +739,8 @@
       "mountain_west",
       "pacific_northwest"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Cattails",
@@ -740,7 +765,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.5
   },
   {
     "common_name": "Water Lily",
@@ -767,7 +793,8 @@
       "southeast",
       "midwest"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 0.8
   },
   {
     "common_name": "Bulrush",
@@ -792,7 +819,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.5
   },
   {
     "common_name": "Wild Rice",
@@ -818,7 +846,8 @@
       "northeast",
       "midwest"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Arrowhead",
@@ -843,7 +872,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Spotted Bass",
@@ -872,7 +902,8 @@
     ],
     "notes": "Spot rows below lateral line distinguish from largemouth.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Striped Bass",
@@ -902,7 +933,8 @@
     ],
     "notes": "Landlocked populations in many reservoirs.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.5
   },
   {
     "common_name": "White Bass",
@@ -932,7 +964,8 @@
     ],
     "notes": "Schooling predator; spring spawning runs up tributaries.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Guadalupe Bass",
@@ -959,7 +992,8 @@
     ],
     "notes": "State fish of Texas; endemic to Edwards Plateau streams.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Redear Sunfish",
@@ -988,7 +1022,8 @@
     ],
     "notes": "Also called shellcracker; feeds heavily on snails.",
     "enabled": true,
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.0
   },
   {
     "common_name": "Green Sunfish",
@@ -1018,7 +1053,8 @@
     ],
     "notes": "Tolerates poor water quality; large mouth for a sunfish.",
     "enabled": true,
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 0.8
   },
   {
     "common_name": "Longear Sunfish",
@@ -1047,7 +1083,8 @@
     ],
     "notes": "Extremely long opercular flap is diagnostic.",
     "enabled": true,
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.0
   },
   {
     "common_name": "Warmouth",
@@ -1076,7 +1113,8 @@
     ],
     "notes": "Prefers murky, vegetated waters; tolerates low oxygen.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 0.8
   },
   {
     "common_name": "Redbreast Sunfish",
@@ -1104,7 +1142,8 @@
     ],
     "notes": "Bright orange breast distinctive in eastern streams.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "White Crappie",
@@ -1134,7 +1173,8 @@
     ],
     "notes": "Vertical bars distinguish from irregularly spotted black crappie.",
     "enabled": true,
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.0
   },
   {
     "common_name": "Blue Catfish",
@@ -1163,7 +1203,8 @@
     ],
     "notes": "Largest North American catfish; straight anal fin margin is key.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.5
   },
   {
     "common_name": "Flathead Catfish",
@@ -1192,7 +1233,8 @@
     ],
     "notes": "Flat head and squared tail distinguish from channel and blue cats.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.5
   },
   {
     "common_name": "Chain Pickerel",
@@ -1220,7 +1262,8 @@
     ],
     "notes": "Chain-link pattern on sides is diagnostic; fully scaled opercle.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Muskellunge",
@@ -1249,12 +1292,13 @@
     ],
     "notes": "Dark markings on light background; opposite of northern pike pattern.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.5
   },
   {
     "common_name": "Tiger Musky",
     "slug": "tiger_musky",
-    "scientific_name": "Esox masquinongy \u00d7 lucius",
+    "scientific_name": "Esox masquinongy × lucius",
     "category": "fish",
     "habitat_tags": [
       "freshwater",
@@ -1275,9 +1319,10 @@
       "northeast",
       "mountain_west"
     ],
-    "notes": "Sterile hybrid (pike \u00d7 musky); stocked for sport fishing.",
+    "notes": "Sterile hybrid (pike × musky); stocked for sport fishing.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.5
   },
   {
     "common_name": "Walleye",
@@ -1307,7 +1352,8 @@
     ],
     "notes": "Reflective eyes adapted for low-light feeding; prized sport fish.",
     "enabled": true,
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.2
   },
   {
     "common_name": "Sauger",
@@ -1336,12 +1382,13 @@
     ],
     "notes": "Tolerates more turbid water than walleye; spotted dorsal is key.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Saugeye",
     "slug": "saugeye",
-    "scientific_name": "Sander vitreus \u00d7 canadensis",
+    "scientific_name": "Sander vitreus × canadensis",
     "category": "fish",
     "habitat_tags": [
       "freshwater",
@@ -1364,7 +1411,8 @@
     ],
     "notes": "Walleye-sauger hybrid; widely stocked in reservoirs.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Rainbow Trout",
@@ -1395,7 +1443,8 @@
     ],
     "notes": "Widely stocked across the US.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Brown Trout",
@@ -1426,7 +1475,8 @@
     ],
     "notes": "European introduction; more tolerant of warm water than other trout.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Brook Trout",
@@ -1456,7 +1506,8 @@
     ],
     "notes": "Actually a char (Salvelinus); needs coldest and cleanest water.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Lake Trout",
@@ -1485,7 +1536,8 @@
     ],
     "notes": "Deep cold lake specialist; largest native char in North America.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Cutthroat Trout",
@@ -1515,7 +1567,8 @@
     ],
     "notes": "Red throat slash marks are diagnostic; many subspecies.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Bull Trout",
@@ -1543,7 +1596,8 @@
     ],
     "notes": "Threatened species; requires coldest and cleanest habitat.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Apache Trout",
@@ -1570,7 +1624,8 @@
     ],
     "notes": "Endangered; endemic to White Mountains of Arizona.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Chinook Salmon",
@@ -1599,7 +1654,8 @@
     ],
     "notes": "Largest Pacific salmon; also called king salmon.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.5
   },
   {
     "common_name": "Coho Salmon",
@@ -1628,7 +1684,8 @@
     ],
     "notes": "Also called silver salmon; spots on upper tail lobe only.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Sockeye Salmon",
@@ -1656,7 +1713,8 @@
     ],
     "notes": "Bright red spawning coloration; lake-rearing juveniles.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Atlantic Salmon",
@@ -1683,7 +1741,8 @@
     ],
     "notes": "Native to NE rivers; can spawn multiple times unlike Pacific salmon.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Pink Salmon",
@@ -1710,7 +1769,8 @@
     ],
     "notes": "Also called humpback salmon; strict two-year life cycle.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Kokanee",
@@ -1738,7 +1798,8 @@
     ],
     "notes": "Landlocked form of sockeye salmon; important forage and sport fish.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Lake Sturgeon",
@@ -1766,7 +1827,8 @@
     ],
     "notes": "Ancient fish; can live over 100 years. Threatened.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.5
   },
   {
     "common_name": "White Sturgeon",
@@ -1794,7 +1856,8 @@
     ],
     "notes": "Largest North American freshwater fish; can exceed 6 meters.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.5
   },
   {
     "common_name": "Atlantic Sturgeon",
@@ -1822,7 +1885,8 @@
     ],
     "notes": "Endangered; historically from Maine to Florida.",
     "enabled": true,
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.5
   },
   {
     "common_name": "Pallid Sturgeon",
@@ -1850,7 +1914,8 @@
     ],
     "notes": "Critically endangered; Missouri and Mississippi river systems.",
     "enabled": true,
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.5
   },
   {
     "common_name": "Shovelnose Sturgeon",
@@ -1877,7 +1942,8 @@
     ],
     "notes": "Most common large-river sturgeon in the Mississippi basin.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Paddlefish",
@@ -1905,7 +1971,8 @@
     ],
     "notes": "Filter feeder with electroreceptive rostrum; living fossil.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.5
   },
   {
     "common_name": "Longnose Gar",
@@ -1935,7 +2002,8 @@
     ],
     "notes": "Longest and most widespread gar species.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.5
   },
   {
     "common_name": "Shortnose Gar",
@@ -1963,7 +2031,8 @@
     ],
     "notes": "Shortest snout of all gars; spots mainly on fins.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Alligator Gar",
@@ -1991,7 +2060,8 @@
     ],
     "notes": "Largest gar; dual rows of upper jaw teeth are diagnostic.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.5
   },
   {
     "common_name": "Spotted Gar",
@@ -2020,7 +2090,8 @@
     ],
     "notes": "Spots on head and body distinguish from other gars.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Florida Gar",
@@ -2047,7 +2118,8 @@
     ],
     "notes": "Endemic to Florida and southern Georgia.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "American Shad",
@@ -2075,7 +2147,8 @@
     ],
     "notes": "Largest North American herring; anadromous spawning runs.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Gizzard Shad",
@@ -2105,7 +2178,8 @@
     ],
     "notes": "Important forage fish; elongated dorsal ray is diagnostic.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Hickory Shad",
@@ -2132,7 +2206,8 @@
     ],
     "notes": "Projecting lower jaw distinguishes from American shad.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Freshwater Drum",
@@ -2162,7 +2237,8 @@
     ],
     "notes": "Only North American freshwater member of the drum family.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Longnose Sucker",
@@ -2193,7 +2269,8 @@
     ],
     "notes": "Cold-water sucker; longer snout than white sucker.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Smallmouth Buffalo",
@@ -2222,7 +2299,8 @@
     ],
     "notes": "Small downward mouth distinguishes from bigmouth buffalo.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Bigmouth Buffalo",
@@ -2250,7 +2328,8 @@
     ],
     "notes": "Forward-facing mouth for filter feeding; can live over 100 years.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.5
   },
   {
     "common_name": "Lake Whitefish",
@@ -2279,7 +2358,8 @@
     ],
     "notes": "Important commercial species in the Great Lakes.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Cisco",
@@ -2307,7 +2387,8 @@
     ],
     "notes": "Also called lake herring; important forage fish in deep lakes.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Mooneye",
@@ -2335,7 +2416,8 @@
     ],
     "notes": "Large eye adapted for clear water; keeled belly.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Goldeye",
@@ -2363,7 +2445,8 @@
     ],
     "notes": "Tolerates turbid water; dorsal fin set farther back than mooneye.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Green Heron",
@@ -2393,7 +2476,8 @@
     ],
     "notes": "One of the few tool-using birds; drops bait to attract fish.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Little Blue Heron",
@@ -2422,7 +2506,8 @@
     ],
     "notes": "Juveniles are all white; adults entirely dark blue.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Great Egret",
@@ -2454,7 +2539,8 @@
     ],
     "notes": "Symbol of the Audubon Society; hunted nearly to extinction for plumes.",
     "enabled": true,
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.5
   },
   {
     "common_name": "Snowy Egret",
@@ -2484,7 +2570,8 @@
     ],
     "notes": "Golden slippers (yellow feet) distinguish from great egret.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Black-crowned Night Heron",
@@ -2511,7 +2598,8 @@
     ],
     "notes": "Nocturnal feeder; most widespread heron in the world.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Yellow-crowned Night Heron",
@@ -2540,7 +2628,8 @@
     ],
     "notes": "Crab specialist; longer legs allow wading in deeper water.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Least Bittern",
@@ -2569,7 +2658,8 @@
     ],
     "notes": "Smallest North American heron; clings to reeds with long toes.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Tricolored Heron",
@@ -2597,7 +2687,8 @@
     ],
     "notes": "White belly contrasting with dark body is diagnostic.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Blue-winged Teal",
@@ -2624,7 +2715,8 @@
     ],
     "notes": "One of the latest spring and earliest fall migrants.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Green-winged Teal",
@@ -2651,7 +2743,8 @@
     ],
     "notes": "Smallest North American dabbling duck.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Canvasback",
@@ -2681,7 +2774,8 @@
     ],
     "notes": "Fastest flying duck; head profile slopes evenly from crown to bill tip.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Redhead",
@@ -2710,7 +2804,8 @@
     ],
     "notes": "Rounded head shape distinguishes from sloped canvasback profile.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Ring-necked Duck",
@@ -2737,7 +2832,8 @@
     ],
     "notes": "Named for hard-to-see neck ring; bill ring is more visible field mark.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Common Goldeneye",
@@ -2768,7 +2864,8 @@
     ],
     "notes": "Wings produce distinctive whistling sound in flight.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Bufflehead",
@@ -2795,7 +2892,8 @@
     ],
     "notes": "Smallest diving duck in North America; nests in woodpecker holes.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Common Merganser",
@@ -2826,7 +2924,8 @@
     ],
     "notes": "Fish-eating duck with serrated bill for gripping prey.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Hooded Merganser",
@@ -2856,7 +2955,8 @@
     ],
     "notes": "Spectacular fan-shaped crest can be raised or flattened.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Ruddy Duck",
@@ -2883,7 +2983,8 @@
     ],
     "notes": "Stiff tail held erect during display; bright blue breeding bill.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Northern Pintail",
@@ -2910,7 +3011,8 @@
     ],
     "notes": "Long pointed tail feathers and elegant profile are diagnostic.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Gadwall",
@@ -2937,7 +3039,8 @@
     ],
     "notes": "Subtle plumage; white speculum patch is best field mark.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "American Wigeon",
@@ -2964,7 +3067,8 @@
     ],
     "notes": "White forehead blaze on male is distinctive.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Northern Shoveler",
@@ -2991,7 +3095,8 @@
     ],
     "notes": "Massive shovel-shaped bill used for filter feeding.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Canada Goose",
@@ -3019,7 +3124,8 @@
     ],
     "notes": "Most recognized North American goose; year-round in many areas.",
     "enabled": true,
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.5
   },
   {
     "common_name": "Snow Goose",
@@ -3046,7 +3152,8 @@
     ],
     "notes": "Massive migratory flocks; two color morphs (white and blue).",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Double-crested Cormorant",
@@ -3073,7 +3180,8 @@
     ],
     "notes": "Lacks waterproof plumage; characteristic wing-drying posture.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "American White Pelican",
@@ -3103,7 +3211,8 @@
     ],
     "notes": "Cooperative surface feeder; does not dive like brown pelican.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.5
   },
   {
     "common_name": "Bald Eagle",
@@ -3130,7 +3239,8 @@
     ],
     "notes": "National bird of the US; recovered from near extinction.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.5
   },
   {
     "common_name": "Pied-billed Grebe",
@@ -3157,7 +3267,8 @@
     ],
     "notes": "Can sink gradually below the surface like a submarine.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Alligator Snapping Turtle",
@@ -3185,7 +3296,8 @@
     ],
     "notes": "Largest freshwater turtle in North America; tongue lure is unique.",
     "enabled": true,
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.5
   },
   {
     "common_name": "Ornate Box Turtle",
@@ -3212,7 +3324,8 @@
     ],
     "notes": "Prairie specialist; more yellow lines than eastern box turtle.",
     "enabled": true,
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.0
   },
   {
     "common_name": "Common Map Turtle",
@@ -3240,7 +3353,8 @@
     ],
     "notes": "Map-like lines on shell and skin are diagnostic.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "False Map Turtle",
@@ -3268,7 +3382,8 @@
     ],
     "notes": "L-shaped eye mark and keel knobs distinguish from common map.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Common Musk Turtle",
@@ -3297,7 +3412,8 @@
     ],
     "notes": "Also called stinkpot; releases foul musk when handled.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "Eastern Mud Turtle",
@@ -3325,7 +3441,8 @@
     ],
     "notes": "Double-hinged plastron distinguishes from musk turtles.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "River Cooter",
@@ -3353,7 +3470,8 @@
     ],
     "notes": "Herbivorous; C-shaped carapace markings help identify.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Blanding's Turtle",
@@ -3381,7 +3499,8 @@
     ],
     "notes": "Threatened; bright yellow throat is diagnostic.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Diamondback Terrapin",
@@ -3409,7 +3528,8 @@
     ],
     "notes": "Only North American turtle adapted to brackish water.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Wood Turtle",
@@ -3437,7 +3557,8 @@
     ],
     "notes": "Semi-terrestrial; sculpted shell scutes and orange limbs.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "American Bullfrog",
@@ -3464,7 +3585,8 @@
     ],
     "notes": "Largest North American frog; tympanum size identifies sex.",
     "enabled": true,
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.0
   },
   {
     "common_name": "Green Frog",
@@ -3493,7 +3615,8 @@
     ],
     "notes": "Dorsolateral ridges distinguish from bullfrog.",
     "enabled": true,
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.0
   },
   {
     "common_name": "Northern Leopard Frog",
@@ -3523,7 +3646,8 @@
     ],
     "notes": "Leopard-like spots with light borders are diagnostic.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Southern Leopard Frog",
@@ -3552,7 +3676,8 @@
     ],
     "notes": "Pointed snout and tympanum spot distinguish from northern.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Wood Frog",
@@ -3582,7 +3707,8 @@
     ],
     "notes": "Can survive freezing; dark eye mask is diagnostic.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Spring Peeper",
@@ -3611,7 +3737,8 @@
     ],
     "notes": "Loud chorus in early spring; X-marking on back is diagnostic.",
     "enabled": true,
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 0.8
   },
   {
     "common_name": "Gray Tree Frog",
@@ -3640,7 +3767,8 @@
     ],
     "notes": "Color-changing ability; yellow thigh flash is diagnostic.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "Pacific Tree Frog",
@@ -3669,7 +3797,8 @@
     ],
     "notes": "Most commonly heard frog in Hollywood movies (ribbit).",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "American Toad",
@@ -3698,7 +3827,8 @@
     ],
     "notes": "Breeds in shallow temporary pools; long trilling call.",
     "enabled": true,
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.0
   },
   {
     "common_name": "Eastern Newt",
@@ -3727,7 +3857,8 @@
     ],
     "notes": "Three life stages: larva, red eft (land), adult (aquatic).",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Spotted Salamander",
@@ -3756,7 +3887,8 @@
     ],
     "notes": "Breeds in vernal pools; vivid yellow spots on black.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Tiger Salamander",
@@ -3786,7 +3918,8 @@
     ],
     "notes": "Largest land-dwelling salamander in North America.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Red-backed Salamander",
@@ -3815,7 +3948,8 @@
     ],
     "notes": "Most abundant salamander in eastern North America; lungless.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "Hellbender",
@@ -3844,7 +3978,8 @@
     ],
     "notes": "Largest North American salamander; requires pristine rocky streams.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Mudpuppy",
@@ -3873,7 +4008,8 @@
     ],
     "notes": "Permanently aquatic; retains larval gills as adult (neoteny).",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "North American River Otter",
@@ -3900,7 +4036,8 @@
     ],
     "notes": "Playful behavior; slides on mud and snow.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.5
   },
   {
     "common_name": "American Beaver",
@@ -3927,7 +4064,8 @@
     ],
     "notes": "Ecosystem engineer; builds dams and lodges from branches.",
     "enabled": true,
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.5
   },
   {
     "common_name": "Muskrat",
@@ -3954,7 +4092,8 @@
     ],
     "notes": "Builds lodges from cattails; tail is vertically flattened (not flat like beaver).",
     "enabled": true,
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.2
   },
   {
     "common_name": "American Mink",
@@ -3981,7 +4120,8 @@
     ],
     "notes": "Aggressive semi-aquatic predator; luxurious dense fur.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Nutria",
@@ -4010,7 +4150,8 @@
     ],
     "notes": "Invasive South American species; destructive to wetlands.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Water Shrew",
@@ -4040,7 +4181,8 @@
     ],
     "notes": "Can run on water surface briefly due to air-trapping foot hairs.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.7
   },
   {
     "common_name": "Star-nosed Mole",
@@ -4069,7 +4211,8 @@
     ],
     "notes": "Fastest-eating mammal; nose tentacles are touch-sensitive organs.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 0.7
   },
   {
     "common_name": "American Water Shrew",
@@ -4097,7 +4240,8 @@
     ],
     "notes": "Subspecies of the water shrew adapted to mountain streams.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.7
   },
   {
     "common_name": "Duckweed",
@@ -4123,7 +4267,8 @@
     ],
     "notes": "Smallest flowering plant; important duck food source.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.7
   },
   {
     "common_name": "Pickerelweed",
@@ -4151,7 +4296,8 @@
     ],
     "notes": "Named for growing alongside chain pickerel habitat.",
     "enabled": true,
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "American Lotus",
@@ -4179,7 +4325,8 @@
     ],
     "notes": "Only native lotus in North America; leaves repel water.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Blue Flag Iris",
@@ -4207,7 +4354,8 @@
     ],
     "notes": "Native iris; attractive flowering wetland plant.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Water Hyacinth",
@@ -4235,7 +4383,8 @@
     ],
     "notes": "Invasive; clogs waterways. One of the worst aquatic weeds globally.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "Elodea",
@@ -4261,7 +4410,8 @@
     ],
     "notes": "Common aquarium plant; important oxygenator in ponds.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "Coontail",
@@ -4287,7 +4437,8 @@
     ],
     "notes": "Rootless; floats freely; important fish habitat.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "Pondweed",
@@ -4313,7 +4464,8 @@
     ],
     "notes": "Important waterfowl food; floating and submerged leaf forms.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "Water Milfoil",
@@ -4339,7 +4491,8 @@
     ],
     "notes": "Invasive Eurasian species; fragments easily to spread.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "Bladderwort",
@@ -4365,7 +4518,8 @@
     ],
     "notes": "Carnivorous; bladder traps capture tiny aquatic organisms.",
     "enabled": true,
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.7
   },
   {
     "common_name": "American Alligator",
@@ -4394,7 +4548,8 @@
     ],
     "enabled": true,
     "notes": "Apex predator of southeastern US freshwater systems.",
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.5
   },
   {
     "common_name": "American Crocodile",
@@ -4421,7 +4576,8 @@
     ],
     "enabled": true,
     "notes": "Endangered. Southern Florida only.",
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.5
   },
   {
     "common_name": "Florida Softshell Turtle",
@@ -4447,7 +4603,8 @@
     ],
     "enabled": true,
     "notes": "Largest North American softshell.",
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Lesser Scaup",
@@ -4474,7 +4631,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Greater Scaup",
@@ -4504,7 +4662,8 @@
       "northeast",
       "midwest"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Long-tailed Duck",
@@ -4532,7 +4691,8 @@
       "pacific_northwest",
       "northeast"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.0
   },
   {
     "common_name": "Harlequin Duck",
@@ -4561,7 +4721,8 @@
       "alaska",
       "northeast"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.0
   },
   {
     "common_name": "Surf Scoter",
@@ -4589,7 +4750,8 @@
       "pacific_northwest",
       "northeast"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.0
   },
   {
     "common_name": "White-winged Scoter",
@@ -4618,7 +4780,8 @@
       "pacific_northwest",
       "northeast"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.0
   },
   {
     "common_name": "Black Scoter",
@@ -4646,7 +4809,8 @@
       "pacific_northwest",
       "northeast"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.0
   },
   {
     "common_name": "Common Eider",
@@ -4673,7 +4837,8 @@
       "alaska",
       "northeast"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.2
   },
   {
     "common_name": "Red-breasted Merganser",
@@ -4703,7 +4868,8 @@
       "northeast",
       "midwest"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Horned Grebe",
@@ -4734,7 +4900,8 @@
       "midwest",
       "northeast"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Eared Grebe",
@@ -4763,7 +4930,8 @@
       "southwest",
       "pacific_northwest"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "Western Grebe",
@@ -4791,7 +4959,8 @@
       "california",
       "mountain_west"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.0
   },
   {
     "common_name": "Clark's Grebe",
@@ -4819,7 +4988,8 @@
       "california",
       "mountain_west"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.0
   },
   {
     "common_name": "Red-necked Grebe",
@@ -4848,7 +5018,8 @@
       "pacific_northwest",
       "northeast"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.0
   },
   {
     "common_name": "American Coot",
@@ -4875,7 +5046,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Common Gallinule",
@@ -4906,7 +5078,8 @@
       "southwest",
       "california"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Sora",
@@ -4932,7 +5105,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "Virginia Rail",
@@ -4958,7 +5132,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "King Rail",
@@ -4987,7 +5162,8 @@
       "northeast",
       "southwest"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.0
   },
   {
     "common_name": "Purple Gallinule",
@@ -5015,7 +5191,8 @@
       "southeast",
       "southwest"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.0
   },
   {
     "common_name": "Sandhill Crane",
@@ -5042,7 +5219,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.5
   },
   {
     "common_name": "Whooping Crane",
@@ -5070,7 +5248,8 @@
       "southwest",
       "midwest"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.5
   },
   {
     "common_name": "Wood Stork",
@@ -5097,7 +5276,8 @@
     "geographic_range": [
       "southeast"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.5
   },
   {
     "common_name": "Limpkin",
@@ -5123,7 +5303,8 @@
     "geographic_range": [
       "southeast"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.2
   },
   {
     "common_name": "Roseate Spoonbill",
@@ -5150,7 +5331,8 @@
     "geographic_range": [
       "southeast"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.2
   },
   {
     "common_name": "Anhinga",
@@ -5177,7 +5359,8 @@
     "geographic_range": [
       "southeast"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.2
   },
   {
     "common_name": "Brown Pelican",
@@ -5203,7 +5386,8 @@
     "geographic_range": [
       "southeast"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.5
   },
   {
     "common_name": "Reddish Egret",
@@ -5230,7 +5414,8 @@
       "southeast",
       "southwest"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Trumpeter Swan",
@@ -5260,7 +5445,8 @@
       "mountain_west",
       "midwest"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 1.5
   },
   {
     "common_name": "Tundra Swan",
@@ -5289,7 +5475,8 @@
       "northeast",
       "midwest"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.5
   },
   {
     "common_name": "Mute Swan",
@@ -5317,7 +5504,8 @@
       "midwest",
       "pacific_northwest"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.5
   },
   {
     "common_name": "Killdeer",
@@ -5344,7 +5532,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 0.8
   },
   {
     "common_name": "Spotted Sandpiper",
@@ -5371,7 +5560,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 0.7
   },
   {
     "common_name": "Wilson's Snipe",
@@ -5397,7 +5587,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "American Woodcock",
@@ -5425,7 +5616,8 @@
       "midwest",
       "southeast"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "Greater Yellowlegs",
@@ -5452,7 +5644,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Ring-billed Gull",
@@ -5479,7 +5672,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Common Tern",
@@ -5509,7 +5703,8 @@
       "pacific_northwest",
       "california"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Forster's Tern",
@@ -5536,7 +5731,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Black Tern",
@@ -5565,7 +5761,8 @@
       "northeast",
       "pacific_northwest"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "Caspian Tern",
@@ -5592,7 +5789,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Red-winged Blackbird",
@@ -5618,7 +5816,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 0.7
   },
   {
     "common_name": "Yellow-headed Blackbird",
@@ -5648,7 +5847,8 @@
       "california",
       "pacific_northwest"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.8
   },
   {
     "common_name": "Marsh Wren",
@@ -5674,7 +5874,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.7
   },
   {
     "common_name": "Prothonotary Warbler",
@@ -5702,7 +5903,8 @@
       "midwest",
       "northeast"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.7
   },
   {
     "common_name": "Tree Swallow",
@@ -5728,7 +5930,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 0.7
   },
   {
     "common_name": "Northern Water Snake",
@@ -5757,7 +5960,8 @@
       "midwest",
       "southeast"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 1.2
   },
   {
     "common_name": "Brown Water Snake",
@@ -5784,7 +5988,8 @@
     "geographic_range": [
       "southeast"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Banded Water Snake",
@@ -5812,7 +6017,8 @@
       "southeast",
       "southwest"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "Diamondback Water Snake",
@@ -5840,7 +6046,8 @@
       "southwest",
       "southeast"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Plain-bellied Water Snake",
@@ -5869,7 +6076,8 @@
       "southwest",
       "midwest"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Cottonmouth",
@@ -5897,7 +6105,8 @@
       "southeast",
       "southwest"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.2
   },
   {
     "common_name": "Queen Snake",
@@ -5926,7 +6135,8 @@
       "northeast",
       "southeast"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 1.0
   },
   {
     "common_name": "American Eel",
@@ -5955,7 +6165,8 @@
       "southeast",
       "midwest"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Chum Salmon",
@@ -5983,7 +6194,8 @@
       "alaska",
       "pacific_northwest"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Redfin Pickerel",
@@ -6011,7 +6223,8 @@
       "northeast",
       "southeast"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 0.8
   },
   {
     "common_name": "Grass Pickerel",
@@ -6040,7 +6253,8 @@
       "northeast",
       "southeast"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 0.8
   },
   {
     "common_name": "Johnny Darter",
@@ -6069,7 +6283,8 @@
       "northeast",
       "southeast"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.7
   },
   {
     "common_name": "Rainbow Darter",
@@ -6097,7 +6312,8 @@
       "southeast",
       "northeast"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.7
   },
   {
     "common_name": "Common Shiner",
@@ -6125,7 +6341,8 @@
       "midwest",
       "southeast"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 0.7
   },
   {
     "common_name": "Golden Shiner",
@@ -6152,7 +6369,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 0.7
   },
   {
     "common_name": "Fathead Minnow",
@@ -6179,7 +6397,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 3
+    "commonness": 3,
+    "species_scale": 0.7
   },
   {
     "common_name": "Banded Killifish",
@@ -6207,7 +6426,8 @@
       "northeast",
       "midwest"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 0.7
   },
   {
     "common_name": "Mummichog",
@@ -6235,7 +6455,8 @@
       "northeast",
       "southeast"
     ],
-    "commonness": 2
+    "commonness": 2,
+    "species_scale": 0.7
   },
   {
     "common_name": "Pickerel Frog",
@@ -6264,7 +6485,8 @@
       "midwest",
       "southeast"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Mink Frog",
@@ -6290,7 +6512,8 @@
     "geographic_range": [
       "northeast"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.0
   },
   {
     "common_name": "Barking Treefrog",
@@ -6316,7 +6539,8 @@
     "geographic_range": [
       "southeast"
     ],
-    "commonness": 0
+    "commonness": 0,
+    "species_scale": 0.8
   },
   {
     "common_name": "Greater Siren",
@@ -6343,7 +6567,8 @@
     "geographic_range": [
       "southeast"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Two-toed Amphiuma",
@@ -6370,7 +6595,8 @@
     "geographic_range": [
       "southeast"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 1.2
   },
   {
     "common_name": "Watershield",
@@ -6397,7 +6623,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.7
   },
   {
     "common_name": "Water Willow",
@@ -6426,7 +6653,8 @@
       "northeast",
       "southeast"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.7
   },
   {
     "common_name": "Yellow Water Lily",
@@ -6453,7 +6681,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.7
   },
   {
     "common_name": "Horsetail",
@@ -6479,7 +6708,8 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.7
   },
   {
     "common_name": "Cardinal Flower",
@@ -6505,6 +6735,7 @@
     "geographic_range": [
       "nationwide"
     ],
-    "commonness": 1
+    "commonness": 1,
+    "species_scale": 0.7
   }
 ]
