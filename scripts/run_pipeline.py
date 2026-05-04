@@ -150,9 +150,55 @@ def main(argv: Sequence[str] | None = None) -> int:
     if rc != 0:
         return rc
 
-    # Stage 4: select_master --copy -----------------------------------------
+    # Stage 3.5: auto-select a master variation for any (species, style) pair
+    # that has variations but none yet selected. Without this, select_master
+    # --copy is a no-op for freshly generated species — there's nothing
+    # flagged as the master to copy. Picks the lowest variation number so
+    # results are deterministic; the admin can override later via the
+    # /review UI if they want a different variant.
     from scripts import select_master
+    from scripts.build_manifest import load_manifest
 
+    # Walk the manifest twice: once to find pairs that already have a
+    # selection (skip them), once to pick the lowest variation for the rest.
+    already_selected: set[tuple[str, str]] = set()
+    candidate_var: dict[tuple[str, str], int] = {}
+    for rec in load_manifest():
+        sp = rec.get("species_slug")
+        st = rec.get("style_slug")
+        var = rec.get("variation")
+        if not sp or not st or var is None:
+            continue
+        if args.species and sp != args.species:
+            continue
+        if args.style and st != args.style:
+            continue
+        key = (sp, st)
+        if rec.get("selected_as_master"):
+            already_selected.add(key)
+            continue
+        cur = candidate_var.get(key)
+        if cur is None or var < cur:
+            candidate_var[key] = var
+
+    auto_selected = 0
+    for key, var in candidate_var.items():
+        if key in already_selected:
+            continue
+        sp, st = key
+        try:
+            select_master.mark_selected(sp, st, var)
+            logger.info("auto-selected %s/%s v%d as master", sp, st, var)
+            auto_selected += 1
+        except Exception:
+            logger.exception("auto-select failed for %s/%s v%s", sp, st, var)
+    if auto_selected:
+        logger.info(
+            "--- stage ok: auto-select (%d (species, style) pairs)",
+            auto_selected,
+        )
+
+    # Stage 4: select_master --copy -----------------------------------------
     rc = _run_stage("copy-masters", select_master.main, ["--copy"])
     if rc != 0:
         return rc
