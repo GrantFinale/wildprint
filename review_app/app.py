@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import secrets
 import subprocess
 import threading
 import time
@@ -34,8 +35,14 @@ from flask import (
     render_template,
     request,
     send_file,
+    session,
     url_for,
 )
+
+try:
+    import stripe  # type: ignore
+except ImportError:  # pragma: no cover — stripe is optional at boot time
+    stripe = None  # type: ignore
 
 from config.settings import (
     PROJECT_ROOT,
@@ -64,9 +71,35 @@ from poster_layout import (
 
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY") or os.environ.get(
-    "WILDPRINT_SECRET_KEY", "dev-only-wildprint-secret"
+# Persist signed-cookie session secret. In dev, a per-process random key is
+# fine; in prod, set FLASK_SECRET_KEY in Coolify so unlock cookies survive
+# container restarts.
+app.secret_key = (
+    os.environ.get("FLASK_SECRET_KEY")
+    or os.environ.get("WILDPRINT_SECRET_KEY")
+    or secrets.token_hex(32)
 )
+
+# ---------------------------------------------------------------------------
+# Stripe configuration (gracefully degrades when keys are absent)
+# ---------------------------------------------------------------------------
+
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID", "")
+
+if STRIPE_SECRET_KEY and stripe is not None:
+    stripe.api_key = STRIPE_SECRET_KEY
+
+
+def _stripe_ready() -> bool:
+    """True only when every piece needed for Checkout is configured."""
+    return bool(
+        stripe is not None
+        and STRIPE_SECRET_KEY
+        and STRIPE_PRICE_ID
+    )
 
 # ---------------------------------------------------------------------------
 # Auth (HTTP Basic) for admin-only routes
@@ -203,6 +236,113 @@ def _save_species_overrides(data: dict[str, dict]) -> None:
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, sort_keys=True)
     tmp.replace(SPECIES_OVERRIDES_PATH)
+
+
+# ---------------------------------------------------------------------------
+# Lead capture (landing page + paywall)
+# ---------------------------------------------------------------------------
+
+LEADS_PATH: Path = METADATA_DIR / "leads.json"
+_LEADS_LOCK = threading.Lock()
+
+
+def _load_leads() -> list[dict]:
+    """Read all stored leads from the persistent leads.json file."""
+    try:
+        with open(LEADS_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, list):
+            return data
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        pass
+    return []
+
+
+def _write_leads(leads: list[dict]) -> None:
+    """Persist the full leads list atomically."""
+    METADATA_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = LEADS_PATH.with_suffix(".json.tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(leads, f, indent=2, sort_keys=False)
+    tmp.replace(LEADS_PATH)
+
+
+def _save_lead(email: str, lake_name: str, state_code: str) -> dict:
+    """Append or update a lead by email. Returns the lead record."""
+    email = (email or "").strip().lower()
+    lake_name = (lake_name or "").strip()
+    state_code = (state_code or "").strip().upper()
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    with _LEADS_LOCK:
+        leads = _load_leads()
+        existing = next(
+            (lead for lead in leads if lead.get("email") == email), None
+        )
+        if existing is not None:
+            # Refresh the lake/state on a return visit; keep paid status.
+            if lake_name:
+                existing["lake_name"] = lake_name
+            if state_code:
+                existing["state"] = state_code
+            existing["last_seen_at"] = now
+            _write_leads(leads)
+            return existing
+        record = {
+            "email": email,
+            "lake_name": lake_name,
+            "state": state_code,
+            "created_at": now,
+            "last_seen_at": now,
+            "paid": False,
+            "stripe_session_id": None,
+            "unlocked_at": None,
+        }
+        leads.append(record)
+        _write_leads(leads)
+        return record
+
+
+def _mark_lead_paid(email: str, stripe_session_id: str) -> dict | None:
+    """Flip the `paid` flag for the lead with this email. Idempotent."""
+    email = (email or "").strip().lower()
+    if not email:
+        return None
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    with _LEADS_LOCK:
+        leads = _load_leads()
+        existing = next(
+            (lead for lead in leads if lead.get("email") == email), None
+        )
+        if existing is None:
+            existing = {
+                "email": email,
+                "lake_name": "",
+                "state": "",
+                "created_at": now,
+                "last_seen_at": now,
+                "paid": True,
+                "stripe_session_id": stripe_session_id,
+                "unlocked_at": now,
+            }
+            leads.append(existing)
+        else:
+            existing["paid"] = True
+            existing["stripe_session_id"] = stripe_session_id
+            existing["unlocked_at"] = existing.get("unlocked_at") or now
+            existing["last_seen_at"] = now
+        _write_leads(leads)
+        return existing
+
+
+def _is_paid(email: str) -> bool:
+    """True if the email has a paid lead on disk."""
+    email = (email or "").strip().lower()
+    if not email:
+        return False
+    for lead in _load_leads():
+        if lead.get("email") == email and lead.get("paid"):
+            return True
+    return False
 
 
 def load_species() -> list[dict]:
@@ -688,8 +828,182 @@ def _iter_job_lines(job_id: str) -> Iterator[str]:
 
 @app.route("/")
 def landing():
-    """Public landing — redirect to the poster creator."""
-    return redirect(url_for("create"))
+    """Public landing page — sells the product and captures the lead."""
+    return render_template(
+        "landing.html",
+        stripe_publishable_key=STRIPE_PUBLISHABLE_KEY,
+    )
+
+
+@app.route("/api/lead", methods=["POST"])
+@rate_limit(60)
+def api_lead():
+    """Persist a lead and return the wizard redirect URL."""
+    data = request.get_json(force=True, silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    lake_name = (data.get("lake_name") or "").strip()
+    state_code = (data.get("state") or "").strip().upper()
+    if not email or "@" not in email:
+        return jsonify({"error": "Valid email required."}), 400
+    if not lake_name:
+        return jsonify({"error": "Lake name required."}), 400
+    if not state_code:
+        return jsonify({"error": "State / province required."}), 400
+
+    _save_lead(email, lake_name, state_code)
+    # Remember the email in the session so /api/me knows who's coming back.
+    session["email"] = email
+    if _is_paid(email):
+        session["unlocked"] = True
+
+    from urllib.parse import urlencode
+
+    qs = urlencode({
+        "lake": lake_name,
+        "state": state_code,
+        "email": email,
+    })
+    return jsonify({"redirect": f"/create?{qs}"})
+
+
+@app.route("/api/me")
+def api_me():
+    """Return current unlock state and known email."""
+    email = session.get("email") or ""
+    unlocked = bool(session.get("unlocked"))
+    # If session lost the unlock but the lead is paid, restore it.
+    if not unlocked and email and _is_paid(email):
+        session["unlocked"] = True
+        unlocked = True
+    return jsonify({
+        "unlocked": unlocked,
+        "email": email or None,
+    })
+
+
+@app.route("/api/create-checkout-session", methods=["POST"])
+@rate_limit(20)
+def api_create_checkout_session():
+    """Create a Stripe Checkout session for the $49 unlock."""
+    if not _stripe_ready():
+        return jsonify({"error": "Payment not yet configured"}), 503
+
+    data = request.get_json(force=True, silent=True) or {}
+    email = (data.get("email") or session.get("email") or "").strip().lower()
+    lake_name = (data.get("lake_name") or "").strip()
+    state_code = (data.get("state") or "").strip().upper()
+    if not email:
+        return jsonify({"error": "Email required to start checkout."}), 400
+
+    # Make sure we have a lead row to flip to paid later.
+    _save_lead(email, lake_name, state_code)
+    session["email"] = email
+
+    success_url = url_for(
+        "checkout_success", _external=True
+    ) + "?session_id={CHECKOUT_SESSION_ID}"
+    cancel_url = url_for("create", _external=True)
+    if lake_name or state_code:
+        from urllib.parse import urlencode
+        cancel_url += "?" + urlencode({
+            "lake": lake_name,
+            "state": state_code,
+            "email": email,
+        })
+
+    try:
+        checkout = stripe.checkout.Session.create(  # type: ignore[union-attr]
+            mode="payment",
+            payment_method_types=["card"],
+            line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
+            customer_email=email,
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "email": email,
+                "lake_name": lake_name,
+                "state": state_code,
+            },
+        )
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"error": f"Stripe error: {exc}"}), 502
+    return jsonify({"url": checkout.url})
+
+
+@app.route("/checkout/success")
+def checkout_success():
+    """Verify the Stripe session and flip the unlock cookie."""
+    session_id = request.args.get("session_id", "").strip()
+    paid_email = ""
+    lake_name = ""
+    state_code = ""
+    payment_status = "unknown"
+
+    if _stripe_ready() and session_id:
+        try:
+            cs = stripe.checkout.Session.retrieve(session_id)  # type: ignore[union-attr]
+            payment_status = cs.get("payment_status", "unknown")
+            meta = cs.get("metadata") or {}
+            paid_email = (
+                meta.get("email")
+                or cs.get("customer_email")
+                or cs.get("customer_details", {}).get("email")
+                or ""
+            ).strip().lower()
+            lake_name = (meta.get("lake_name") or "").strip()
+            state_code = (meta.get("state") or "").strip().upper()
+            if payment_status == "paid" and paid_email:
+                _mark_lead_paid(paid_email, session_id)
+                session["email"] = paid_email
+                session["unlocked"] = True
+        except Exception:  # noqa: BLE001
+            payment_status = "verify_failed"
+
+    from urllib.parse import urlencode
+    qs = urlencode({
+        k: v for k, v in {
+            "lake": lake_name,
+            "state": state_code,
+            "email": paid_email,
+        }.items() if v
+    })
+    continue_url = "/create" + (f"?{qs}" if qs else "")
+    return render_template(
+        "checkout_success.html",
+        payment_status=payment_status,
+        continue_url=continue_url,
+        email=paid_email,
+    )
+
+
+@app.route("/webhook/stripe", methods=["POST"])
+def stripe_webhook():
+    """Receive Stripe webhook events as a defense-in-depth confirmation."""
+    if stripe is None or not STRIPE_WEBHOOK_SECRET:
+        return jsonify({"error": "Webhook not configured"}), 503
+
+    payload = request.get_data(as_text=False)
+    sig_header = request.headers.get("Stripe-Signature", "")
+    try:
+        event = stripe.Webhook.construct_event(  # type: ignore[union-attr]
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+    except Exception:  # noqa: BLE001
+        return jsonify({"error": "Invalid signature"}), 400
+
+    if event.get("type") == "checkout.session.completed":
+        cs = event["data"]["object"]
+        meta = cs.get("metadata") or {}
+        email = (
+            meta.get("email")
+            or cs.get("customer_email")
+            or cs.get("customer_details", {}).get("email")
+            or ""
+        ).strip().lower()
+        if email and cs.get("payment_status") == "paid":
+            _mark_lead_paid(email, cs.get("id", ""))
+
+    return jsonify({"ok": True})
 
 
 @app.route("/console")
@@ -1638,8 +1952,22 @@ def api_render_custom():
     logo_config = data.get("logo_config", {})
     title_config = data.get("title_config", {}) or {}
 
+    # Determine paywall state. The client sends `unlocked: true|false`
+    # but the server is the source of truth: trust the session (and the
+    # `paid` flag on the matching lead).
+    client_unlocked = bool(data.get("unlocked"))
+    session_email = session.get("email") or ""
+    server_unlocked = bool(session.get("unlocked")) or _is_paid(session_email)
+    apply_watermark = not (client_unlocked and server_unlocked)
+
     if not placements_data:
         return jsonify({"error": "No placements provided"}), 400
+
+    # Free preview: cap to top-3 placements regardless of what the
+    # client submits. Defense-in-depth — even if someone tampers with
+    # the JS, the renderer still only draws three.
+    if apply_watermark and len(placements_data) > 3:
+        placements_data = placements_data[:3]
 
     # Build SpeciesRef + MasterImage + PlacedItem objects from the user data
     all_species = load_species()
@@ -1792,6 +2120,11 @@ def api_render_custom():
             if cand.exists():
                 renderer._background_image_path = cand
                 break
+
+    # Server-side watermark for the free preview. Draws a semi-transparent
+    # diagonal "PREVIEW" string across the rendered PNG when not unlocked.
+    renderer._draw_watermark = apply_watermark
+    renderer._watermark_text = "PREVIEW — wildlife.5story.com"
 
     poster_id = f"custom_{uuid.uuid4().hex}"
     posters_dir = Path(PROJECT_ROOT) / "output" / "posters"

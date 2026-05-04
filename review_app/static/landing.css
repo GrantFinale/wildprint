@@ -1,0 +1,359 @@
+/* ============================================================
+   wildprint — landing page
+   Namespaced .lp-* so it can't collide with the wizard styles.
+   Reuses :root design tokens from style.css.
+   ============================================================ */
+
+.lp-body {
+  margin: 0;
+  background: var(--bg, #faf9f6);
+  color: var(--fg, #1b1b18);
+  font-family: 'Lora', Georgia, serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.lp-body * { box-sizing: border-box; }
+
+/* ----- Header ----- */
+.lp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 40px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: var(--bg, #faf9f6);
+}
+.lp-logo {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--accent-strong, #1f4f28);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+.lp-nav { display: flex; gap: 28px; }
+.lp-nav a {
+  color: var(--fg, #1b1b18);
+  text-decoration: none;
+  font-size: 15px;
+  opacity: 0.78;
+}
+.lp-nav a:hover { opacity: 1; }
+
+/* ----- Hero ----- */
+.lp-hero {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 56px;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 72px 40px 56px;
+}
+.lp-h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(34px, 4.6vw, 56px);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0 0 22px;
+  color: #14130f;
+}
+.lp-sub {
+  font-size: 19px;
+  color: #3a3833;
+  margin: 0 0 32px;
+  max-width: 56ch;
+}
+.lp-hero-art img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 24px 64px -28px rgba(0,0,0,0.45), 0 4px 12px -4px rgba(0,0,0,0.18);
+}
+.lp-hero-art figcaption {
+  text-align: center;
+  font-size: 13px;
+  opacity: 0.55;
+  margin-top: 12px;
+  font-style: italic;
+}
+
+/* ----- Form ----- */
+.lp-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.10);
+  padding: 24px 24px 22px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px -16px rgba(0,0,0,0.25);
+}
+.lp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+}
+.lp-field:nth-of-type(3) { grid-column: 1 / -1; }
+.lp-field span {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5a5650;
+  font-size: 11px;
+}
+.lp-field input {
+  padding: 11px 13px;
+  border: 1px solid rgba(0,0,0,0.18);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 16px;
+  background: #fffefb;
+  color: #14130f;
+  transition: border-color 120ms;
+}
+.lp-field input:focus {
+  outline: none;
+  border-color: var(--accent-strong, #1f4f28);
+  box-shadow: 0 0 0 3px rgba(31,79,40,0.12);
+}
+.lp-cta {
+  grid-column: 1 / -1;
+  background: var(--accent-strong, #1f4f28);
+  color: #fff;
+  border: 0;
+  padding: 14px 20px;
+  font-size: 17px;
+  font-weight: 700;
+  font-family: 'Playfair Display', Georgia, serif;
+  letter-spacing: 0.01em;
+  border-radius: 7px;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  display: inline-block;
+  transition: transform 80ms, background 120ms;
+}
+.lp-cta:hover { background: #163a1c; transform: translateY(-1px); }
+.lp-microcopy {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: #6a6660;
+  margin: 0;
+  text-align: center;
+}
+.lp-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 14px;
+  color: #b1322a;
+  min-height: 1em;
+}
+
+/* ----- Trust strip ----- */
+.lp-trust {
+  background: #f1efe9;
+  padding: 18px 40px;
+  text-align: center;
+  font-style: italic;
+  font-size: 15px;
+  color: #4a463f;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+/* ----- Sections ----- */
+.lp-section {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 64px 40px;
+}
+.lp-section h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(26px, 3vw, 36px);
+  font-weight: 700;
+  margin: 0 0 26px;
+  color: #14130f;
+  line-height: 1.2;
+}
+.lp-section p { margin: 0 0 16px; font-size: 18px; color: #2c2a26; }
+.lp-emph {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 24px !important;
+  color: var(--accent-strong, #1f4f28);
+}
+
+/* ----- How it works ----- */
+.lp-how { background: #f7f5ee; max-width: none; padding-left: 0; padding-right: 0; }
+.lp-how > * { max-width: 880px; margin-left: auto; margin-right: auto; padding-left: 40px; padding-right: 40px; }
+.lp-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  counter-reset: step;
+}
+.lp-steps li {
+  counter-increment: step;
+  position: relative;
+  padding: 28px 22px 22px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.06);
+  font-size: 16px;
+}
+.lp-steps li::before {
+  content: counter(step);
+  position: absolute;
+  top: -18px;
+  left: 22px;
+  width: 36px;
+  height: 36px;
+  background: var(--accent-strong, #1f4f28);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+/* ----- Checks lists ----- */
+.lp-checks { list-style: none; padding: 0; margin: 0 0 22px; }
+.lp-checks li {
+  position: relative;
+  padding: 9px 0 9px 32px;
+  font-size: 17px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.lp-checks li:last-child { border-bottom: 0; }
+.lp-checks li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  color: var(--accent-strong, #1f4f28);
+  font-weight: 700;
+  font-size: 18px;
+}
+.lp-aside {
+  font-style: italic;
+  color: #4a463f;
+  border-left: 3px solid var(--accent-strong, #1f4f28);
+  padding-left: 16px;
+  margin-top: 18px !important;
+}
+
+.lp-full { background: #faf6ec; max-width: none; padding-left: 0; padding-right: 0; }
+.lp-full > * { max-width: 880px; margin-left: auto; margin-right: auto; padding-left: 40px; padding-right: 40px; }
+
+/* ----- Who it's for ----- */
+.lp-who {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 22px;
+}
+.lp-who li {
+  padding: 12px 0;
+  font-size: 17px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.lp-who li:last-child { border-bottom: 0; }
+
+/* ----- FAQ ----- */
+.lp-faq details {
+  border-top: 1px solid rgba(0,0,0,0.10);
+  padding: 18px 0;
+}
+.lp-faq details:last-child { border-bottom: 1px solid rgba(0,0,0,0.10); }
+.lp-faq summary {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 19px;
+  cursor: pointer;
+  list-style: none;
+  position: relative;
+  padding-right: 28px;
+  color: #14130f;
+}
+.lp-faq summary::after {
+  content: "+";
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-size: 22px;
+  color: var(--accent-strong, #1f4f28);
+}
+.lp-faq details[open] summary::after { content: "−"; }
+.lp-faq details p { margin-top: 10px; font-size: 16px; color: #3a3833; }
+
+/* ----- Final CTA ----- */
+.lp-final {
+  background: linear-gradient(180deg, #f1efe9 0%, #e8e4d6 100%);
+  text-align: center;
+  max-width: none;
+  padding: 80px 40px;
+}
+.lp-final h2 { font-size: clamp(30px, 3.6vw, 44px); }
+.lp-final .lp-form { max-width: 520px; margin: 32px auto 0; text-align: left; }
+
+/* ----- Footer ----- */
+.lp-footer {
+  text-align: center;
+  padding: 40px 40px 60px;
+  font-size: 14px;
+  color: #6a6660;
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+.lp-trustbar { margin: 0 0 8px; font-style: italic; }
+.lp-copy { margin: 0; }
+.lp-footer a { color: var(--accent-strong, #1f4f28); }
+
+/* ----- Success page ----- */
+.lp-success {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 80px 40px;
+  text-align: center;
+}
+.lp-success h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 48px;
+  margin: 0 0 18px;
+  color: var(--accent-strong, #1f4f28);
+}
+.lp-success p { font-size: 18px; margin: 0 0 28px; }
+.lp-success .lp-cta { display: inline-block; padding: 16px 32px; }
+.lp-success code {
+  background: rgba(0,0,0,0.06);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+/* ----- Responsive ----- */
+@media (max-width: 860px) {
+  .lp-hero {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    padding: 40px 24px;
+  }
+  .lp-section { padding: 48px 24px; }
+  .lp-final, .lp-how, .lp-full { padding-left: 0; padding-right: 0; }
+  .lp-how > *, .lp-full > * { padding-left: 24px; padding-right: 24px; }
+  .lp-steps { grid-template-columns: 1fr; gap: 22px; }
+  .lp-form { grid-template-columns: 1fr; }
+  .lp-field:nth-of-type(3) { grid-column: 1; }
+  .lp-header { padding: 16px 22px; }
+  .lp-nav { gap: 16px; }
+  .lp-nav a { font-size: 14px; }
+}

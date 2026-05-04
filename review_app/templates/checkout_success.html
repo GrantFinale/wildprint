@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unlocked — wildprint</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='landing.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="lp-body">
+  <header class="lp-header">
+    <a href="/" class="lp-logo">wildprint</a>
+  </header>
+
+  <main class="lp-success">
+    {% if payment_status == 'paid' %}
+      <h1>You're in.</h1>
+      <p>Your full guide is unlocked &mdash; every fish, bird, mammal, and amphibian documented in your lake, plus watermark-free downloads. It's yours forever.</p>
+      <a href="{{ continue_url }}" class="lp-cta">Continue to your full guide &rarr;</a>
+      {% if email %}
+        <p class="lp-microcopy">Receipt sent to <strong>{{ email }}</strong>. The unlock is tied to this email, so you can come back any time.</p>
+      {% endif %}
+    {% else %}
+      <h1>Almost there&hellip;</h1>
+      <p>We couldn't immediately verify the payment status (<code>{{ payment_status }}</code>). If your card was charged, the unlock will arrive shortly &mdash; refresh, or reload your guide and it should appear within a minute.</p>
+      <a href="{{ continue_url }}" class="lp-cta">Back to my guide</a>
+    {% endif %}
+  </main>
+
+  <footer class="lp-footer">
+    <p class="lp-copy">&copy; wildprint</p>
+  </footer>
+</body>
+</html>

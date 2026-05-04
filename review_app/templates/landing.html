@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>wildprint — See exactly what's living in your lake</title>
+  <meta name="description" content="A bespoke wildlife guide for your lake. Free 3-species preview. Full guide $49. Built on DNR, eBird, USGS, and iNaturalist data.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='landing.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lora:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="lp-body">
+
+  <header class="lp-header">
+    <a href="/" class="lp-logo">wildprint</a>
+    <nav class="lp-nav">
+      <a href="#how">How it works</a>
+      <a href="#preview">What's free</a>
+      <a href="#full">$49 unlock</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ============= HERO ============= -->
+    <section class="lp-hero">
+      <div class="lp-hero-copy">
+        <h1 class="lp-h1">See Exactly What's Living in Your Lake — Then Decide if You Want the Whole Picture</h1>
+        <p class="lp-sub">Enter your lake's name and pin the location on a map. You'll see a free preview of the 3 most iconic species documented there — fully illustrated, fully sourced. Unlock the complete field guide for $49.</p>
+
+        <form id="lp-form-top" class="lp-form" novalidate>
+          <label class="lp-field">
+            <span>Lake name</span>
+            <input type="text" name="lake_name" required placeholder="e.g. Lake Michigan">
+          </label>
+          <label class="lp-field">
+            <span>State / Province</span>
+            <input type="text" name="state" required placeholder="e.g. MI" maxlength="3">
+          </label>
+          <label class="lp-field">
+            <span>Email</span>
+            <input type="email" name="email" required placeholder="you@example.com">
+          </label>
+          <button type="submit" class="lp-cta">&rarr; Show Me My 3 Species</button>
+          <p class="lp-microcopy">Free. No credit card. See it on-screen in under a minute.</p>
+          <p class="lp-error" role="alert"></p>
+        </form>
+      </div>
+
+      <figure class="lp-hero-art">
+        <img src="{{ url_for('static', filename='sample/sample_poster.jpg') }}" alt="Sample wildprint poster showing illustrated lake species" loading="eager">
+        <figcaption>Sample full-guide poster</figcaption>
+      </figure>
+    </section>
+
+    <!-- ============= TRUST STRIP ============= -->
+    <section class="lp-trust">
+      <p>Built on the same data biologists and fishing guides rely on — state DNR surveys, eBird hotspots, USGS NAS, and iNaturalist research-grade records.</p>
+    </section>
+
+    <!-- ============= PROBLEM ============= -->
+    <section class="lp-section">
+      <h2>You bought the lake house. Now what goes on the walls?</h2>
+      <p>Walk into a home-goods store and you'll find starfish, palm fronds, and "Salt Life" signs &mdash; none of which belong on a freshwater lake.</p>
+      <p>Walk into Amazon and you'll find a "Midwest Fish Species" chart featuring three fish that don't even live within 500 miles of your dock.</p>
+      <p>Nobody &mdash; not Etsy, not Wayfair, not your interior designer &mdash; actually knows what swims in <em>your</em> water.</p>
+      <p class="lp-emph">We do.</p>
+    </section>
+
+    <!-- ============= HOW IT WORKS ============= -->
+    <section id="how" class="lp-section lp-how">
+      <h2>Three steps. About a minute total.</h2>
+      <ol class="lp-steps">
+        <li><strong>Tell us your lake.</strong> Name and state. That's it.</li>
+        <li><strong>See your free preview.</strong> In about a minute you'll see a beautifully designed preview of the 3 most iconic species documented in your lake &mdash; illustrated, ranked, and sourced.</li>
+        <li><strong>Decide what you want next.</strong> Love it? Unlock the complete field guide (every fish, bird, mammal, and amphibian) for $49. Want to turn it into wall art? We do that too.</li>
+      </ol>
+    </section>
+
+    <!-- ============= FREE PREVIEW ============= -->
+    <section id="preview" class="lp-section lp-preview">
+      <h2>Your free 3-species preview includes:</h2>
+      <ul class="lp-checks">
+        <li><strong>The 3 most iconic species in your specific lake</strong> &mdash; the ones that define the place</li>
+        <li><strong>Full-color illustrations</strong> of each species, suitable for screen viewing</li>
+        <li><strong>A "Signature Score"</strong> showing how iconic each species is to your water</li>
+        <li><strong>Seasonal patterns</strong> &mdash; when you'll see them, where they congregate</li>
+        <li><strong>Source citations</strong> &mdash; the exact DNR survey, eBird hotspot, or USGS record we pulled from</li>
+      </ul>
+      <p class="lp-aside">This alone is information your fishing guide would charge $50 for. We're giving it away because we want you to see the quality before you decide whether to unlock the full guide.</p>
+    </section>
+
+    <!-- ============= FULL GUIDE ============= -->
+    <section id="full" class="lp-section lp-full">
+      <h2>The complete field guide ($49) reveals everything else:</h2>
+      <ul class="lp-checks">
+        <li><strong>All 8&ndash;15 fish species</strong> documented in your lake</li>
+        <li><strong>6&ndash;10 signature birds</strong> &mdash; loons, herons, eagles, ducks, songbirds, by month</li>
+        <li><strong>Mammals, amphibians, and the surprises</strong> &mdash; what's actually moving through the trees and reeds</li>
+        <li><strong>The rare visitors</strong> &mdash; uncommon species that make your lake distinctive</li>
+        <li><strong>High-resolution print-ready PDF</strong> for framing or reference</li>
+        <li><strong>Custom art commission credit</strong> &mdash; apply the full $49 toward any custom wall art piece</li>
+      </ul>
+      <p class="lp-aside">A real biologist or fishing guide consultation runs $150+. The full guide is $49, and it's yours forever.</p>
+    </section>
+
+    <!-- ============= WHO IT'S FOR ============= -->
+    <section class="lp-section">
+      <h2>Built for the lake people the decor industry forgot:</h2>
+      <ul class="lp-who">
+        <li>The new lake homeowner who wants their walls to mean something</li>
+        <li>The gift-giver shopping for someone who's spent 40 summers on the same dock</li>
+        <li>The collector tired of generic "Lake Life" signs and wrong-species fish prints</li>
+        <li>The fisherman who can name every weed bed and wants the art to match</li>
+      </ul>
+      <p>If your lake matters to you, you deserve to know exactly what lives in it &mdash; before you spend $300 on art that gets it wrong.</p>
+    </section>
+
+    <!-- ============= FAQ ============= -->
+    <section id="faq" class="lp-section lp-faq">
+      <h2>Common questions</h2>
+      <details>
+        <summary>What if my lake isn't in your database?</summary>
+        <p>We'll add it within 48 hours, free. Most named lakes in the US and Canada are already in.</p>
+      </details>
+      <details>
+        <summary>Why a preview instead of the whole thing free?</summary>
+        <p>Because each guide is researched and built bespoke for your specific lake. The 3-species preview lets you verify the quality before you decide it's worth $49 to you.</p>
+      </details>
+      <details>
+        <summary>Can I just buy the art without the guide?</summary>
+        <p>Yes &mdash; but most people find the guide is what helps them choose the right species and composition. It's included free with any custom commission.</p>
+      </details>
+      <details>
+        <summary>Is the data real?</summary>
+        <p>Every species citation is sourced from publicly verifiable databases &mdash; state DNR fish surveys, eBird, USGS NAS, iNaturalist research-grade. We show our work.</p>
+      </details>
+    </section>
+
+    <!-- ============= FINAL CTA ============= -->
+    <section class="lp-section lp-final">
+      <h2>Your Lake. Your Wildlife. Your Walls.</h2>
+      <p>See the 3 species that define your water &mdash; free, in about a minute.</p>
+
+      <form id="lp-form-bottom" class="lp-form" novalidate>
+        <label class="lp-field">
+          <span>Lake name</span>
+          <input type="text" name="lake_name" required placeholder="e.g. Lake Michigan">
+        </label>
+        <label class="lp-field">
+          <span>State / Province</span>
+          <input type="text" name="state" required placeholder="e.g. MI" maxlength="3">
+        </label>
+        <label class="lp-field">
+          <span>Email</span>
+          <input type="email" name="email" required placeholder="you@example.com">
+        </label>
+        <button type="submit" class="lp-cta">&rarr; Show Me My Preview</button>
+        <p class="lp-microcopy"><em>If you don't love it, you've lost nothing. If you do, the full guide is one click away &mdash; and credits toward custom art if you want to take it further.</em></p>
+        <p class="lp-error" role="alert"></p>
+      </form>
+    </section>
+
+  </main>
+
+  <footer class="lp-footer">
+    <p class="lp-trustbar">Sourced from state DNR &amp; USGS &nbsp;|&nbsp; Built with eBird hotspots &nbsp;|&nbsp; Every guide bespoke to one lake</p>
+    <p class="lp-copy">&copy; wildprint &middot; <a href="mailto:hello@wildlife.5story.com">hello@wildlife.5story.com</a></p>
+  </footer>
+
+  <script>
+  (function() {
+    function bindForm(form) {
+      if (!form) return;
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var errEl = form.querySelector('.lp-error');
+        if (errEl) errEl.textContent = '';
+        var fd = new FormData(form);
+        var body = {
+          lake_name: (fd.get('lake_name') || '').toString().trim(),
+          state: (fd.get('state') || '').toString().trim().toUpperCase(),
+          email: (fd.get('email') || '').toString().trim().toLowerCase()
+        };
+        if (!body.lake_name || !body.state || !body.email || body.email.indexOf('@') < 0) {
+          if (errEl) errEl.textContent = 'Please fill in lake name, state, and a valid email.';
+          return;
+        }
+        var btn = form.querySelector('button[type="submit"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+        fetch('/api/lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+        .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+        .then(function(res) {
+          if (res.ok && res.data.redirect) {
+            window.location.assign(res.data.redirect);
+          } else {
+            if (errEl) errEl.textContent = (res.data && res.data.error) || 'Something went wrong. Try again.';
+            if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || 'Submit'; }
+          }
+        })
+        .catch(function() {
+          if (errEl) errEl.textContent = 'Network error. Try again.';
+          if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || 'Submit'; }
+        });
+      });
+      var btn = form.querySelector('button[type="submit"]');
+      if (btn) btn.dataset.label = btn.textContent;
+    }
+    bindForm(document.getElementById('lp-form-top'));
+    bindForm(document.getElementById('lp-form-bottom'));
+  })();
+  </script>
+</body>
+</html>

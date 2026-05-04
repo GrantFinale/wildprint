@@ -1759,3 +1759,82 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
   .cv3-wiz-title { font-size: 1.4rem; }
   .cv3-wiz-map { height: 280px; }
 }
+
+/* ============================================================
+   Paywall — free preview cap, watermark, and unlock CTA
+   ============================================================ */
+
+.cv3-paywall-cta {
+  display: block;
+  width: 100%;
+  margin: 14px 0 8px;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, #1f4f28 0%, #163a1c 100%);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.01em;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 6px 18px -10px rgba(31,79,40,0.7);
+  transition: transform 80ms, box-shadow 120ms;
+}
+.cv3-paywall-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px -12px rgba(31,79,40,0.85);
+}
+.cv3-paywall-cta:disabled { opacity: 0.6; cursor: wait; }
+.cv3-paywall-microcopy {
+  font-size: 12px;
+  color: #5a5650;
+  margin: 4px 0 12px;
+  text-align: center;
+}
+
+.cv3-locked-species {
+  position: relative;
+  opacity: 0.42;
+  filter: grayscale(0.55);
+  cursor: not-allowed !important;
+}
+.cv3-locked-species::after {
+  content: "🔒";
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 14px;
+  background: rgba(255,255,255,0.85);
+  padding: 1px 6px;
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+/* Diagonal "PREVIEW" watermark on the live editor canvas */
+.cv3-watermark {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 9;
+}
+.cv3-watermark::before {
+  content: "PREVIEW · wildlife.5story.com · PREVIEW · wildlife.5story.com · PREVIEW · wildlife.5story.com · PREVIEW · wildlife.5story.com · PREVIEW · wildlife.5story.com · PREVIEW · wildlife.5story.com";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-25deg);
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(28px, 5vw, 56px);
+  color: rgba(20, 20, 20, 0.18);
+  white-space: pre-wrap;
+  width: 200%;
+  text-align: center;
+  line-height: 2.4;
+  letter-spacing: 0.04em;
+}
+

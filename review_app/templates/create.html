@@ -273,6 +273,8 @@
     </div>
 
     <div class="cv3-ed-rail-cta">
+      <button type="button" class="cv3-paywall-cta" id="cv3-unlock-cta" style="display:none">Unlock full guide — $49</button>
+      <p class="cv3-paywall-microcopy" id="cv3-unlock-microcopy" style="display:none">All species, watermark-free download, yours forever.</p>
       <button type="button" class="cv3-btn-primary" id="cv3-render-btn">Update Poster</button>
       <a id="cv3-download" class="cv3-btn-primary" download style="display:none">Download Poster</a>
     </div>
@@ -286,6 +288,7 @@
           <div class="cv3-spinner"></div>
           <div>Composing&hellip;</div>
         </div>
+        <div id="cv3-canvas-watermark" class="cv3-watermark" style="display:none" aria-hidden="true"></div>
       </div>
     </div>
     <div class="cv3-canvas-status">
@@ -343,7 +346,25 @@
     canvasH: 3300,
     lastRenderTime: null,
     titleEdited: false,
+    // ---- paywall ----
+    unlocked: false,
+    email: '',
+    maxSpecies: 3,
   };
+
+  // Read URL params for landing-page prefill (?lake=&state=&email=)
+  function readPrefill() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const lake = (params.get('lake') || '').trim();
+      const stCode = (params.get('state') || '').trim().toUpperCase();
+      const email = (params.get('email') || '').trim().toLowerCase();
+      if (lake) state.waterName = lake;
+      if (stCode) state.state = stCode;
+      if (email) state.email = email;
+      return { lake: lake, st: stCode, email: email };
+    } catch (e) { return { lake: '', st: '', email: '' }; }
+  }
 
   const recommendCache = { primary: [], secondary: [] };
   let canvasScale = 1;
@@ -425,7 +446,9 @@
       .then(function(data) {
         recommendCache.primary = data.primary || data.results || [];
         recommendCache.secondary = data.secondary || [];
-        const top = recommendCache.primary.slice(0, 10);
+        // Paywall cap: free users get top-3, paid users get top-10.
+        const cap = state.unlocked ? 10 : (state.maxSpecies || 3);
+        const top = recommendCache.primary.slice(0, cap);
         state.selectedSpecies = top.map(function(sp) {
           return {
             slug: sp.slug,
@@ -606,11 +629,16 @@
     const primaryEl = $('cv3-species-primary');
     const secondaryEl = $('cv3-species-secondary');
     if (!primaryEl || !secondaryEl) return;
+    // For free users, mark any non-selected card as locked once they've
+    // already hit the cap, so the lock affordance is visible.
+    const atCap = !state.unlocked && state.selectedSpecies.length >= (state.maxSpecies || 3);
     primaryEl.innerHTML = primary.map(function(sp) {
-      return speciesCardHTML(sp, sel.has(sp.slug));
+      const isSel = sel.has(sp.slug);
+      return speciesCardHTML(sp, isSel, atCap && !isSel);
     }).join('');
     secondaryEl.innerHTML = secondary.map(function(sp) {
-      return speciesCardHTML(sp, sel.has(sp.slug));
+      const isSel = sel.has(sp.slug);
+      return speciesCardHTML(sp, isSel, atCap && !isSel);
     }).join('');
     const more = $('cv3-show-more');
     if (more) {
@@ -618,9 +646,10 @@
       more.textContent = 'Show ' + secondary.length + ' more species';
     }
   }
-  function speciesCardHTML(sp, isSelected) {
+  function speciesCardHTML(sp, isSelected, isLocked) {
     const img = '/image/output/master/' + state.style + '/' + sp.slug + '.png';
-    return '<div class="cv3-species-card' + (isSelected ? ' cv3-selected' : '') + '" data-slug="' + esc(sp.slug) + '">' +
+    const cls = 'cv3-species-card' + (isSelected ? ' cv3-selected' : '') + (isLocked ? ' cv3-locked-species' : '');
+    return '<div class="' + cls + '" data-slug="' + esc(sp.slug) + '">' +
       '<img src="' + img + '" onerror="this.style.opacity=0.2" alt="">' +
       '<div><div class="cv3-species-card-name">' + esc(sp.common_name) + '</div>' +
       '<div class="cv3-species-card-sci">' + esc(sp.scientific_name || '') + '</div></div>' +
@@ -646,6 +675,12 @@
     if (idx >= 0) {
       state.selectedSpecies.splice(idx, 1);
     } else {
+      // Paywall: free users hard-capped at maxSpecies (3).
+      if (!state.unlocked && state.selectedSpecies.length >= (state.maxSpecies || 3)) {
+        setStatus('Free preview is limited to ' + (state.maxSpecies || 3) + ' species. Unlock the full guide to add more.');
+        flashUnlockCta();
+        return;
+      }
       const all = recommendCache.primary.concat(recommendCache.secondary);
       const sp = all.find(function(s) { return s.slug === slug; });
       if (sp) {
@@ -658,6 +693,14 @@
     }
     renderSpeciesList();
     scheduleLayout();
+  }
+
+  function flashUnlockCta() {
+    const cta = document.getElementById('cv3-unlock-cta');
+    if (!cta) return;
+    cta.style.transition = 'transform 200ms';
+    cta.style.transform = 'scale(1.05)';
+    setTimeout(function(){ cta.style.transform = ''; }, 220);
   }
 
   // ---------------- Layout (server-side placement) ----------------
@@ -1253,6 +1296,7 @@
             x_frac: state.logoXFrac,
             y_frac: state.logoYFrac,
           },
+          unlocked: !!state.unlocked,
         }),
       })
         .then(function(r) { return r.json(); })
@@ -1271,6 +1315,72 @@
         });
     }
     $('cv3-render-btn').addEventListener('click', doRender);
+  }
+
+  // ---------------- Paywall ----------------
+  function fetchUnlockState() {
+    return fetch('/api/me', { credentials: 'same-origin' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        state.unlocked = !!(data && data.unlocked);
+        if (data && data.email) state.email = data.email;
+        applyPaywallUI();
+      })
+      .catch(function() { state.unlocked = false; applyPaywallUI(); });
+  }
+
+  function applyPaywallUI() {
+    const cta = document.getElementById('cv3-unlock-cta');
+    const mc = document.getElementById('cv3-unlock-microcopy');
+    const wm = document.getElementById('cv3-canvas-watermark');
+    if (state.unlocked) {
+      if (cta) cta.style.display = 'none';
+      if (mc) mc.style.display = 'none';
+      if (wm) wm.style.display = 'none';
+    } else {
+      if (cta) cta.style.display = '';
+      if (mc) mc.style.display = '';
+      if (wm) wm.style.display = '';
+    }
+  }
+
+  function bindUnlockCta() {
+    const cta = document.getElementById('cv3-unlock-cta');
+    if (!cta) return;
+    cta.addEventListener('click', function() {
+      cta.disabled = true;
+      const orig = cta.textContent;
+      cta.textContent = 'Opening checkout…';
+      fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          email: state.email || '',
+          lake_name: state.waterName || '',
+          state: state.state || '',
+        }),
+      })
+        .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d, status: r.status }; }); })
+        .then(function(res) {
+          if (res.ok && res.data.url) {
+            window.location.assign(res.data.url);
+            return;
+          }
+          if (res.status === 503) {
+            alert("Payment isn't configured yet — Grant is wiring Stripe. Hang tight.");
+          } else {
+            alert((res.data && res.data.error) || 'Could not start checkout.');
+          }
+          cta.disabled = false;
+          cta.textContent = orig;
+        })
+        .catch(function() {
+          alert('Network error starting checkout.');
+          cta.disabled = false;
+          cta.textContent = orig;
+        });
+    });
   }
 
   // ---------------- Restart wizard ----------------
@@ -1292,6 +1402,8 @@
     bindSearch();
     bindRenderButton();
     bindRestart();
+    bindUnlockCta();
+    fetchUnlockState();
     // Also keep the title input in sync as the user types in Step 1.
     const wn = $('cv3-water-name');
     if (wn) {
@@ -1300,7 +1412,17 @@
         applyDefaultTitle();
       });
     }
-    showWizardStep(1);
+    // Apply landing-page prefill (?lake=&state=&email=). If a state code
+    // arrived, jump straight into step 2 (skip the map).
+    const prefill = readPrefill();
+    if (prefill.lake && wn) wn.value = prefill.lake;
+    if (prefill.st) {
+      const loc = $('cv3-water-location');
+      if (loc) loc.textContent = 'Pinned: ' + prefill.st;
+      showWizardStep(2);
+    } else {
+      showWizardStep(1);
+    }
     window.addEventListener('resize', debounce(function() {
       if (state.mode === 'editor') drawCanvas();
     }, 150));

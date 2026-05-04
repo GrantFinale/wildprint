@@ -1461,9 +1461,90 @@ class EditorialMultiRenderer(PosterRenderer):
             except (OSError, Image.UnidentifiedImageError) as exc:
                 logger.warning("Could not load logo %s: %s", self._logo_path, exc)
 
+        # Free-preview watermark: a semi-transparent diagonal text band
+        # repeated across the canvas. Drawn last so it sits on top of all
+        # imagery, including the logo. Skipped when the caller has unlocked.
+        if getattr(self, "_draw_watermark", False):
+            try:
+                self._draw_preview_watermark(canvas)
+            except Exception as wm_exc:  # noqa: BLE001
+                logger.warning("Watermark draw failed: %s", wm_exc)
+
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         canvas.save(output_path, format="PNG")
+
+    def _draw_preview_watermark(self, canvas: "Image.Image") -> None:
+        """Tile a diagonal semi-transparent watermark across the canvas.
+
+        Renders to a separate RGBA layer so the alpha is honoured even when
+        the canvas itself is plain RGB (the editorial path produces RGB).
+        """
+        from PIL import Image as _PILImage, ImageDraw as _PILDraw, ImageFont as _PILFont
+
+        text = getattr(self, "_watermark_text", None) or "PREVIEW"
+        canvas_w, canvas_h = canvas.size
+
+        # Font size scales with the canvas long edge so it reads at any size.
+        font_size = max(48, int(min(canvas_w, canvas_h) * 0.06))
+        font = None
+        try:
+            font_path = (
+                Path(__file__).resolve().parent.parent
+                / "assets" / "fonts" / "PlayfairDisplay-Bold.ttf"
+            )
+            if font_path.exists():
+                font = _PILFont.truetype(str(font_path), font_size)
+        except Exception:  # noqa: BLE001
+            font = None
+        if font is None:
+            try:
+                font = _PILFont.truetype("DejaVuSans-Bold.ttf", font_size)
+            except Exception:  # noqa: BLE001
+                font = _PILFont.load_default()
+
+        # Draw onto an oversized transparent layer, then rotate -25° and
+        # composite the visible portion back over the canvas.
+        diag = int((canvas_w ** 2 + canvas_h ** 2) ** 0.5)
+        layer = _PILImage.new("RGBA", (diag, diag), (0, 0, 0, 0))
+        draw = _PILDraw.Draw(layer)
+
+        # Approximate text width via textbbox.
+        try:
+            bbox = draw.textbbox((0, 0), text, font=font)
+            tw = bbox[2] - bbox[0]
+            th = bbox[3] - bbox[1]
+        except Exception:  # noqa: BLE001
+            tw, th = font_size * len(text) // 2, font_size
+
+        gap_x = int(tw * 0.6)
+        gap_y = int(th * 6.0)
+        fill = (20, 20, 20, 64)  # ~25% opacity charcoal
+
+        y = -th
+        row = 0
+        while y < diag:
+            offset = (row % 2) * (tw // 2)
+            x = -offset - tw
+            while x < diag:
+                draw.text((x, y), text, fill=fill, font=font)
+                x += tw + gap_x
+            y += th + gap_y
+            row += 1
+
+        rotated = layer.rotate(-25, resample=_PILImage.BICUBIC, expand=False)
+        # Center-crop the rotated layer to canvas size.
+        left = (rotated.width - canvas_w) // 2
+        top = (rotated.height - canvas_h) // 2
+        cropped = rotated.crop((left, top, left + canvas_w, top + canvas_h))
+
+        if canvas.mode == "RGBA":
+            canvas.alpha_composite(cropped)
+        else:
+            base = canvas.convert("RGBA")
+            base.alpha_composite(cropped)
+            merged = base.convert("RGB")
+            canvas.paste(merged)
 
     # ----------------------------------------------------------------- helpers
 
