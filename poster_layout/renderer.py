@@ -718,17 +718,24 @@ def _compose_with_frame(
     """Composite ``poster`` inside a wood-textured frame with shadows.
 
     Output layers (back to front):
-      1. Outer canvas with ~3% padding around the frame for the drop shadow.
-      2. Soft Gaussian drop shadow under the frame (offset down/right).
+      1. Fully transparent RGBA outer canvas (~3% padding around the frame
+         so the drop shadow has room to fall) — anything outside the frame
+         and shadow stays at alpha=0 so the website background or the
+         printed paper shows through.
+      2. Soft Gaussian drop shadow under the frame (offset down/right),
+         alpha-composited onto the transparent canvas. The shadow is a
+         soft black gradient that fades to 0 alpha at the edge of its
+         reach.
       3. Tiled wood-grain frame ring.
       4. Cream paper mat just inside the frame opening.
       5. The poster itself, recessed inside the mat.
       6. Soft Gaussian inner shadow biased to the top/left of the poster
-         (light source upper-left), giving the print a sense of being
-         inset behind glass.
+         (light source upper-left). The shadow is alpha-composited
+         DIRECTLY onto the poster pixels — no white intermediate layer —
+         so the existing paper/photo background is darkened in place.
 
-    Returns an RGB image with dims ``poster + 2*thick + 2*outer_pad`` on
-    each axis.
+    Returns an RGBA image with dims ``poster + 2*thick + 2*outer_pad`` on
+    each axis. Outside the frame and its drop shadow, alpha=0.
 
     frame_style: one of SUPPORTED_FRAME_STYLES.
     """
@@ -760,17 +767,23 @@ def _compose_with_frame(
         )
         return poster
 
-    # ----- Step 1: build the outer canvas (off-white wall colour). -----
-    wall_rgb = (245, 240, 232)  # warm off-white, like cream paper / wall
-    out_canvas = Image.new("RGB", (out_w, out_h), wall_rgb)
+    # ----- Step 1: build the outer canvas as fully TRANSPARENT RGBA so
+    # the drop shadow alpha-composites onto whatever is behind the PNG
+    # (CSS background on the web, print paper when downloaded). No
+    # hardcoded "wall" colour anywhere. -----
+    out_canvas = Image.new("RGBA", (out_w, out_h), (0, 0, 0, 0))
 
-    # ----- Step 2: outer drop shadow. Soft Gaussian blur, offset
-    # slightly down-right to suggest light from the upper-left. -----
+    # ----- Step 2: outer drop shadow. Build a separate RGBA shadow
+    # layer (transparent everywhere except under/around the frame),
+    # Gaussian-blur it so the alpha fades to 0 at the edge of its
+    # reach, then alpha_composite onto the transparent canvas. The
+    # result: the shadow is black with varying alpha — when the PNG is
+    # shown on any background, the shadow appears to fall onto it. -----
     try:
         shadow_offset_x = max(8, int(round(short_dim * 0.004)))
         shadow_offset_y = max(12, int(round(short_dim * 0.006)))
         shadow_blur = max(20, int(round(short_dim * 0.012)))
-        shadow_alpha = 80  # ~31%
+        shadow_alpha = 80  # ~31% under the frame, fading to 0 at the edge.
 
         outer_shadow = Image.new("RGBA", (out_w, out_h), (0, 0, 0, 0))
         sdraw = ImageDraw.Draw(outer_shadow)
@@ -782,10 +795,10 @@ def _compose_with_frame(
             fill=(0, 0, 0, shadow_alpha),
         )
         outer_shadow = outer_shadow.filter(ImageFilter.GaussianBlur(shadow_blur))
-        # Composite the shadow over the wall.
-        out_canvas = Image.alpha_composite(
-            out_canvas.convert("RGBA"), outer_shadow
-        ).convert("RGB")
+        # Composite the shadow onto the transparent canvas. Pixels far
+        # from the frame keep alpha=0; pixels near it get a soft black
+        # alpha gradient.
+        out_canvas = Image.alpha_composite(out_canvas, outer_shadow)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Outer shadow failed: %s", exc)
 
@@ -808,65 +821,64 @@ def _compose_with_frame(
         fill=mat_color_hex,
     )
 
-    # ----- Step 5: paste the poster at the inner opening. -----
+    # ----- Step 5: paste the poster at the inner opening. The poster
+    # is opaque (full paper texture or photo), so this fully covers the
+    # mat region except for the visible cream strip between thick-mat_w
+    # and thick. -----
     framed.paste(poster.convert("RGB"), (thick, thick))
 
     # ----- Step 6: inner shadow on the poster edge. We build a
     # blurred dark band on the inside of the poster opening, biased
     # toward the top/left edges so the print looks lit from the
-    # upper-left and recessed below glass.
+    # upper-left and recessed below glass. The shadow is composited
+    # DIRECTLY onto the poster's existing pixels — no white layer — so
+    # the cream paper / photo background is darkened in place.
     try:
         inner_blur = max(12, int(round(short_dim * 0.006)))
         inner_band = max(inner_blur, int(round(short_dim * 0.010)))
 
-        shadow_layer = Image.new("RGBA", (f_w, f_h), (0, 0, 0, 0))
-        sdraw2 = ImageDraw.Draw(shadow_layer)
-
+        # Build the inner shadow at poster-size so the rectangles can be
+        # drawn at the poster's local coordinates and the alpha never
+        # bleeds onto the mat/frame.
+        inner_shadow_poster = Image.new("RGBA", (pw, ph), (0, 0, 0, 0))
+        sdraw2 = ImageDraw.Draw(inner_shadow_poster)
         # Top edge — full strength.
-        sdraw2.rectangle(
-            [(thick, thick), (thick + pw, thick + inner_band)],
-            fill=(0, 0, 0, 110),
-        )
+        sdraw2.rectangle([(0, 0), (pw, inner_band)], fill=(0, 0, 0, 110))
         # Left edge — full strength.
-        sdraw2.rectangle(
-            [(thick, thick), (thick + inner_band, thick + ph)],
-            fill=(0, 0, 0, 110),
-        )
+        sdraw2.rectangle([(0, 0), (inner_band, ph)], fill=(0, 0, 0, 110))
         # Bottom edge — fainter (light from upper-left, less shadow here).
         sdraw2.rectangle(
-            [(thick, thick + ph - inner_band), (thick + pw, thick + ph)],
-            fill=(0, 0, 0, 45),
+            [(0, ph - inner_band), (pw, ph)], fill=(0, 0, 0, 45)
         )
         # Right edge — fainter.
         sdraw2.rectangle(
-            [(thick + pw - inner_band, thick), (thick + pw, thick + ph)],
-            fill=(0, 0, 0, 45),
+            [(pw - inner_band, 0), (pw, ph)], fill=(0, 0, 0, 45)
         )
-
-        shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(inner_blur))
-
-        # Mask the shadow strictly to the poster footprint so the blur
-        # doesn't bleed onto the mat/frame. Build a hard mask and use
-        # ``putalpha`` style masking via ``paste`` with mask.
-        mask = Image.new("L", (f_w, f_h), 0)
-        ImageDraw.Draw(mask).rectangle(
-            [(thick, thick), (thick + pw - 1, thick + ph - 1)], fill=255
+        inner_shadow_poster = inner_shadow_poster.filter(
+            ImageFilter.GaussianBlur(inner_blur)
         )
-        framed_rgba = framed.convert("RGBA")
-        # Apply the mask to the shadow layer's alpha so it only shows
-        # over the poster.
-        sa = shadow_layer.split()[3]
-        sa = Image.eval(sa, lambda v: v)  # ensure mode L
+        # Hard-mask the alpha to the poster footprint so the blur halo
+        # cannot extend outside the poster onto the mat.
         from PIL import ImageChops as _ImageChops
-        clipped_alpha = _ImageChops.multiply(sa, mask)
-        shadow_layer.putalpha(clipped_alpha)
-        framed_rgba = Image.alpha_composite(framed_rgba, shadow_layer)
-        framed = framed_rgba.convert("RGB")
+        poster_mask = Image.new("L", (pw, ph), 255)
+        sa = inner_shadow_poster.split()[3]
+        clipped_alpha = _ImageChops.multiply(sa, poster_mask)
+        inner_shadow_poster.putalpha(clipped_alpha)
+
+        # Composite the inner shadow ONTO the poster's RGBA, then paste
+        # the darkened poster back at (thick, thick). This darkens the
+        # actual paper/photo pixels — no white layer involved.
+        poster_rgba = poster.convert("RGBA")
+        poster_rgba = Image.alpha_composite(poster_rgba, inner_shadow_poster)
+        framed.paste(poster_rgba.convert("RGB"), (thick, thick))
     except Exception as exc:  # noqa: BLE001
         logger.warning("Inner shadow failed: %s", exc)
 
-    # ----- Final paste: drop the framed poster onto the padded canvas. -----
-    out_canvas.paste(framed, (fx, fy))
+    # ----- Final paste: drop the opaque framed poster onto the
+    # transparent (shadow-only) outer canvas. The frame itself is
+    # opaque RGB; outside the frame, only the shadow's alpha shows.
+    framed_rgba = framed.convert("RGBA")
+    out_canvas.paste(framed_rgba, (fx, fy))
     return out_canvas
 
 
