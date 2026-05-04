@@ -178,14 +178,58 @@
         <span class="cv3-ed-secbtn-chev" aria-hidden="true">&#9654;</span>
       </button>
       <div class="cv3-ed-pane" id="cv3-pane-design" role="tabpanel" data-tab="design">
+        <label class="cv3-label">Orientation</label>
+        <div class="cv3-orient-toggle" role="radiogroup" aria-label="Poster orientation">
+          <button type="button" class="cv3-orient-btn cv3-orient-btn-active" data-orient="portrait" role="radio" aria-checked="true" title="Portrait">
+            <span class="cv3-orient-icon" aria-hidden="true">&#9647;</span>
+            <span>Portrait</span>
+          </button>
+          <button type="button" class="cv3-orient-btn" data-orient="landscape" role="radio" aria-checked="false" title="Landscape">
+            <span class="cv3-orient-icon cv3-orient-icon-landscape" aria-hidden="true">&#9647;</span>
+            <span>Landscape</span>
+          </button>
+        </div>
+
+        <label class="cv3-label">Frame</label>
+        <div class="cv3-frame-picker" role="radiogroup" aria-label="Poster frame style">
+          <button type="button" class="cv3-frame-tile cv3-frame-tile-active" data-frame="walnut" role="radio" aria-checked="true" title="Walnut">
+            <span class="cv3-frame-swatch cv3-frame-walnut"></span>
+            <span class="cv3-frame-name">Walnut</span>
+          </button>
+          <button type="button" class="cv3-frame-tile" data-frame="oak" role="radio" aria-checked="false" title="Oak">
+            <span class="cv3-frame-swatch cv3-frame-oak"></span>
+            <span class="cv3-frame-name">Oak</span>
+          </button>
+          <button type="button" class="cv3-frame-tile" data-frame="black" role="radio" aria-checked="false" title="Black">
+            <span class="cv3-frame-swatch cv3-frame-black"></span>
+            <span class="cv3-frame-name">Black</span>
+          </button>
+          <button type="button" class="cv3-frame-tile" data-frame="white" role="radio" aria-checked="false" title="White">
+            <span class="cv3-frame-swatch cv3-frame-white"></span>
+            <span class="cv3-frame-name">White</span>
+          </button>
+          <button type="button" class="cv3-frame-tile" data-frame="" role="radio" aria-checked="false" title="No frame">
+            <span class="cv3-frame-swatch cv3-frame-none"></span>
+            <span class="cv3-frame-name">None</span>
+          </button>
+        </div>
+
+        <label class="cv3-label">Preheader text</label>
+        <input type="text" id="cv3-preheader" class="cv3-input" placeholder="WILDLIFE OF" value="WILDLIFE OF">
+
         <label class="cv3-label">Title</label>
-        <input type="text" id="cv3-title" class="cv3-input" placeholder="Wildlife of Lake Michigan">
+        <input type="text" id="cv3-title" class="cv3-input" placeholder="Lake Michigan">
 
         <label class="cv3-label">Subtitle</label>
         <input type="text" id="cv3-subtitle" class="cv3-input" placeholder="A field guide">
 
+        <label class="cv3-label" style="display:flex;align-items:center;gap:0.5rem">
+          <input type="checkbox" id="cv3-show-sci" style="margin:0">
+          Show scientific names
+        </label>
+
         <label class="cv3-label">Background color</label>
-        <input type="color" id="cv3-bg-color" value="#ffffff">
+        <input type="color" id="cv3-bg-color" value="#f5efe2">
 
         <label class="cv3-label">Background image</label>
         <button type="button" class="cv3-btn-sec" id="cv3-bg-gallery-btn">Browse Gallery</button>
@@ -283,7 +327,8 @@
   <!-- Right column: poster preview -->
   <main class="cv3-ed-main">
     <div class="cv3-canvas-wrap">
-      <div id="cv3-canvas" class="cv3-canvas">
+      <div id="cv3-canvas" class="cv3-canvas" data-orientation="portrait" data-frame="walnut">
+        <div id="cv3-canvas-frame" class="cv3-canvas-frame cv3-canvas-frame--walnut" aria-hidden="true"></div>
         <div id="cv3-canvas-overlay" class="cv3-canvas-overlay" style="display:none">
           <div class="cv3-spinner"></div>
           <div>Composing&hellip;</div>
@@ -318,17 +363,21 @@
     style: 'scientific',
     title: '',
     subtitle: '',
-    bgColor: '#ffffff',
+    preheader: 'WILDLIFE OF',
+    showScientificNames: false,
+    orientation: 'portrait',
+    frameStyle: 'walnut',
+    bgColor: '#f5efe2',
     bgFilename: null,
     bgUrl: null,
-    titleFont: 'Playfair Display',
+    titleFont: 'Cormorant Garamond',
     titleSize: 150,
-    titleColor: '#1a1612',
+    titleColor: '#3a2e22',
     titleBold: false,
     titleItalic: false,
     labelFont: 'Playfair Display',
     labelSize: 42,
-    labelColor: '#1a1612',
+    labelColor: '#3a2e22',
     labelGap: 20,
     labelStrokeEnabled: false,
     labelStrokeColor: '#ffffff',
@@ -342,8 +391,8 @@
     titleXFrac: null,
     titleYFrac: null,
     universalScale: 1.0,
-    canvasW: 5100,
-    canvasH: 3300,
+    canvasW: 3300,
+    canvasH: 5100,
     lastRenderTime: null,
     titleEdited: false,
     // ---- paywall ----
@@ -721,9 +770,13 @@
       body: JSON.stringify({
         species_slugs: state.selectedSpecies.map(function(s) { return s.slug; }),
         style: state.style,
-        title: state.title || ('Wildlife of ' + (state.waterName || 'this place')),
+        title: state.title || (state.waterName || 'this place'),
         subtitle: state.subtitle,
         background: state.bgColor,
+        orientation: state.orientation,
+        frame_style: state.frameStyle || null,
+        show_scientific_names: !!state.showScientificNames,
+        preheader_text: state.preheader || 'WILDLIFE OF',
         logo_filename: state.logoFilename,
         logo_config: {
           size_pct: state.logoSize,
@@ -1074,6 +1127,70 @@
   }
 
   function bindDesignControls() {
+    // Orientation toggle (portrait | landscape).
+    document.querySelectorAll('.cv3-orient-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var orient = this.dataset.orient;
+        if (!orient || state.orientation === orient) return;
+        state.orientation = orient;
+        // Swap canvas dims to match.
+        if (orient === 'portrait') {
+          state.canvasW = 3300; state.canvasH = 5100;
+        } else {
+          state.canvasW = 5100; state.canvasH = 3300;
+        }
+        document.querySelectorAll('.cv3-orient-btn').forEach(function(b) {
+          var active = b.dataset.orient === orient;
+          b.classList.toggle('cv3-orient-btn-active', active);
+          b.setAttribute('aria-checked', active ? 'true' : 'false');
+        });
+        var cv = document.getElementById('cv3-canvas');
+        if (cv) cv.dataset.orientation = orient;
+        // Reset positions so the layout engine repacks for the new aspect.
+        state.selectedSpecies.forEach(function(s) { s._dragged = false; delete s.x; delete s.y; });
+        scheduleLayout();
+        drawCanvas();
+      });
+    });
+
+    // Frame picker (4 wood styles + none).
+    document.querySelectorAll('.cv3-frame-tile').forEach(function(tile) {
+      tile.addEventListener('click', function() {
+        var fr = this.dataset.frame || '';
+        state.frameStyle = fr || null;
+        document.querySelectorAll('.cv3-frame-tile').forEach(function(t) {
+          var active = (t.dataset.frame || '') === fr;
+          t.classList.toggle('cv3-frame-tile-active', active);
+          t.setAttribute('aria-checked', active ? 'true' : 'false');
+        });
+        var cv = document.getElementById('cv3-canvas');
+        if (cv) cv.dataset.frame = fr || 'none';
+        var fEl = document.getElementById('cv3-canvas-frame');
+        if (fEl) {
+          fEl.className = 'cv3-canvas-frame' + (fr ? ' cv3-canvas-frame--' + fr : ' cv3-canvas-frame--none');
+        }
+      });
+    });
+
+    // Preheader text.
+    var preEl = document.getElementById('cv3-preheader');
+    if (preEl) {
+      preEl.addEventListener('input', function() {
+        state.preheader = this.value;
+        drawCanvas();
+      });
+    }
+
+    // Show scientific names toggle.
+    var sciEl = document.getElementById('cv3-show-sci');
+    if (sciEl) {
+      sciEl.checked = !!state.showScientificNames;
+      sciEl.addEventListener('change', function() {
+        state.showScientificNames = this.checked;
+        drawCanvas();
+      });
+    }
+
     $('cv3-title').addEventListener('input', function() {
       state.title = this.value;
       state.titleEdited = true;
@@ -1263,6 +1380,10 @@
           }),
           canvas_width: state.canvasW,
           canvas_height: state.canvasH,
+          orientation: state.orientation,
+          frame_style: state.frameStyle || null,
+          show_scientific_names: !!state.showScientificNames,
+          preheader_text: state.preheader || 'WILDLIFE OF',
           title: state.title,
           subtitle: state.subtitle,
           background: state.bgColor,

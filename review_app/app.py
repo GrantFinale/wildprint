@@ -1786,6 +1786,17 @@ def api_generate_poster():
     logo_filename = data.get("logo_filename")
     logo_config = data.get("logo_config", {}) or {}
     background_image_filename = data.get("background_image_filename")
+    # Reference-aesthetic toggles (Tasks A, B, C, D). Defaults match the
+    # new poster look: portrait orientation, walnut frame baked in, common
+    # name only, "WILDLIFE OF" preheader.
+    orientation = (data.get("orientation") or "portrait").lower()
+    if orientation not in ("portrait", "landscape"):
+        orientation = "portrait"
+    frame_style = data.get("frame_style") or None
+    if frame_style and frame_style not in ("walnut", "oak", "black", "white"):
+        frame_style = None
+    show_scientific_names = bool(data.get("show_scientific_names", False))
+    preheader_text = (data.get("preheader_text") or "WILDLIFE OF").upper()
 
     if not species_slugs:
         return jsonify({"error": "No species selected"}), 400
@@ -1815,15 +1826,22 @@ def api_generate_poster():
     if not species_refs:
         return jsonify({"error": "No valid species found"}), 400
 
-    # Build PosterSpec — landscape 5100x3300
+    # Canvas dimensions follow orientation. Portrait is the new default
+    # (3300x5100); landscape is the legacy 5100x3300.
+    if orientation == "portrait":
+        canvas_w_default, canvas_h_default = 3300, 5100
+    else:
+        canvas_w_default, canvas_h_default = 5100, 3300
+
+    # Build PosterSpec
     spec = PosterSpec(
         title=title,
         subtitle=subtitle,
         style_slug=style_slug,
         species_slugs=[ref.slug for ref in species_refs],
         layout_style="hero",
-        canvas_width=5100,
-        canvas_height=3300,
+        canvas_width=canvas_w_default,
+        canvas_height=canvas_h_default,
         background_color=background,
         show_labels=True,
     )
@@ -1843,8 +1861,8 @@ def api_generate_poster():
         style_slug=style_slug,
         species_slugs=[ref.slug for ref in present_refs],
         layout_style="hero",
-        canvas_width=5100,
-        canvas_height=3300,
+        canvas_width=canvas_w_default,
+        canvas_height=canvas_h_default,
         background_color=background,
         show_labels=True,
     )
@@ -1857,6 +1875,10 @@ def api_generate_poster():
 
     # Render
     renderer = EditorialMultiRenderer()
+    # Reference-aesthetic toggles
+    renderer._show_scientific_names = show_scientific_names
+    renderer._preheader_text = preheader_text
+    renderer._frame_style = frame_style
     if logo_filename:
         logo_path = Path(PROJECT_ROOT) / "output" / "uploads" / logo_filename
         if logo_path.exists():
@@ -1940,8 +1962,19 @@ def api_render_custom():
     """Render a poster with user-customized positions and text formatting."""
     data = request.get_json(force=True)
     placements_data = data.get("placements", [])
-    canvas_w = data.get("canvas_width", 5100)
-    canvas_h = data.get("canvas_height", 3300)
+    # Orientation drives the canvas defaults. The client may also pass
+    # canvas_width/canvas_height directly (legacy callers + drag-aware UI),
+    # in which case those win — this preserves user-edited geometry.
+    orientation = (data.get("orientation") or "").lower()
+    if orientation == "portrait":
+        canvas_w_default, canvas_h_default = 3300, 5100
+    elif orientation == "landscape":
+        canvas_w_default, canvas_h_default = 5100, 3300
+    else:
+        # Legacy default
+        canvas_w_default, canvas_h_default = 5100, 3300
+    canvas_w = data.get("canvas_width", canvas_w_default)
+    canvas_h = data.get("canvas_height", canvas_h_default)
     title = data.get("title", "")
     subtitle = data.get("subtitle", "")
     background = data.get("background", "#FFFFFF")
@@ -1951,6 +1984,11 @@ def api_render_custom():
     bg_image_filename = data.get("background_image_filename")
     logo_config = data.get("logo_config", {})
     title_config = data.get("title_config", {}) or {}
+    frame_style = data.get("frame_style") or None
+    if frame_style and frame_style not in ("walnut", "oak", "black", "white"):
+        frame_style = None
+    show_scientific_names = bool(data.get("show_scientific_names", False))
+    preheader_text = (data.get("preheader_text") or "WILDLIFE OF").upper()
 
     # Determine paywall state. The client sends `unlocked: true|false`
     # but the server is the source of truth: trust the session (and the
@@ -2085,6 +2123,11 @@ def api_render_custom():
 
     # Disable leader lines for custom layout (user positioned manually)
     renderer.leader_line_labels = False
+
+    # Reference-aesthetic toggles
+    renderer._show_scientific_names = show_scientific_names
+    renderer._preheader_text = preheader_text
+    renderer._frame_style = frame_style
 
     # Handle logo
     if logo_filename:

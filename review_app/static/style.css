@@ -1838,3 +1838,112 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
   letter-spacing: 0.04em;
 }
 
+/* ------------------------------------------------------------------
+ * Reference-aesthetic UI: orientation toggle + frame picker + canvas frame
+ * overlay. Added for the major poster aesthetic redesign.
+ * ------------------------------------------------------------------ */
+.cv3-orient-toggle {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.25rem 0 0.6rem;
+}
+.cv3-orient-btn {
+  flex: 1 1 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--cv3-bg, #fff);
+  border: 1px solid var(--cv3-border, #d8d3c8);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--cv3-fg, #1a1612);
+  transition: background 120ms, border-color 120ms;
+}
+.cv3-orient-btn:hover { background: #f5efe2; }
+.cv3-orient-btn-active {
+  background: #3a2e22;
+  color: #f5efe2;
+  border-color: #3a2e22;
+}
+.cv3-orient-icon {
+  display: inline-block;
+  font-size: 1rem;
+  line-height: 1;
+}
+.cv3-orient-icon-landscape { transform: rotate(90deg); }
+
+.cv3-frame-picker {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.35rem;
+  margin: 0.25rem 0 0.7rem;
+}
+.cv3-frame-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.15rem;
+  background: var(--cv3-bg, #fff);
+  border: 2px solid var(--cv3-border, #d8d3c8);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 120ms, transform 80ms;
+}
+.cv3-frame-tile:hover { transform: translateY(-1px); }
+.cv3-frame-tile-active { border-color: #3a2e22; }
+.cv3-frame-swatch {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background-size: cover;
+  background-position: center;
+}
+.cv3-frame-walnut { background-image: url('/image/assets/frames/walnut.jpg'); }
+.cv3-frame-oak    { background-image: url('/image/assets/frames/oak.jpg'); }
+.cv3-frame-black  { background-image: url('/image/assets/frames/black.jpg'); }
+.cv3-frame-white  { background-image: url('/image/assets/frames/white.jpg'); }
+.cv3-frame-none   {
+  background:
+    linear-gradient(45deg, transparent 47%, #c33 48%, #c33 52%, transparent 53%),
+    linear-gradient(-45deg, transparent 47%, #c33 48%, #c33 52%, transparent 53%),
+    #f5efe2;
+}
+.cv3-frame-name {
+  font-size: 0.65rem;
+  color: var(--cv3-fg-muted, #5a5248);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Canvas: orientation-aware aspect ratio + frame overlay (visual only —
+ * the server-baked frame in the downloaded PNG is the source of truth). */
+.cv3-canvas[data-orientation="portrait"]  { aspect-ratio: 3300 / 5100; }
+.cv3-canvas[data-orientation="landscape"] { aspect-ratio: 5100 / 3300; }
+.cv3-canvas-frame {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background-clip: padding-box, border-box;
+  background-origin: padding-box, border-box;
+}
+.cv3-canvas-frame--none { display: none; }
+.cv3-canvas-frame--walnut,
+.cv3-canvas-frame--oak,
+.cv3-canvas-frame--black,
+.cv3-canvas-frame--white {
+  border: 6% solid transparent;
+  border-image-slice: 64;
+  border-image-repeat: repeat;
+}
+.cv3-canvas-frame--walnut { border-image-source: url('/image/assets/frames/walnut.jpg'); }
+.cv3-canvas-frame--oak    { border-image-source: url('/image/assets/frames/oak.jpg'); }
+.cv3-canvas-frame--black  { border-image-source: url('/image/assets/frames/black.jpg'); }
+.cv3-canvas-frame--white  { border-image-source: url('/image/assets/frames/white.jpg'); }
+

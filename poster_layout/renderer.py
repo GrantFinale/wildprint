@@ -158,6 +158,32 @@ _EDITORIAL_FONT_CANDIDATES: tuple[str, ...] = (
     "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
 )
 
+# Reference-aesthetic constants — Field-Guide / "Fish of <Lake>" poster style.
+# Cream paper background, deep brown ink, transitional serif title in two
+# lines, thin inner border, no scientific names by default.
+REFERENCE_PAPER_HEX = "#f5efe2"
+REFERENCE_INK_HEX = "#3a2e22"
+REFERENCE_INNER_BORDER_HEX = "#a89880"
+
+_PROJECT_ROOT_FOR_RENDERER = Path(__file__).resolve().parent.parent
+# Cormorant Garamond Bold ships in assets/fonts — preferred over Didot for
+# the new aesthetic because it has the warm transitional-serif feel of the
+# reference poster's title. Falls back to PlayfairDisplay/Didot if missing.
+_REFERENCE_TITLE_FONT_CANDIDATES: tuple[str, ...] = (
+    str(_PROJECT_ROOT_FOR_RENDERER / "assets" / "fonts" / "CormorantGaramond-Bold.ttf"),
+    str(_PROJECT_ROOT_FOR_RENDERER / "assets" / "fonts" / "PlayfairDisplay-Bold.ttf"),
+    str(_PROJECT_ROOT_FOR_RENDERER / "assets" / "fonts" / "EBGaramond-Bold.ttf"),
+    "/System/Library/Fonts/Supplemental/Didot.ttc",
+)
+_REFERENCE_PREHEADER_FONT_CANDIDATES: tuple[str, ...] = (
+    str(_PROJECT_ROOT_FOR_RENDERER / "assets" / "fonts" / "CormorantGaramond-Regular.ttf"),
+    str(_PROJECT_ROOT_FOR_RENDERER / "assets" / "fonts" / "EBGaramond-Regular.ttf"),
+    str(_PROJECT_ROOT_FOR_RENDERER / "assets" / "fonts" / "PlayfairDisplay-Regular.ttf"),
+    "/System/Library/Fonts/Supplemental/Didot.ttc",
+)
+_FRAMES_DIR = _PROJECT_ROOT_FOR_RENDERER / "assets" / "frames"
+SUPPORTED_FRAME_STYLES: tuple[str, ...] = ("walnut", "oak", "black", "white")
+
 
 def _identify_ttc_faces(
     path: str, size: int
@@ -422,6 +448,277 @@ def _draw_caption_block(
             tracking_px=secondary_letter_spacing,
             fill=color,
         )
+
+
+def _load_first_truetype(
+    paths: list[str] | tuple[str, ...], size: int
+) -> ImageFont.ImageFont:
+    """Load the first font in ``paths`` that opens cleanly at ``size``.
+
+    For ``.ttc`` files, picks the Bold (or Regular as fallback) face by name.
+    Used for the reference-aesthetic title + preheader fonts.
+    """
+    for cand in paths:
+        try:
+            if cand.lower().endswith(".ttc"):
+                # Probe faces; prefer Bold if present.
+                bold: ImageFont.FreeTypeFont | None = None
+                regular: ImageFont.FreeTypeFont | None = None
+                for index in range(8):
+                    try:
+                        f = ImageFont.truetype(cand, size, index=index)
+                    except (OSError, IOError, ValueError):
+                        break
+                    try:
+                        _, style = f.getname()
+                    except Exception:  # noqa: BLE001
+                        style = ""
+                    s = (style or "").lower()
+                    if bold is None and "bold" in s and "italic" not in s:
+                        bold = f
+                    if regular is None and "regular" in s and "semi" not in s:
+                        regular = f
+                return bold or regular or ImageFont.truetype(cand, size, index=0)
+            return ImageFont.truetype(cand, size)
+        except (OSError, IOError, ValueError):
+            continue
+    return ImageFont.load_default()
+
+
+def _draw_two_line_title(
+    draw: ImageDraw.ImageDraw,
+    canvas_w: int,
+    canvas_h: int,
+    preheader_text: str,
+    main_title: str,
+    title_color: str,
+    rule_color: str,
+    title_band_h: int | None = None,
+) -> int:
+    """Draw the reference-aesthetic title: tracked preheader flanked by
+    horizontal rules, then the big main title beneath.
+
+    Returns the y-bottom of the title block (useful for downstream layout).
+
+    Geometry (fractions of canvas dims):
+      - preheader font height: ~3% of canvas_h (min 28)
+      - main title font height: ~9% of canvas_h (min 80)
+      - inner border / rules sit ~3% inset from canvas edges
+    """
+    # Sizes proportional to canvas height (works for portrait + landscape).
+    preheader_size = max(28, int(round(canvas_h * 0.030)))
+    title_size = max(80, int(round(canvas_h * 0.090)))
+
+    pre_font = _load_first_truetype(
+        _REFERENCE_PREHEADER_FONT_CANDIDATES, preheader_size
+    )
+    title_font = _load_first_truetype(
+        _REFERENCE_TITLE_FONT_CANDIDATES, title_size
+    )
+
+    # Preheader sits in the upper band — about 6% from canvas top, after
+    # the inner border (which is at ~3% inset).
+    pre_y = int(round(canvas_h * 0.060))
+    pre_text_upper = (preheader_text or "").upper()
+    tracking_px = max(2, int(round(preheader_size * 0.20)))
+    if pre_text_upper:
+        # Measure tracked width.
+        advances = []
+        for ch in pre_text_upper:
+            cw, _ = _text_size(draw, ch, pre_font)
+            advances.append(cw)
+        pre_total_w = sum(advances) + tracking_px * max(0, len(pre_text_upper) - 1)
+        pre_x = (canvas_w - pre_total_w) // 2
+        cursor = pre_x
+        for ch, adv in zip(pre_text_upper, advances):
+            draw.text((cursor, pre_y), ch, font=pre_font, fill=title_color)
+            cursor += adv + tracking_px
+        # Get vertical metrics for the rule placement.
+        _, pre_h = _text_size(draw, pre_text_upper, pre_font)
+        # Flanking horizontal rules — extend toward (but not touching) the
+        # canvas edges. Rules are 1px, color = rule_color (light brown).
+        rule_y = pre_y + pre_h // 2
+        rule_pad = max(40, int(round(canvas_w * 0.025)))  # gap between rule and preheader
+        outer_inset = max(80, int(round(canvas_w * 0.10)))
+        # Left rule
+        draw.line(
+            [(outer_inset, rule_y), (pre_x - rule_pad, rule_y)],
+            fill=rule_color,
+            width=max(1, int(round(canvas_h / 1700))),
+        )
+        # Right rule
+        draw.line(
+            [(pre_x + pre_total_w + rule_pad, rule_y), (canvas_w - outer_inset, rule_y)],
+            fill=rule_color,
+            width=max(1, int(round(canvas_h / 1700))),
+        )
+        title_y_top = pre_y + pre_h + int(round(canvas_h * 0.018))
+    else:
+        title_y_top = pre_y
+
+    # Main title — big transitional serif.
+    if main_title:
+        tw, th = _text_size(draw, main_title, title_font)
+        tx = (canvas_w - tw) // 2
+        draw.text((tx, title_y_top), main_title, font=title_font, fill=title_color)
+        return title_y_top + th
+    return title_y_top
+
+
+def _draw_inner_border(
+    draw: ImageDraw.ImageDraw,
+    canvas_w: int,
+    canvas_h: int,
+    color: str,
+    inset_frac: float = 0.030,
+    line_width_px: int | None = None,
+) -> None:
+    """Draw a thin rectangular border at ``inset_frac`` from the canvas edges."""
+    inset = int(round(min(canvas_w, canvas_h) * inset_frac))
+    if line_width_px is None:
+        line_width_px = max(1, int(round(min(canvas_w, canvas_h) / 2200)))
+    x1, y1 = inset, inset
+    x2, y2 = canvas_w - inset, canvas_h - inset
+    # Pillow's draw.rectangle with width=N draws on the inside of the rect,
+    # which is exactly what we want.
+    draw.rectangle([(x1, y1), (x2, y2)], outline=color, width=line_width_px)
+
+
+def _apply_paper_grain(
+    canvas: Image.Image, intensity: float = 0.04, seed: int = 7
+) -> None:
+    """Tile a tiny noise PNG over ``canvas`` at low alpha to give the
+    background a subtle paper-grain feel. Operates in-place.
+
+    intensity: 0..1, fraction of the canvas brightness to perturb.
+    """
+    try:
+        import random as _random
+        # Generate (or reuse) a 256x256 grain tile.
+        tile_size = 256
+        rng = _random.Random(seed)
+        from PIL import Image as _PILImage
+        tile = _PILImage.new("L", (tile_size, tile_size))
+        px = tile.load()
+        amp = max(0, min(255, int(round(255 * intensity))))
+        for y in range(tile_size):
+            for x in range(tile_size):
+                # Slight gaussian-ish perturbation around 128.
+                v = 128 + rng.randint(-amp, amp)
+                if v < 0:
+                    v = 0
+                elif v > 255:
+                    v = 255
+                px[x, y] = v
+        # Blend with canvas — convert tile to RGB, scale to canvas, blend.
+        cw, ch = canvas.size
+        # Tile pattern across canvas.
+        full = _PILImage.new("L", (cw, ch))
+        for y in range(0, ch, tile_size):
+            for x in range(0, cw, tile_size):
+                full.paste(tile, (x, y))
+        # Convert to RGB grayscale and use as overlay multiplier.
+        full_rgb = _PILImage.merge("RGB", (full, full, full))
+        # Multiply intensity ~ low (8% blend).
+        blended = _PILImage.blend(canvas.convert("RGB"), full_rgb, 0.08)
+        canvas.paste(blended)
+    except Exception:  # noqa: BLE001
+        # Don't fail the render over a cosmetic grain.
+        pass
+
+
+def _compose_with_frame(
+    poster: Image.Image,
+    frame_style: str,
+    mat_color_hex: str = REFERENCE_PAPER_HEX,
+    frame_thickness_frac: float = 0.060,
+    mat_inset_frac: float = 0.018,
+) -> Image.Image:
+    """Composite ``poster`` inside a wood-textured frame.
+
+    Returns a new RGB image whose dimensions are larger than ``poster`` by
+    ``2 * frame_thickness`` on each axis. The frame is built by tiling the
+    chosen texture into a border ring, with a small paper-cream "mat"
+    inset for depth and a 1-2% inner shadow over the poster edge to give
+    the illusion of depth.
+
+    frame_style: one of SUPPORTED_FRAME_STYLES.
+    """
+    if frame_style not in SUPPORTED_FRAME_STYLES:
+        return poster
+
+    texture_path = _FRAMES_DIR / f"{frame_style}.jpg"
+    if not texture_path.exists():
+        logger.warning("Frame texture %s missing — returning unframed poster.", texture_path)
+        return poster
+
+    pw, ph = poster.size
+    short_dim = min(pw, ph)
+    thick = max(60, int(round(short_dim * frame_thickness_frac)))
+    mat_w = max(20, int(round(short_dim * mat_inset_frac)))
+
+    out_w = pw + 2 * thick
+    out_h = ph + 2 * thick
+
+    # 1. Build the frame canvas filled with tiled texture.
+    try:
+        with Image.open(texture_path) as tex_src:
+            tex = tex_src.convert("RGB")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not load frame texture %s: %s", texture_path, exc)
+        return poster
+
+    # Scale the texture so one tile covers the frame thickness comfortably,
+    # then tile across the full output dimensions.
+    tex_target_long = max(thick * 4, 1200)
+    if tex.width != tex_target_long:
+        ratio = tex_target_long / tex.width
+        tex = tex.resize(
+            (tex_target_long, int(round(tex.height * ratio))), Image.LANCZOS
+        )
+
+    framed = Image.new("RGB", (out_w, out_h))
+    for y in range(0, out_h, tex.height):
+        for x in range(0, out_w, tex.width):
+            framed.paste(tex, (x, y))
+
+    fdraw = ImageDraw.Draw(framed)
+
+    # 2. Inner mat (cream paper) — covers from frame inner edge down to a
+    # band just outside the poster, simulating a printed mat.
+    mat_x1 = thick - mat_w
+    mat_y1 = thick - mat_w
+    mat_x2 = out_w - thick + mat_w
+    mat_y2 = out_h - thick + mat_w
+    fdraw.rectangle(
+        [(mat_x1, mat_y1), (mat_x2, mat_y2)],
+        fill=mat_color_hex,
+    )
+
+    # 3. Paste the poster at (thick, thick).
+    framed.paste(poster.convert("RGB"), (thick, thick))
+
+    # 4. Subtle inner shadow on the poster's outer edge — gives the print
+    # a sense of being inset behind glass. 4-8 px black at low alpha.
+    try:
+        shadow_w = max(2, int(round(short_dim * 0.0015)))
+        shadow = Image.new("RGBA", (out_w, out_h), (0, 0, 0, 0))
+        sdraw = ImageDraw.Draw(shadow)
+        # Draw N concentric rectangles, each fainter, just inside the poster.
+        for i in range(shadow_w):
+            alpha = max(0, int(round(80 * (1.0 - i / max(1, shadow_w)))))
+            sdraw.rectangle(
+                [
+                    (thick + i, thick + i),
+                    (thick + pw - 1 - i, thick + ph - 1 - i),
+                ],
+                outline=(20, 14, 8, alpha),
+            )
+        framed.paste(Image.alpha_composite(framed.convert("RGBA"), shadow).convert("RGB"))
+    except Exception:  # noqa: BLE001
+        pass
+
+    return framed
 
 
 def _draw_species_label(
@@ -991,11 +1288,32 @@ class EditorialMultiRenderer(PosterRenderer):
         # silhouette's aspect is preserved instead of stretching the
         # full-frame master.
         self._crop_master_to_alpha: bool = True
+        # Reference-aesthetic toggles (Task B/C/D). When the editor or API
+        # requests the new poster look, these switches enable: a two-line
+        # preheader+title block, the cream paper background, the thin inner
+        # border, common-name-only labels, and a wood frame composited on
+        # the output. Defaults are ON (the new look becomes the default).
+        self._use_two_line_title: bool = True
+        self._preheader_text: str = "WILDLIFE OF"
+        self._show_scientific_names: bool = False
+        self._inner_border_enabled: bool = True
+        self._paper_grain_enabled: bool = True
+        self._frame_style: str | None = None  # None | walnut|oak|black|white
 
     def render(self, result: LayoutResult, output_path: Path) -> None:
         spec = result.poster
 
         bg = spec.background_color or self.DEFAULT_BACKGROUND
+        # Reference aesthetic: when the caller passed plain white (the
+        # historical default), substitute the cream paper color so the
+        # poster looks like the field-guide reference out of the box.
+        # Anyone who explicitly picked a non-white background still gets it.
+        if (
+            getattr(self, "_use_two_line_title", False)
+            and isinstance(bg, str)
+            and bg.lower() in ("#ffffff", "#fff", "white")
+        ):
+            bg = REFERENCE_PAPER_HEX
 
         # If a background image is supplied, build the canvas from it
         # (object-fit: cover), then derive the text palette from the
@@ -1062,6 +1380,16 @@ class EditorialMultiRenderer(PosterRenderer):
             self.scientific_color = sci_c
             self.rule_color = rule_c
             self.caption_color = caption_c
+            # Reference aesthetic: lock title to deep warm brown when on a
+            # cream paper background (matches the reference poster — looks
+            # warmer than the default Didot-black "#1a1612").
+            if (
+                getattr(self, "_use_two_line_title", False)
+                and bg_image_canvas is None
+                and _relative_luminance(bg) > 200
+            ):
+                self.title_color = REFERENCE_INK_HEX
+                self.scientific_color = REFERENCE_INK_HEX
         logger.info(
             "editorial-multi background: %s (luminance=%.0f, title ink=%s)",
             bg,
@@ -1075,7 +1403,31 @@ class EditorialMultiRenderer(PosterRenderer):
             canvas = Image.new(
                 "RGB", (spec.canvas_width, spec.canvas_height), color=bg
             )
+
+        # Paper grain (Task C): subtle noise texture over the cream
+        # background so the page reads as paper, not flat color. Only when
+        # there's no background image AND the toggle is on — we don't want
+        # to fight a user-supplied photographic background.
+        if (
+            getattr(self, "_paper_grain_enabled", False)
+            and bg_image_canvas is None
+        ):
+            _apply_paper_grain(canvas, intensity=0.10)
+
         draw = ImageDraw.Draw(canvas)
+
+        # Inner border (Task C): thin warm-brown rule at ~3% inset from
+        # canvas edges, framing the entire content area.
+        if getattr(self, "_inner_border_enabled", False):
+            try:
+                _draw_inner_border(
+                    draw=draw,
+                    canvas_w=spec.canvas_width,
+                    canvas_h=spec.canvas_height,
+                    color=REFERENCE_INNER_BORDER_HEX,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Inner border draw failed: %s", exc)
 
         if not result.placements:
             logger.warning(
@@ -1084,7 +1436,12 @@ class EditorialMultiRenderer(PosterRenderer):
             )
             output_path = Path(output_path)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            canvas.save(output_path, format="PNG")
+            # Apply frame even on empty posters so the user sees the frame
+            # picker working at full size.
+            final = canvas
+            if getattr(self, "_frame_style", None):
+                final = _compose_with_frame(canvas, self._frame_style)
+            final.save(output_path, format="PNG")
             return
 
         canvas_w = spec.canvas_width
@@ -1182,6 +1539,37 @@ class EditorialMultiRenderer(PosterRenderer):
                     font=scientific_font,
                     fill=self.scientific_color,
                 )
+        elif getattr(self, "_use_two_line_title", False):
+            # Reference-aesthetic two-line title: tracked preheader flanked
+            # by horizontal rules + big transitional-serif title beneath.
+            try:
+                _draw_two_line_title(
+                    draw=draw,
+                    canvas_w=canvas_w,
+                    canvas_h=canvas_h,
+                    preheader_text=getattr(self, "_preheader_text", "WILDLIFE OF"),
+                    main_title=spec.title or "",
+                    title_color=self.title_color,
+                    rule_color=REFERENCE_INNER_BORDER_HEX,
+                    title_band_h=title_band_h,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Two-line title draw failed (%s); falling back to default block.",
+                    exc,
+                )
+                _draw_title_block(
+                    draw=draw,
+                    canvas_w=canvas_w,
+                    title_band_h=title_band_h,
+                    title=spec.title or "",
+                    italic_secondary=spec.subtitle,
+                    bold_font=title_font,
+                    italic_font=scientific_font,
+                    title_color=self.title_color,
+                    secondary_color=self.scientific_color,
+                    rule_color=self.rule_color,
+                )
         else:
             _draw_title_block(
                 draw=draw,
@@ -1248,13 +1636,14 @@ class EditorialMultiRenderer(PosterRenderer):
             _label_sci_color = self._label_override_color or self.scientific_color
             label_pad_px = max(8, int(self.label_letter_spacing * 2))
             label_gap_px = self.label_gap_px
+            show_sci_inline = bool(getattr(self, "_show_scientific_names", True))
 
             def _measure_label_dims(
                 placed: PlacedItem, common_f, scientific_f, common_spacing
             ) -> tuple[int, int]:
                 sp = placed.species_ref
                 common = (sp.common_name or "").upper()
-                sci = sp.scientific_name or ""
+                sci = (sp.scientific_name or "") if show_sci_inline else ""
                 cw = ch = 0
                 if common:
                     advances = [_text_size(draw, c, common_f)[0] for c in common]
@@ -1351,6 +1740,7 @@ class EditorialMultiRenderer(PosterRenderer):
                 placed_label_rects.append((lx, ly, lx + lw, ly + lh))
 
             # Now actually draw, in original placement order.
+            from dataclasses import replace as _dc_replace
             for idx, placed in enumerate(result.placements):
                 if idx not in label_positions:
                     continue
@@ -1360,9 +1750,15 @@ class EditorialMultiRenderer(PosterRenderer):
                 cf = dense_common if is_dense else label_common_regular
                 sf = dense_italic if is_dense else label_italic_font
                 csp = dense_spacing if is_dense else self.label_letter_spacing
+                # Suppress scientific name in the placed's species_ref clone
+                # so _draw_species_label_at draws common-name only.
+                placed_to_draw = placed
+                if not show_sci_inline:
+                    new_ref = _dc_replace(placed.species_ref, scientific_name="")
+                    placed_to_draw = _dc_replace(placed, species_ref=new_ref)
                 _draw_species_label_at(
                     draw=draw,
-                    placed=placed,
+                    placed=placed_to_draw,
                     label_x=lx,
                     label_y=ly,
                     label_w=lw,
@@ -1470,9 +1866,28 @@ class EditorialMultiRenderer(PosterRenderer):
             except Exception as wm_exc:  # noqa: BLE001
                 logger.warning("Watermark draw failed: %s", wm_exc)
 
+        # Frame composition (Task B): wrap the finished poster in a
+        # wood-textured frame with an inset paper mat. Applied AFTER the
+        # watermark so the watermark shows on the printed area, not the
+        # frame itself. The output PNG includes the frame, so the
+        # downloaded poster is already framed (matches user expectation).
+        final_canvas = canvas
+        frame_style = getattr(self, "_frame_style", None)
+        if frame_style:
+            try:
+                final_canvas = _compose_with_frame(canvas, frame_style)
+                logger.info(
+                    "Frame composed: style=%s; output dims %dx%d -> %dx%d",
+                    frame_style, canvas.size[0], canvas.size[1],
+                    final_canvas.size[0], final_canvas.size[1],
+                )
+            except Exception as fr_exc:  # noqa: BLE001
+                logger.warning("Frame composition failed: %s", fr_exc)
+                final_canvas = canvas
+
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        canvas.save(output_path, format="PNG")
+        final_canvas.save(output_path, format="PNG")
 
     def _draw_preview_watermark(self, canvas: "Image.Image") -> None:
         """Tile a diagonal semi-transparent watermark across the canvas.
@@ -1761,10 +2176,14 @@ class EditorialMultiRenderer(PosterRenderer):
             if mx < mx2 and my < my2:
                 occupancy[my:my2, mx:mx2] = True
 
+        # Reference aesthetic (Task D): suppress scientific names by default.
+        # The flag is set on the renderer via `_show_scientific_names`.
+        show_sci = bool(getattr(self, "_show_scientific_names", True))
+
         def _measure_label(sp: SpeciesRef) -> tuple[int, int, int, int]:
             """Return (label_w, label_h, common_w, common_h)."""
             common = (sp.common_name or "").upper()
-            sci = sp.scientific_name or ""
+            sci = (sp.scientific_name or "") if show_sci else ""
             spacing = self.label_letter_spacing
             common_w = 0
             common_h = 0
@@ -1804,7 +2223,7 @@ class EditorialMultiRenderer(PosterRenderer):
                 next_top = ly + common_h + max(6, common_h // 4)
             else:
                 next_top = ly
-            sci = sp.scientific_name or ""
+            sci = (sp.scientific_name or "") if show_sci else ""
             if sci:
                 sw, _sh = _text_size(draw, sci, scientific_font)
                 draw.text((cx - sw // 2, next_top), sci, **kw_sci)

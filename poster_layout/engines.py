@@ -1218,6 +1218,15 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         # alpha + label rect don't collide with anything above. Set 0 to
         # disable (preserves the legacy bottom-aligned baseline).
         stagger_within_row_frac: float = 0.85,
+        # Aggressive Y-slot variance: after row layout, assign each species
+        # in a row to one of N sub-slots (top/middle/bottom by default),
+        # alternating across consecutive species so the eye reads vertical
+        # rhythm. Constraint-respecting: any slot assignment that would
+        # collide with another silhouette/label is rejected and the species
+        # falls back to the row baseline. Default True to match the new
+        # reference aesthetic.
+        varied_y_slots: bool = True,
+        varied_y_slot_count: int = 3,
         # Optional callable: SpeciesRef -> (label_w_px, label_h_px). When
         # provided, the tightening pass treats each species' effective bbox
         # as max(silhouette_width, label_width) and refuses any tighten that
@@ -1242,6 +1251,8 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
         self.nest_vertical_intrusion_frac = nest_vertical_intrusion_frac
         self.nest_alpha_threshold = nest_alpha_threshold
         self.stagger_within_row_frac = stagger_within_row_frac
+        self.varied_y_slots = varied_y_slots
+        self.varied_y_slot_count = max(2, int(varied_y_slot_count))
         # If no provider is wired up, install a default that measures labels
         # using the same Didot fallback chain + default sizes as the
         # production EditorialMultiRenderer. This makes the engine compute
@@ -1585,6 +1596,29 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
             y1 = p.y + p.draw_height
             y2 = y1 + lh
             return x1, y1, x2, y2
+
+        # 7b. Aggressive Y-slot variance pass.
+        # For each row, assign species to one of N sub-slots within the row
+        # band so that consecutive species sit at clearly varied heights.
+        # Honors constraints: silhouettes can't overlap, label rects can't
+        # overlap, no canvas runoff. Runs BEFORE the silhouette tightening
+        # pass so the pull-up step can still close any gap left over.
+        if self.varied_y_slots and len(rows) > 0:
+            placements = self._assign_varied_y_slots(
+                placements,
+                rows=rows,
+                row_inner_heights=row_inner_heights,
+                masks=masks,
+                gutter=gutter,
+                canvas_w=canvas_w,
+                canvas_h=canvas_h,
+                title_h=title_h,
+                caption_h=caption_h,
+                label_h=label_h,
+                label_widths=label_widths,
+                label_heights=label_heights,
+                slot_count=self.varied_y_slot_count,
+            )
 
         # 8. Silhouette-aware tightening pass.
         # Now that bbox-row layout is committed, walk neighbour pairs and
@@ -2091,5 +2125,206 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
                 rows[0] = new_top
                 _refresh_idx()
                 shifted += step
+
+        return work
+
+    # ------------------------------------------------------------------
+    # Aggressive Y-slot variance pass
+    # ------------------------------------------------------------------
+    def _assign_varied_y_slots(
+        self,
+        placements: list[PlacedItem],
+        rows: list[list[SpeciesRef]],
+        row_inner_heights: list[float],
+        masks: dict[str, tuple[int, int, bytes]],
+        gutter: int,
+        canvas_w: int,
+        canvas_h: int,
+        title_h: int,
+        caption_h: int,
+        label_h: int,
+        label_widths: dict[str, int],
+        label_heights: dict[str, int],
+        slot_count: int,
+    ) -> list[PlacedItem]:
+        """Assign each species in a row to one of N Y sub-slots, alternating
+        across consecutive species so the eye reads vertical rhythm.
+
+        Within each row, divide the row's vertical headroom (the difference
+        between the tallest species in the row and each species' own height)
+        into ``slot_count`` sub-slots. Walk species in row order; for each
+        species, pick a target slot index using a deterministic alternating
+        pattern (0, slot_count-1, 1, slot_count-2, ...) keyed on the position
+        index within the row. If the chosen slot's resulting placement passes
+        all collision checks, commit it; otherwise fall through to the row
+        baseline (legacy behaviour).
+        """
+        if not placements or slot_count < 2:
+            return placements
+
+        # Build slug -> placement-index map for fast lookup.
+        slug_to_idx: dict[str, int] = {
+            p.species_ref.slug: i for i, p in enumerate(placements)
+        }
+
+        # Snapshot original placements so we can mutate iteratively while
+        # checking collisions against the current state.
+        work = list(placements)
+
+        def _alpha_grid(p: PlacedItem) -> tuple[int, int, bytes] | None:
+            return masks.get(p.species_ref.slug)
+
+        thr = self.nest_alpha_threshold
+
+        def _masks_overlap_pair(a: PlacedItem, b: PlacedItem) -> bool:
+            ga = _alpha_grid(a)
+            gb = _alpha_grid(b)
+            if ga is None or gb is None:
+                return True  # conservative: if we can't measure, assume hit
+            ax1, ay1, ax2, ay2 = a.x, a.y, a.x + a.draw_width, a.y + a.draw_height
+            bx1, by1, bx2, by2 = b.x, b.y, b.x + b.draw_width, b.y + b.draw_height
+            ix1 = max(ax1, bx1); iy1 = max(ay1, by1)
+            ix2 = min(ax2, bx2); iy2 = min(ay2, by2)
+            if ix1 >= ix2 or iy1 >= iy2:
+                return False
+            STEPS = 12
+            ga_w, ga_h, ga_b = ga
+            gb_w, gb_h, gb_b = gb
+            aw = max(1, ax2 - ax1); ah = max(1, ay2 - ay1)
+            bw = max(1, bx2 - bx1); bh = max(1, by2 - by1)
+            for sxi in range(STEPS):
+                for syi in range(STEPS):
+                    px = ix1 + (ix2 - ix1) * (sxi + 0.5) / STEPS
+                    py = iy1 + (iy2 - iy1) * (syi + 0.5) / STEPS
+                    ua = (px - ax1) / aw; va = (py - ay1) / ah
+                    mxa = min(ga_w - 1, max(0, int(ua * ga_w)))
+                    mya = min(ga_h - 1, max(0, int(va * ga_h)))
+                    if ga_b[mya * ga_w + mxa] < thr:
+                        continue
+                    ub = (px - bx1) / bw; vb = (py - by1) / bh
+                    mxb = min(gb_w - 1, max(0, int(ub * gb_w)))
+                    myb = min(gb_h - 1, max(0, int(vb * gb_h)))
+                    if gb_b[myb * gb_w + mxb] >= thr:
+                        return True
+            return False
+
+        def _label_rect(p: PlacedItem) -> tuple[int, int, int, int] | None:
+            if label_h <= 0:
+                return None
+            slug = p.species_ref.slug
+            lw = label_widths.get(slug, p.draw_width)
+            lh = label_heights.get(slug, label_h)
+            if lw <= 0 or lh <= 0:
+                return None
+            cx = p.x + p.draw_width // 2
+            x1 = cx - lw // 2
+            x2 = x1 + lw
+            y1 = p.y + p.draw_height
+            y2 = y1 + lh
+            return x1, y1, x2, y2
+
+        def _has_collision(cand: PlacedItem, ignore_slug: str) -> bool:
+            """Check cand against all other placements in `work`."""
+            cand_lr = _label_rect(cand)
+            for other in work:
+                if other.species_ref.slug == ignore_slug:
+                    continue
+                # Silhouette vs silhouette
+                if _masks_overlap_pair(cand, other):
+                    return True
+                # cand silhouette vs other label rect
+                ol = _label_rect(other)
+                if ol is not None:
+                    ox1, oy1, ox2, oy2 = ol
+                    if (cand.x < ox2 and cand.x + cand.draw_width > ox1
+                            and cand.y < oy2 and cand.y + cand.draw_height > oy1):
+                        return True
+                # cand label rect vs other silhouette + other label
+                if cand_lr is not None:
+                    cx1, cy1, cx2, cy2 = cand_lr
+                    ox1, oy1 = other.x, other.y
+                    ox2, oy2 = other.x + other.draw_width, other.y + other.draw_height
+                    if cx1 < ox2 and cx2 > ox1 and cy1 < oy2 and cy2 > oy1:
+                        return True
+                    if ol is not None:
+                        olx1, oly1, olx2, oly2 = ol
+                        if cx1 < olx2 and cx2 > olx1 and cy1 < oly2 and cy2 > oly1:
+                            return True
+            return False
+
+        # Compute alternating slot index pattern for a row of length n.
+        # For slot_count=3 and n=5: indices [1, 0, 2, 1, 0] reads as
+        # middle, top, bottom, middle, top — strong rhythm.
+        def _pattern(n: int) -> list[int]:
+            mid = (slot_count - 1) // 2
+            seq: list[int] = []
+            order: list[int] = [mid]
+            for offset in range(1, slot_count):
+                if mid - offset >= 0:
+                    order.append(mid - offset)
+                if mid + offset < slot_count:
+                    order.append(mid + offset)
+            for i in range(n):
+                seq.append(order[i % len(order)])
+            return seq
+
+        # Process each row independently. Use the row's "row_inner_height"
+        # as the available band; each species' own draw_height bites into
+        # that. The headroom = inner_h - draw_h is divided into N slots.
+        # Slot 0 = species sits flush with row TOP (high in band).
+        # Slot N-1 = species sits flush with row BOTTOM (low in band) — the
+        # row baseline. Intermediate slots interpolate.
+        for row_idx, (row_refs, inner_h_f) in enumerate(zip(rows, row_inner_heights)):
+            inner_h = float(inner_h_f)
+            n = len(row_refs)
+            if n == 0:
+                continue
+            slot_pattern = _pattern(n)
+
+            for col_idx, ref in enumerate(row_refs):
+                slug = ref.slug
+                if slug not in slug_to_idx:
+                    continue
+                p_idx = slug_to_idx[slug]
+                cur = work[p_idx]
+                headroom = inner_h - cur.draw_height
+                if headroom <= 1:
+                    continue
+                # Slot 0 = top (max upward shift), slot N-1 = baseline (no shift).
+                # Original layout has species bottom-aligned to row baseline,
+                # so positive shift means MOVE UP (decrease y).
+                slot = slot_pattern[col_idx]
+                # Convert slot index to a y-shift: 0 -> max upward, N-1 -> 0.
+                # Linear interpolate.
+                if slot_count <= 1:
+                    shift = 0.0
+                else:
+                    shift = headroom * (slot_count - 1 - slot) / (slot_count - 1)
+                shift_px = int(round(shift))
+                if shift_px <= 0:
+                    continue
+                # Don't push past canvas top (above title band).
+                target_y = cur.y - shift_px
+                min_y = title_h + max(0, gutter // 2)
+                if target_y < min_y:
+                    target_y = min_y
+                if target_y >= cur.y:
+                    continue
+                cand = PlacedItem(
+                    species_ref=cur.species_ref,
+                    master=cur.master,
+                    x=cur.x,
+                    y=target_y,
+                    draw_width=cur.draw_width,
+                    draw_height=cur.draw_height,
+                )
+                # Replace cur with cand temporarily for the collision test.
+                work[p_idx] = cand
+                if _has_collision(cand, slug):
+                    # Reject — restore.
+                    work[p_idx] = cur
+                else:
+                    # Commit; subsequent species in this row see the new state.
+                    pass
 
         return work
