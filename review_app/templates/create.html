@@ -1153,10 +1153,12 @@
       });
     });
 
-    // Frame picker (4 wood styles + none).
+    // Frame picker (4 wood styles + none). Triggers a re-layout so the
+    // server-baked frame in the rendered PNG updates immediately.
     document.querySelectorAll('.cv3-frame-tile').forEach(function(tile) {
       tile.addEventListener('click', function() {
         var fr = this.dataset.frame || '';
+        if ((state.frameStyle || '') === fr) return;
         state.frameStyle = fr || null;
         document.querySelectorAll('.cv3-frame-tile').forEach(function(t) {
           var active = (t.dataset.frame || '') === fr;
@@ -1169,6 +1171,9 @@
         if (fEl) {
           fEl.className = 'cv3-canvas-frame' + (fr ? ' cv3-canvas-frame--' + fr : ' cv3-canvas-frame--none');
         }
+        // Re-render so the downloaded PNG reflects the chosen frame.
+        scheduleLayout();
+        drawCanvas();
       });
     });
 

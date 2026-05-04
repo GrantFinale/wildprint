@@ -28,7 +28,7 @@ import logging
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from poster_layout.interfaces import PosterRenderer
 from poster_layout.models import LayoutResult, PlacedItem, PosterSpec, SpeciesRef
@@ -666,98 +666,208 @@ def _apply_paper_grain(
         logger.warning("paper grain failed: %s", exc)
 
 
+def _load_or_synth_frame_texture(
+    frame_style: str, target_long: int
+) -> Image.Image | None:
+    """Return a tileable RGB texture for ``frame_style``.
+
+    walnut/oak: load the photographic JPEG from ``assets/frames``.
+    black/white: synthesise a solid-with-faint-grain texture if the JPEG
+    is missing (so the option works without Replicate-generated assets).
+    """
+    texture_path = _FRAMES_DIR / f"{frame_style}.jpg"
+    if texture_path.exists():
+        try:
+            with Image.open(texture_path) as tex_src:
+                tex = tex_src.convert("RGB")
+            if tex.width != target_long:
+                ratio = target_long / tex.width
+                tex = tex.resize(
+                    (target_long, int(round(tex.height * ratio))), Image.LANCZOS
+                )
+            return tex
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Could not load frame texture %s: %s", texture_path, exc)
+
+    # Synthesised fallback for black/white when the JPEG is absent. We
+    # avoid this for walnut/oak — those need real wood photography to
+    # look right, and the asset files are committed.
+    if frame_style == "black":
+        base = (24, 22, 20)
+    elif frame_style == "white":
+        base = (240, 236, 228)
+    else:
+        return None
+
+    side = max(512, target_long)
+    rng = np.random.default_rng(seed=hash(frame_style) & 0xFFFF)
+    grain = rng.normal(0.0, 6.0, (side, side, 3))
+    arr = np.full((side, side, 3), base, dtype=np.float32) + grain.astype(np.float32)
+    np.clip(arr, 0.0, 255.0, out=arr)
+    return Image.fromarray(arr.astype(np.uint8), mode="RGB")
+
+
 def _compose_with_frame(
     poster: Image.Image,
     frame_style: str,
     mat_color_hex: str = REFERENCE_PAPER_HEX,
     frame_thickness_frac: float = 0.060,
     mat_inset_frac: float = 0.018,
+    outer_pad_frac: float = 0.030,
 ) -> Image.Image:
-    """Composite ``poster`` inside a wood-textured frame.
+    """Composite ``poster`` inside a wood-textured frame with shadows.
 
-    Returns a new RGB image whose dimensions are larger than ``poster`` by
-    ``2 * frame_thickness`` on each axis. The frame is built by tiling the
-    chosen texture into a border ring, with a small paper-cream "mat"
-    inset for depth and a 1-2% inner shadow over the poster edge to give
-    the illusion of depth.
+    Output layers (back to front):
+      1. Outer canvas with ~3% padding around the frame for the drop shadow.
+      2. Soft Gaussian drop shadow under the frame (offset down/right).
+      3. Tiled wood-grain frame ring.
+      4. Cream paper mat just inside the frame opening.
+      5. The poster itself, recessed inside the mat.
+      6. Soft Gaussian inner shadow biased to the top/left of the poster
+         (light source upper-left), giving the print a sense of being
+         inset behind glass.
+
+    Returns an RGB image with dims ``poster + 2*thick + 2*outer_pad`` on
+    each axis.
 
     frame_style: one of SUPPORTED_FRAME_STYLES.
     """
     if frame_style not in SUPPORTED_FRAME_STYLES:
         return poster
 
-    texture_path = _FRAMES_DIR / f"{frame_style}.jpg"
-    if not texture_path.exists():
-        logger.warning("Frame texture %s missing — returning unframed poster.", texture_path)
-        return poster
-
     pw, ph = poster.size
     short_dim = min(pw, ph)
     thick = max(60, int(round(short_dim * frame_thickness_frac)))
     mat_w = max(20, int(round(short_dim * mat_inset_frac)))
+    pad = max(80, int(round(short_dim * outer_pad_frac)))
 
-    out_w = pw + 2 * thick
-    out_h = ph + 2 * thick
+    # Frame-only dims (poster + thick on each side).
+    f_w = pw + 2 * thick
+    f_h = ph + 2 * thick
+    # Final output dims (frame + pad on each side).
+    out_w = f_w + 2 * pad
+    out_h = f_h + 2 * pad
 
-    # 1. Build the frame canvas filled with tiled texture.
-    try:
-        with Image.open(texture_path) as tex_src:
-            tex = tex_src.convert("RGB")
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Could not load frame texture %s: %s", texture_path, exc)
+    # Frame's top-left in output coords.
+    fx, fy = pad, pad
+
+    tex_target_long = max(thick * 4, 1200)
+    tex = _load_or_synth_frame_texture(frame_style, tex_target_long)
+    if tex is None:
+        logger.warning(
+            "Frame texture for style=%s unavailable — returning unframed poster.",
+            frame_style,
+        )
         return poster
 
-    # Scale the texture so one tile covers the frame thickness comfortably,
-    # then tile across the full output dimensions.
-    tex_target_long = max(thick * 4, 1200)
-    if tex.width != tex_target_long:
-        ratio = tex_target_long / tex.width
-        tex = tex.resize(
-            (tex_target_long, int(round(tex.height * ratio))), Image.LANCZOS
-        )
+    # ----- Step 1: build the outer canvas (off-white wall colour). -----
+    wall_rgb = (245, 240, 232)  # warm off-white, like cream paper / wall
+    out_canvas = Image.new("RGB", (out_w, out_h), wall_rgb)
 
-    framed = Image.new("RGB", (out_w, out_h))
-    for y in range(0, out_h, tex.height):
-        for x in range(0, out_w, tex.width):
+    # ----- Step 2: outer drop shadow. Soft Gaussian blur, offset
+    # slightly down-right to suggest light from the upper-left. -----
+    try:
+        shadow_offset_x = max(8, int(round(short_dim * 0.004)))
+        shadow_offset_y = max(12, int(round(short_dim * 0.006)))
+        shadow_blur = max(20, int(round(short_dim * 0.012)))
+        shadow_alpha = 80  # ~31%
+
+        outer_shadow = Image.new("RGBA", (out_w, out_h), (0, 0, 0, 0))
+        sdraw = ImageDraw.Draw(outer_shadow)
+        sdraw.rectangle(
+            [
+                (fx + shadow_offset_x, fy + shadow_offset_y),
+                (fx + f_w + shadow_offset_x, fy + f_h + shadow_offset_y),
+            ],
+            fill=(0, 0, 0, shadow_alpha),
+        )
+        outer_shadow = outer_shadow.filter(ImageFilter.GaussianBlur(shadow_blur))
+        # Composite the shadow over the wall.
+        out_canvas = Image.alpha_composite(
+            out_canvas.convert("RGBA"), outer_shadow
+        ).convert("RGB")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Outer shadow failed: %s", exc)
+
+    # ----- Step 3: tiled wood-grain frame texture. -----
+    framed = Image.new("RGB", (f_w, f_h))
+    for y in range(0, f_h, tex.height):
+        for x in range(0, f_w, tex.width):
             framed.paste(tex, (x, y))
 
     fdraw = ImageDraw.Draw(framed)
 
-    # 2. Inner mat (cream paper) — covers from frame inner edge down to a
-    # band just outside the poster, simulating a printed mat.
+    # ----- Step 4: cream paper mat band just inside the frame
+    # opening, simulating a printed mat.
     mat_x1 = thick - mat_w
     mat_y1 = thick - mat_w
-    mat_x2 = out_w - thick + mat_w
-    mat_y2 = out_h - thick + mat_w
+    mat_x2 = f_w - thick + mat_w
+    mat_y2 = f_h - thick + mat_w
     fdraw.rectangle(
         [(mat_x1, mat_y1), (mat_x2, mat_y2)],
         fill=mat_color_hex,
     )
 
-    # 3. Paste the poster at (thick, thick).
+    # ----- Step 5: paste the poster at the inner opening. -----
     framed.paste(poster.convert("RGB"), (thick, thick))
 
-    # 4. Subtle inner shadow on the poster's outer edge — gives the print
-    # a sense of being inset behind glass. 4-8 px black at low alpha.
+    # ----- Step 6: inner shadow on the poster edge. We build a
+    # blurred dark band on the inside of the poster opening, biased
+    # toward the top/left edges so the print looks lit from the
+    # upper-left and recessed below glass.
     try:
-        shadow_w = max(2, int(round(short_dim * 0.0015)))
-        shadow = Image.new("RGBA", (out_w, out_h), (0, 0, 0, 0))
-        sdraw = ImageDraw.Draw(shadow)
-        # Draw N concentric rectangles, each fainter, just inside the poster.
-        for i in range(shadow_w):
-            alpha = max(0, int(round(80 * (1.0 - i / max(1, shadow_w)))))
-            sdraw.rectangle(
-                [
-                    (thick + i, thick + i),
-                    (thick + pw - 1 - i, thick + ph - 1 - i),
-                ],
-                outline=(20, 14, 8, alpha),
-            )
-        framed.paste(Image.alpha_composite(framed.convert("RGBA"), shadow).convert("RGB"))
-    except Exception:  # noqa: BLE001
-        pass
+        inner_blur = max(12, int(round(short_dim * 0.006)))
+        inner_band = max(inner_blur, int(round(short_dim * 0.010)))
 
-    return framed
+        shadow_layer = Image.new("RGBA", (f_w, f_h), (0, 0, 0, 0))
+        sdraw2 = ImageDraw.Draw(shadow_layer)
+
+        # Top edge — full strength.
+        sdraw2.rectangle(
+            [(thick, thick), (thick + pw, thick + inner_band)],
+            fill=(0, 0, 0, 110),
+        )
+        # Left edge — full strength.
+        sdraw2.rectangle(
+            [(thick, thick), (thick + inner_band, thick + ph)],
+            fill=(0, 0, 0, 110),
+        )
+        # Bottom edge — fainter (light from upper-left, less shadow here).
+        sdraw2.rectangle(
+            [(thick, thick + ph - inner_band), (thick + pw, thick + ph)],
+            fill=(0, 0, 0, 45),
+        )
+        # Right edge — fainter.
+        sdraw2.rectangle(
+            [(thick + pw - inner_band, thick), (thick + pw, thick + ph)],
+            fill=(0, 0, 0, 45),
+        )
+
+        shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(inner_blur))
+
+        # Mask the shadow strictly to the poster footprint so the blur
+        # doesn't bleed onto the mat/frame. Build a hard mask and use
+        # ``putalpha`` style masking via ``paste`` with mask.
+        mask = Image.new("L", (f_w, f_h), 0)
+        ImageDraw.Draw(mask).rectangle(
+            [(thick, thick), (thick + pw - 1, thick + ph - 1)], fill=255
+        )
+        framed_rgba = framed.convert("RGBA")
+        # Apply the mask to the shadow layer's alpha so it only shows
+        # over the poster.
+        sa = shadow_layer.split()[3]
+        sa = Image.eval(sa, lambda v: v)  # ensure mode L
+        from PIL import ImageChops as _ImageChops
+        clipped_alpha = _ImageChops.multiply(sa, mask)
+        shadow_layer.putalpha(clipped_alpha)
+        framed_rgba = Image.alpha_composite(framed_rgba, shadow_layer)
+        framed = framed_rgba.convert("RGB")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Inner shadow failed: %s", exc)
+
+    # ----- Final paste: drop the framed poster onto the padded canvas. -----
+    out_canvas.paste(framed, (fx, fy))
+    return out_canvas
 
 
 def _draw_species_label(
