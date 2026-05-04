@@ -1517,9 +1517,9 @@ class EditorialMultiRenderer(PosterRenderer):
         except Exception:  # noqa: BLE001
             tw, th = font_size * len(text) // 2, font_size
 
-        gap_x = int(tw * 0.6)
-        gap_y = int(th * 6.0)
-        fill = (20, 20, 20, 64)  # ~25% opacity charcoal
+        gap_x = int(tw * 0.4)
+        gap_y = int(th * 2.4)  # tighter row spacing so watermark actually tiles
+        fill = (20, 20, 20, 110)  # ~43% opacity charcoal — visible but unobtrusive
 
         y = -th
         row = 0
