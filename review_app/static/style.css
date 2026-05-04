@@ -1166,13 +1166,12 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
   background: #f0eee8;
   border-radius: 12px;
   border: 1px solid var(--cv3-border);
-  overflow: hidden;
   padding: 1rem;
+  /* No overflow clipping — the frame's outer drop shadow needs to render. */
 }
 .cv3-canvas {
   position: relative;
   background: #ffffff;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   width: 100%;
   aspect-ratio: 5100 / 3300;
   max-width: 100%;
@@ -1921,29 +1920,50 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
   letter-spacing: 0.04em;
 }
 
-/* Canvas: orientation-aware aspect ratio + frame overlay (visual only —
- * the server-baked frame in the downloaded PNG is the source of truth). */
-.cv3-canvas[data-orientation="portrait"]  { aspect-ratio: 3300 / 5100; }
-.cv3-canvas[data-orientation="landscape"] { aspect-ratio: 5100 / 3300; }
+/* Canvas frame chrome (live editor)
+ * --------------------------------------------------------------------
+ * .cv3-canvas-frame WRAPS #cv3-canvas. Its `border` is the wood texture
+ * (driven by border-image-source), its `padding` is the cream mat, and
+ * its `margin` is the gutter that lets the outer drop shadow breathe.
+ * The actual border-width/padding/margin are set in pixels by JS in
+ * drawCanvas() so they match the renderer's ratios (6% / 1.8% / 3% of
+ * poster short-dim). The CSS here only sets style/source/shadow.
+ * #cv3-canvas remains the inner poster region with its own inset shadow,
+ * so all existing fractional drag math (x_frac, titleXFrac, logoXFrac)
+ * stays valid.
+ */
 .cv3-canvas-frame {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 50;
-  background-clip: padding-box, border-box;
-  background-origin: padding-box, border-box;
-}
-.cv3-canvas-frame--none { display: none; }
-.cv3-canvas-frame--walnut,
-.cv3-canvas-frame--oak,
-.cv3-canvas-frame--black,
-.cv3-canvas-frame--white {
-  border: 6% solid transparent;
+  position: relative;
+  display: block;
+  box-sizing: content-box;        /* width = inner canvas; border + padding grow outward */
+  border-style: solid;
+  border-color: transparent;
   border-image-slice: 64;
   border-image-repeat: repeat;
+  background-color: #f5efe2;      /* cream mat shows through padding */
+  background-clip: padding-box;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.28), 0 6px 14px rgba(0,0,0,0.18);
+  /* border-width / padding / margin set inline by drawCanvas() in JS */
+}
+.cv3-canvas-frame--none {
+  border-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background-color: transparent;
+  box-shadow: none;
 }
 .cv3-canvas-frame--walnut { border-image-source: url('/image/assets/frames/walnut.jpg'); }
 .cv3-canvas-frame--oak    { border-image-source: url('/image/assets/frames/oak.jpg'); }
 .cv3-canvas-frame--black  { border-image-source: url('/image/assets/frames/black.jpg'); }
 .cv3-canvas-frame--white  { border-image-source: url('/image/assets/frames/white.jpg'); }
+
+/* Inner poster region: orientation-aware aspect + recessed inset shadow
+ * (mimics the server renderer's upper-left light source on glass). */
+.cv3-canvas[data-orientation="portrait"]  { aspect-ratio: 3300 / 5100; }
+.cv3-canvas[data-orientation="landscape"] { aspect-ratio: 5100 / 3300; }
+.cv3-canvas {
+  box-shadow:
+    inset 8px 8px 24px rgba(0,0,0,0.32),
+    inset -4px -4px 14px rgba(0,0,0,0.14);
+}
 

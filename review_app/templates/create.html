@@ -327,13 +327,14 @@
   <!-- Right column: poster preview -->
   <main class="cv3-ed-main">
     <div class="cv3-canvas-wrap">
-      <div id="cv3-canvas" class="cv3-canvas" data-orientation="portrait" data-frame="walnut">
-        <div id="cv3-canvas-frame" class="cv3-canvas-frame cv3-canvas-frame--walnut" aria-hidden="true"></div>
-        <div id="cv3-canvas-overlay" class="cv3-canvas-overlay" style="display:none">
-          <div class="cv3-spinner"></div>
-          <div>Composing&hellip;</div>
+      <div id="cv3-canvas-frame" class="cv3-canvas-frame cv3-canvas-frame--walnut" data-orientation="portrait" data-frame="walnut" aria-hidden="false">
+        <div id="cv3-canvas" class="cv3-canvas" data-orientation="portrait">
+          <div id="cv3-canvas-overlay" class="cv3-canvas-overlay" style="display:none">
+            <div class="cv3-spinner"></div>
+            <div>Composing&hellip;</div>
+          </div>
+          <div id="cv3-canvas-watermark" class="cv3-watermark" style="display:none" aria-hidden="true"></div>
         </div>
-        <div id="cv3-canvas-watermark" class="cv3-watermark" style="display:none" aria-hidden="true"></div>
       </div>
     </div>
     <div class="cv3-canvas-status">
@@ -815,16 +816,46 @@
   function drawCanvas() {
     const canvas = $('cv3-canvas');
     if (!canvas) return;
-    const wrap = canvas.parentElement;
+    const frameEl = $('cv3-canvas-frame');
+    const wrap = frameEl ? frameEl.parentElement : canvas.parentElement;
     const padding = 32;
+    // Frame chrome ratios (matches poster_layout/renderer.py _compose_with_frame).
+    // border = 6% of poster short-dim, mat = 1.8%, outer pad = 3%.
+    // Pre-compute the framed-outer dims so we fit them inside the wrap.
+    const hasFrame = !!(state.frameStyle);
+    const FT = hasFrame ? 0.060 : 0;       // frame thickness frac
+    const MT = hasFrame ? 0.018 : 0;       // mat thickness frac
+    const PT = hasFrame ? 0.030 : 0;       // outer pad (drop shadow gutter) frac
+    const shortDim = Math.min(state.canvasW, state.canvasH);
+    const chromeEachSide = shortDim * (FT + MT + PT);
+    const outerW = state.canvasW + 2 * chromeEachSide;
+    const outerH = state.canvasH + 2 * chromeEachSide;
+
     const availW = wrap.clientWidth - padding;
     const availH = wrap.clientHeight - padding;
-    const sW = availW / state.canvasW;
-    const sH = availH / state.canvasH;
+    const sW = availW / outerW;
+    const sH = availH / outerH;
     canvasScale = Math.min(sW, sH);
     if (!isFinite(canvasScale) || canvasScale <= 0) canvasScale = 1;
     const w = state.canvasW * canvasScale;
     const h = state.canvasH * canvasScale;
+
+    // Style the frame chrome (transparent border for wood texture, padding for cream mat,
+    // margin for drop-shadow breathing room).
+    if (frameEl) {
+      if (hasFrame) {
+        const thickPx = shortDim * FT * canvasScale;
+        const matPx = shortDim * MT * canvasScale;
+        const padPx = shortDim * PT * canvasScale;
+        frameEl.style.borderWidth = thickPx + 'px';
+        frameEl.style.padding = matPx + 'px';
+        frameEl.style.margin = padPx + 'px';
+      } else {
+        frameEl.style.borderWidth = '0px';
+        frameEl.style.padding = '0px';
+        frameEl.style.margin = '0px';
+      }
+    }
     canvas.style.width = w + 'px';
     canvas.style.height = h + 'px';
     canvas.style.background = state.bgColor;
@@ -837,7 +868,7 @@
     }
 
     Array.from(canvas.children).forEach(function(c) {
-      if (c.id !== 'cv3-canvas-overlay') {
+      if (c.id !== 'cv3-canvas-overlay' && c.id !== 'cv3-canvas-watermark') {
         canvas.removeChild(c);
       }
     });
@@ -1146,6 +1177,8 @@
         });
         var cv = document.getElementById('cv3-canvas');
         if (cv) cv.dataset.orientation = orient;
+        var fOrient = document.getElementById('cv3-canvas-frame');
+        if (fOrient) fOrient.dataset.orientation = orient;
         // Reset positions so the layout engine repacks for the new aspect.
         state.selectedSpecies.forEach(function(s) { s._dragged = false; delete s.x; delete s.y; });
         scheduleLayout();
@@ -1165,11 +1198,12 @@
           t.classList.toggle('cv3-frame-tile-active', active);
           t.setAttribute('aria-checked', active ? 'true' : 'false');
         });
-        var cv = document.getElementById('cv3-canvas');
-        if (cv) cv.dataset.frame = fr || 'none';
         var fEl = document.getElementById('cv3-canvas-frame');
         if (fEl) {
+          var orient = fEl.dataset.orientation || 'portrait';
           fEl.className = 'cv3-canvas-frame' + (fr ? ' cv3-canvas-frame--' + fr : ' cv3-canvas-frame--none');
+          fEl.dataset.frame = fr || 'none';
+          fEl.dataset.orientation = orient;
         }
         // Re-render so the downloaded PNG reflects the chosen frame.
         scheduleLayout();
