@@ -697,10 +697,11 @@
     }
   }
   function speciesCardHTML(sp, isSelected, isLocked) {
-    const img = '/image/output/master/' + state.style + '/' + sp.slug + '.png';
+    // Picker thumbs: 256px JPEG (~10-30KB) — not the multi-MB master PNG.
+    const img = '/thumb/' + state.style + '/' + sp.slug;
     const cls = 'cv3-species-card' + (isSelected ? ' cv3-selected' : '') + (isLocked ? ' cv3-locked-species' : '');
     return '<div class="' + cls + '" data-slug="' + esc(sp.slug) + '">' +
-      '<img src="' + img + '" onerror="this.style.opacity=0.2" alt="">' +
+      '<img src="' + img + '" loading="lazy" onerror="this.style.opacity=0.2" alt="">' +
       '<div><div class="cv3-species-card-name">' + esc(sp.common_name) + '</div>' +
       '<div class="cv3-species-card-sci">' + esc(sp.scientific_name || '') + '</div></div>' +
       '</div>';
@@ -945,7 +946,9 @@
 
       const wrapEl = document.createElement('div');
       wrapEl.style.cssText = 'width:100%;height:100%;overflow:hidden;position:relative;';
-      wrapEl.innerHTML = '<img src="' + (p.master_url || '/image/output/master/' + state.style + '/' + p.slug + '.png') + '" style="position:absolute;width:' + imgW + 'px;height:' + imgH + 'px;left:' + offX + 'px;top:' + offY + 'px;pointer-events:none;" draggable="false">';
+      // Live editor canvas: 1024px WebP preview (~80-200KB) — the server-side
+      // poster renderer still uses the full master PNG for paid downloads.
+      wrapEl.innerHTML = '<img src="' + (p.master_url || ('/preview/' + state.style + '/' + p.slug)) + '" style="position:absolute;width:' + imgW + 'px;height:' + imgH + 'px;left:' + offX + 'px;top:' + offY + 'px;pointer-events:none;" draggable="false">';
       el.appendChild(wrapEl);
 
       const lbl = document.createElement('div');
@@ -1131,9 +1134,10 @@
       const slug = s.slug;
       const name = s.style_name || s.name || slug;
       const desc = s.description || '';
-      const sample = '/image/output/master/' + slug + '/largemouth_bass.png';
+      // Style tiles use the largemouth_bass thumb as a 256px sample preview.
+      const sample = '/thumb/' + slug + '/largemouth_bass';
       return '<div class="cv3-style-tile' + (slug === state.style ? ' cv3-selected' : '') + '" data-slug="' + esc(slug) + '">' +
-        '<img src="' + sample + '" onerror="this.style.opacity=0.2" alt="">' +
+        '<img src="' + sample + '" loading="lazy" onerror="this.style.opacity=0.2" alt="">' +
         '<div><div class="cv3-style-tile-name">' + esc(name) + '</div>' +
         '<div class="cv3-style-tile-desc">' + esc(desc) + '</div></div>' +
         '</div>';

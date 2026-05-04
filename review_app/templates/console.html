@@ -595,7 +595,10 @@
     mmUpdateCount();
   });
 
-  // Generate Selected: fires batch_generate for each checked species sequentially
+  // Generate Selected: runs the FULL pipeline for each checked species in
+  // sequence — generate -> normalize -> manifest -> copy masters -> build
+  // variants. After this completes, the species is immediately visible in
+  // the picker (no manual Normalize / Copy Masters step needed).
   document.getElementById("mm-generate-btn").addEventListener("click", async function () {
     var slugs = [];
     mmGrid.querySelectorAll(".mm-item").forEach(function (el) {
@@ -617,17 +620,16 @@
 
     for (var i = 0; i < slugs.length; i++) {
       var slug = slugs[i];
-      statusEl.textContent = "Generating " + (i + 1) + " of " + slugs.length + ": " + slug + "...";
+      statusEl.textContent = "Pipeline " + (i + 1) + " of " + slugs.length + ": " + slug + "...";
       var fd = new FormData();
       fd.append("species", slug);
       fd.append("variations", variations);
       fd.append("provider", provider);
       fd.append("quality", quality);
-      fd.append("model", "gpt-image-1");
       fd.append("size", "1536x1024");
 
       try {
-        var resp = await fetch("/run/generate", { method: "POST", body: fd });
+        var resp = await fetch("/run/pipeline", { method: "POST", body: fd });
         var data = await resp.json();
         if (!resp.ok) {
           appendLine("[error] " + slug + ": " + (data.error || "failed"));
@@ -655,7 +657,7 @@
       }
     }
 
-    statusEl.textContent = "Done. Generated " + slugs.length + " species. Run Normalize + Copy Masters to update.";
+    statusEl.textContent = "Done. Pipeline ran for " + slugs.length + " species — they should now appear in the picker.";
     btn.disabled = false;
     refreshRecent();
     refreshPosters();

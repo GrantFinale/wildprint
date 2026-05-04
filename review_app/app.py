@@ -709,6 +709,68 @@ def _build_argv(cmd_id: str, form: dict) -> list[str]:
             argv += ["--dry-run"]
         return argv
 
+    if cmd_id == "pipeline":
+        # End-to-end pipeline: generate -> normalize -> manifest -> copy
+        # masters -> build variants. Used by the admin "Generate Selected"
+        # button so a freshly-generated species lands in output/master/...
+        # AND output/master_thumbs/... in one shot, without the admin
+        # having to remember to also click Normalize + Copy Masters.
+        argv = ["python3", "-m", "scripts.run_pipeline"]
+        species = (form.get("species") or "").strip()
+        style = (form.get("style") or "").strip()
+        _validate_species_slug(species)
+        _validate_style_slug(style)
+        if species:
+            argv += ["--species", species]
+        if style:
+            argv += ["--style", style]
+        variations = (form.get("variations") or "").strip()
+        if variations:
+            try:
+                n = int(variations)
+            except ValueError as exc:
+                raise ValueError("variations must be an integer") from exc
+            if n < 1 or n > 12:
+                raise ValueError("variations must be between 1 and 12")
+            argv += ["--variations", str(n)]
+        provider = (form.get("provider") or "").strip()
+        if provider:
+            if provider not in _VALID_PROVIDERS:
+                raise ValueError(f"invalid provider: {provider!r}")
+            argv += ["--provider", provider]
+        size = (form.get("size") or "").strip()
+        if size:
+            if size not in _VALID_SIZES:
+                raise ValueError(f"invalid size: {size!r}")
+            argv += ["--size", size]
+        quality = (form.get("quality") or "").strip()
+        if quality:
+            if quality not in _VALID_QUALITY:
+                raise ValueError(f"invalid quality: {quality!r}")
+            argv += ["--quality", quality]
+        if _truthy(form.get("skip_generate")):
+            argv += ["--skip-generate"]
+        if _truthy(form.get("force_variants")):
+            argv += ["--force-variants"]
+        return argv
+
+    if cmd_id == "build-variants":
+        # Standalone variants-only rebuild (no generation). Useful on first
+        # deploy of the variant infrastructure to backfill thumbs/previews
+        # for every existing master.
+        argv = ["python3", "-m", "scripts.build_image_variants"]
+        species = (form.get("species") or "").strip()
+        style = (form.get("style") or "").strip()
+        if species:
+            _validate_species_slug(species)
+            argv += ["--slug", species]
+        if style:
+            _validate_style_slug(style)
+            argv += ["--style", style]
+        if _truthy(form.get("force")):
+            argv += ["--force"]
+        return argv
+
     if cmd_id == "normalize":
         argv = ["python3", "-m", "scripts.normalize_images"]
         species = (form.get("species") or "").strip()
@@ -1511,6 +1573,75 @@ def image(relpath: str):
         abort(404)
 
     return send_file(str(requested))
+
+
+# Slug shape used by the variant routes below: lowercase letters, digits,
+# underscores. Same ruleset as _validate_species_slug / _validate_style_slug.
+_SAFE_SLUG_RE = re.compile(r"^[a-z0-9_]+$")
+
+
+def _serve_variant(style: str, slug: str, kind: str):
+    """Shared body for ``/thumb/<style>/<slug>`` and ``/preview/<style>/<slug>``.
+
+    Falls back to the master PNG if the variant is missing — this means a
+    new master shows up immediately even if the variant build hasn't run
+    yet, at the cost of a one-page slow load until the next variant build.
+    """
+    if not _SAFE_SLUG_RE.match(style) or not _SAFE_SLUG_RE.match(slug):
+        abort(404)
+
+    if kind == "thumb":
+        rel = Path("master_thumbs") / style / f"{slug}.jpg"
+        mimetype = "image/jpeg"
+    elif kind == "preview":
+        rel = Path("master_previews") / style / f"{slug}.webp"
+        mimetype = "image/webp"
+    else:
+        abort(404)
+
+    output_root = Path(OUTPUT_DIR).resolve()
+    target = (output_root / rel).resolve()
+    try:
+        target.relative_to(output_root)
+    except ValueError:
+        abort(404)
+
+    if not target.exists() or not target.is_file():
+        # Fall back to the master PNG so the picker still shows something
+        # while a fresh variant build is in flight.
+        master = (output_root / "master" / style / f"{slug}.png").resolve()
+        try:
+            master.relative_to(output_root)
+        except ValueError:
+            abort(404)
+        if not master.exists() or not master.is_file():
+            abort(404)
+        resp = send_file(str(master), mimetype="image/png")
+        # Short cache on the fallback so a freshly built variant takes over.
+        resp.headers["Cache-Control"] = "public, max-age=60"
+        return resp
+
+    resp = send_file(str(target), mimetype=mimetype)
+    # Variants are derived from a master at a known size+quality. They're
+    # safe to cache aggressively — a new master overwrites the variant on
+    # the next pipeline run, and clients use the URL path (which always
+    # changes when the master itself is replaced as part of a "regenerate"
+    # flow because the mtime changes; aggressive caching is acceptable
+    # because the user will hard-reload after regenerating).
+    resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    return resp
+
+
+@app.route("/thumb/<style>/<slug>")
+def thumb(style: str, slug: str):
+    """Serve a 256px JPEG thumbnail of the master for the species picker."""
+    return _serve_variant(style, slug, "thumb")
+
+
+@app.route("/preview/<style>/<slug>")
+def preview(style: str, slug: str):
+    """Serve a 1024px WebP preview of the master for the live editor canvas."""
+    return _serve_variant(style, slug, "preview")
 
 
 # ---------------------------------------------------------------------------

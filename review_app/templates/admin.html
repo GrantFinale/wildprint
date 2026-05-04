@@ -149,9 +149,10 @@ function renderTable(species) {
     const hasSci = sp.has_master.scientific;
     const hasWc = sp.has_master.watercolor;
     const hasVe = sp.has_master.vintage_engraving;
-    const thumbSrc = hasSci ? `/image/output/master/scientific/${sp.slug}.png` : '';
+    const thumbSrc = hasSci ? `/thumb/scientific/${sp.slug}` : '';
+    const masterFullSrc = hasSci ? `/image/output/master/scientific/${sp.slug}.png` : '';
     const thumbHtml = thumbSrc
-      ? `<div class="admin-thumb"><a href="${thumbSrc}" target="_blank" title="View full resolution"><img src="${thumbSrc}" loading="lazy" onerror="this.parentElement.parentElement.innerHTML='<div class=admin-thumb-placeholder></div>'"></a></div>`
+      ? `<div class="admin-thumb"><a href="${masterFullSrc}" target="_blank" title="View full resolution"><img src="${thumbSrc}" loading="lazy" onerror="this.parentElement.parentElement.innerHTML='<div class=admin-thumb-placeholder></div>'"></a></div>`
       : '<div class="admin-thumb-placeholder"></div>';
     const catClass = 'badge-category badge-category--' + sp.category;
     const regions = (sp.geographic_range || []).map(r =>
