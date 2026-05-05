@@ -1907,6 +1907,7 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
 .cv3-frame-oak    { background-image: url('/image/assets/frames/oak.jpg'); }
 .cv3-frame-black  { background-image: url('/image/assets/frames/black.jpg'); }
 .cv3-frame-white  { background-image: url('/image/assets/frames/white.jpg'); }
+.cv3-frame-pine   { background-image: url('/image/assets/frames/pine.jpg'); }
 .cv3-frame-none   {
   background:
     linear-gradient(45deg, transparent 47%, #c33 48%, #c33 52%, transparent 53%),
@@ -1922,48 +1923,59 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
 
 /* Canvas frame chrome (live editor)
  * --------------------------------------------------------------------
- * .cv3-canvas-frame WRAPS #cv3-canvas. Its `border` is the wood texture
- * (driven by border-image-source), its `padding` is the cream mat, and
- * its `margin` is the gutter that lets the outer drop shadow breathe.
- * The actual border-width/padding/margin are set in pixels by JS in
- * drawCanvas() so they match the renderer's ratios (6% / 1.8% / 3% of
- * poster short-dim). The CSS here only sets style/source/shadow.
- * #cv3-canvas remains the inner poster region with its own inset shadow,
- * so all existing fractional drag math (x_frac, titleXFrac, logoXFrac)
- * stays valid.
+ * .cv3-canvas-frame WRAPS #cv3-canvas. The frame is now a transparent
+ * mitered overlay PNG (.cv3-canvas-frame-overlay) absolutely positioned
+ * over the canvas, extending --cv3-frame-thick beyond every side.
+ * margin = drop-shadow breathing room outside the frame.
+ * box-shadow on ::before produces the cast shadow on the website
+ * background (offset down/right, light from upper-left).
+ * #cv3-canvas remains the poster region; ::after on it produces the
+ * dark cast shadow on the poster's top + left from the frame edges.
  */
 .cv3-canvas-frame {
   position: relative;
   display: block;
-  box-sizing: content-box;        /* width = inner canvas; border + padding grow outward */
-  border-style: solid;
-  border-color: transparent;
-  border-image-slice: 64;
-  border-image-repeat: repeat;
-  background-color: #f5efe2;      /* cream mat shows through padding */
-  background-clip: padding-box;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.28), 0 6px 14px rgba(0,0,0,0.18);
-  /* border-width / padding / margin set inline by drawCanvas() in JS */
+  box-sizing: content-box;
+  --cv3-frame-thick: 0px;
 }
-.cv3-canvas-frame--none {
-  border-width: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  background-color: transparent;
-  box-shadow: none;
+.cv3-canvas-frame::before {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--cv3-frame-thick));
+  box-shadow: 24px 30px 50px rgba(0,0,0,0.40), 6px 8px 14px rgba(0,0,0,0.18);
+  pointer-events: none;
+  z-index: 1;
 }
-.cv3-canvas-frame--walnut { border-image-source: url('/image/assets/frames/walnut.jpg'); }
-.cv3-canvas-frame--oak    { border-image-source: url('/image/assets/frames/oak.jpg'); }
-.cv3-canvas-frame--black  { border-image-source: url('/image/assets/frames/black.jpg'); }
-.cv3-canvas-frame--white  { border-image-source: url('/image/assets/frames/white.jpg'); }
+.cv3-canvas-frame--none::before { box-shadow: none; }
+.cv3-canvas-frame-overlay {
+  position: absolute;
+  inset: calc(-1 * var(--cv3-frame-thick));
+  width: calc(100% + 2 * var(--cv3-frame-thick));
+  height: calc(100% + 2 * var(--cv3-frame-thick));
+  pointer-events: none;
+  z-index: 5;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.cv3-canvas-frame--none .cv3-canvas-frame-overlay { display: none; }
 
-/* Inner poster region: orientation-aware aspect + recessed inset shadow
- * (mimics the server renderer's upper-left light source on glass). */
+/* Inner poster region: orientation-aware aspect + cast shadow on the
+ * poster from the frame's upper-left edges. */
 .cv3-canvas[data-orientation="portrait"]  { aspect-ratio: 3300 / 5100; }
 .cv3-canvas[data-orientation="landscape"] { aspect-ratio: 5100 / 3300; }
 .cv3-canvas {
-  box-shadow:
-    inset 8px 8px 24px rgba(0,0,0,0.32),
-    inset -4px -4px 14px rgba(0,0,0,0.14);
+  position: relative;
+  z-index: 2;
+}
+.cv3-canvas-frame:not(.cv3-canvas-frame--none) .cv3-canvas::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0) 12%),
+    linear-gradient(90deg,  rgba(0,0,0,0.42) 0%, rgba(0,0,0,0) 12%);
+  mix-blend-mode: multiply;
 }
 

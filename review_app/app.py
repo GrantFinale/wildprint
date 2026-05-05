@@ -1559,6 +1559,16 @@ def serve_sample_image(filename: str):
     return send_file(str(p))
 
 
+@app.route("/static/frame_overlays/<filename>")
+def serve_frame_overlay(filename: str):
+    """Serve transparent mitered frame overlay PNGs from assets/frame_overlays/."""
+    safe = re.sub(r"[^\w.\-]", "_", filename)
+    p = Path(PROJECT_ROOT) / "assets" / "frame_overlays" / safe
+    if not p.exists() or not p.is_file():
+        abort(404)
+    return send_file(str(p), mimetype="image/png")
+
+
 @app.route("/image/<path:relpath>")
 def image(relpath: str):
     project_root = Path(PROJECT_ROOT).resolve()
@@ -2012,7 +2022,7 @@ def api_generate_poster():
     if orientation not in ("portrait", "landscape"):
         orientation = "portrait"
     frame_style = data.get("frame_style") or None
-    if frame_style and frame_style not in ("walnut", "oak", "black", "white"):
+    if frame_style and frame_style not in ("walnut", "oak", "black", "white", "pine"):
         frame_style = None
     show_scientific_names = bool(data.get("show_scientific_names", False))
     preheader_text = (data.get("preheader_text") or "WILDLIFE OF").upper()
@@ -2223,7 +2233,7 @@ def api_render_custom():
     logo_config = data.get("logo_config", {})
     title_config = data.get("title_config", {}) or {}
     frame_style = data.get("frame_style") or None
-    if frame_style and frame_style not in ("walnut", "oak", "black", "white"):
+    if frame_style and frame_style not in ("walnut", "oak", "black", "white", "pine"):
         frame_style = None
     show_scientific_names = bool(data.get("show_scientific_names", False))
     preheader_text = (data.get("preheader_text") or "WILDLIFE OF").upper()

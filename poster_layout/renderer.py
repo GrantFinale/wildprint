@@ -183,7 +183,7 @@ _REFERENCE_PREHEADER_FONT_CANDIDATES: tuple[str, ...] = (
     "/System/Library/Fonts/Supplemental/Didot.ttc",
 )
 _FRAMES_DIR = _PROJECT_ROOT_FOR_RENDERER / "assets" / "frames"
-SUPPORTED_FRAME_STYLES: tuple[str, ...] = ("walnut", "oak", "black", "white")
+SUPPORTED_FRAME_STYLES: tuple[str, ...] = ("walnut", "oak", "black", "white", "pine")
 
 
 def _identify_ttc_faces(
@@ -707,46 +707,151 @@ def _load_or_synth_frame_texture(
     return Image.fromarray(arr.astype(np.uint8), mode="RGB")
 
 
+_FRAME_OVERLAYS_DIR = _PROJECT_ROOT_FOR_RENDERER / "assets" / "frame_overlays"
+
+# THICK_FRAC must match scripts/build_frame_overlays.py — it's the
+# fraction of the overlay's side length occupied by the wood ring.
+_OVERLAY_THICK_FRAC: float = 0.070
+
+
+def _load_frame_overlay(frame_style: str) -> Image.Image | None:
+    """Return the pre-built RGBA overlay for ``frame_style``, or None."""
+    if frame_style not in SUPPORTED_FRAME_STYLES:
+        return None
+    p = _FRAME_OVERLAYS_DIR / f"{frame_style}.png"
+    if not p.exists():
+        logger.warning("Frame overlay missing: %s", p)
+        return None
+    try:
+        return Image.open(p).convert("RGBA")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not load frame overlay %s: %s", p, exc)
+        return None
+
+
+def _build_frame_from_overlay(
+    overlay_src: Image.Image,
+    target_w: int,
+    target_h: int,
+    target_thick: int,
+) -> Image.Image:
+    """Build an RGBA frame ring at ``target_w x target_h`` whose wood
+    thickness is exactly ``target_thick`` on every side, using a square
+    9-slice extracted from ``overlay_src``.
+
+    Why a 9-slice instead of a single resize: the source overlay is
+    square, so its corner mitres are at 45 degrees. A naive resize to a
+    portrait/landscape rectangle stretches the corners non-uniformly and
+    breaks the miter. Instead we slice off the four square corners
+    (with 45-degree mitres baked in), keep them at uniform scale, and
+    stretch the four straight sides along their long axis only.
+
+    The inner window of the result is fully transparent.
+    """
+    src_side = overlay_src.size[0]   # overlays are square
+    src_thick = max(2, int(round(src_side * _OVERLAY_THICK_FRAC)))
+    # If the overlay isn't square, make it square so the slices line up.
+    if overlay_src.size[0] != overlay_src.size[1]:
+        sq = max(overlay_src.size)
+        squared = Image.new("RGBA", (sq, sq), (0, 0, 0, 0))
+        squared.paste(overlay_src, (0, 0))
+        overlay_src = squared
+        src_side = sq
+
+    # ---- Slice the 4 mitered corners from the source. Corners are
+    # square pieces of side `src_thick` containing the 45-degree
+    # diagonal seam — keep the diagonal at 45 deg by scaling them as a
+    # SQUARE to `target_thick`, no stretching.
+    tl_src = overlay_src.crop((0, 0, src_thick, src_thick))
+    tr_src = overlay_src.crop((src_side - src_thick, 0, src_side, src_thick))
+    bl_src = overlay_src.crop((0, src_side - src_thick, src_thick, src_side))
+    br_src = overlay_src.crop(
+        (src_side - src_thick, src_side - src_thick, src_side, src_side)
+    )
+    tl = tl_src.resize((target_thick, target_thick), Image.LANCZOS)
+    tr = tr_src.resize((target_thick, target_thick), Image.LANCZOS)
+    bl = bl_src.resize((target_thick, target_thick), Image.LANCZOS)
+    br = br_src.resize((target_thick, target_thick), Image.LANCZOS)
+
+    # ---- Slice the 4 straight sides from the source. The non-thick
+    # dimension of each side is the inner span; we stretch ONLY along
+    # the side's long axis to fit (target_w - 2*target_thick) etc.
+    inner_side_w = target_w - 2 * target_thick
+    inner_side_h = target_h - 2 * target_thick
+    if inner_side_w <= 0 or inner_side_h <= 0:
+        # Frame would consume the whole image — fall back to plain
+        # uniform resize (still better than nothing).
+        return overlay_src.resize((target_w, target_h), Image.LANCZOS)
+
+    src_inner = src_side - 2 * src_thick
+    top_src = overlay_src.crop((src_thick, 0, src_thick + src_inner, src_thick))
+    bot_src = overlay_src.crop(
+        (src_thick, src_side - src_thick, src_thick + src_inner, src_side)
+    )
+    left_src = overlay_src.crop((0, src_thick, src_thick, src_thick + src_inner))
+    right_src = overlay_src.crop(
+        (src_side - src_thick, src_thick, src_side, src_thick + src_inner)
+    )
+    top = top_src.resize((inner_side_w, target_thick), Image.LANCZOS)
+    bot = bot_src.resize((inner_side_w, target_thick), Image.LANCZOS)
+    left = left_src.resize((target_thick, inner_side_h), Image.LANCZOS)
+    right = right_src.resize((target_thick, inner_side_h), Image.LANCZOS)
+
+    # ---- Compose into the output ring.
+    out = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+    out.alpha_composite(top, (target_thick, 0))
+    out.alpha_composite(bot, (target_thick, target_h - target_thick))
+    out.alpha_composite(left, (0, target_thick))
+    out.alpha_composite(right, (target_w - target_thick, target_thick))
+    out.alpha_composite(tl, (0, 0))
+    out.alpha_composite(tr, (target_w - target_thick, 0))
+    out.alpha_composite(bl, (0, target_h - target_thick))
+    out.alpha_composite(br, (target_w - target_thick, target_h - target_thick))
+    return out
+
+
 def _compose_with_frame(
     poster: Image.Image,
     frame_style: str,
-    mat_color_hex: str = REFERENCE_PAPER_HEX,
-    frame_thickness_frac: float = 0.060,
-    mat_inset_frac: float = 0.018,
-    outer_pad_frac: float = 0.030,
+    frame_thickness_frac: float = 0.070,
+    outer_pad_frac: float = 0.060,
 ) -> Image.Image:
-    """Composite ``poster`` inside a wood-textured frame with shadows.
+    """Composite ``poster`` inside a pre-built mitered wood-frame overlay.
 
-    Output layers (back to front):
-      1. Fully transparent RGBA outer canvas (~3% padding around the frame
-         so the drop shadow has room to fall) — anything outside the frame
-         and shadow stays at alpha=0 so the website background or the
-         printed paper shows through.
-      2. Soft Gaussian drop shadow under the frame (offset down/right),
-         alpha-composited onto the transparent canvas. The shadow is a
-         soft black gradient that fades to 0 alpha at the edge of its
-         reach.
-      3. Tiled wood-grain frame ring.
-      4. Cream paper mat just inside the frame opening.
-      5. The poster itself, recessed inside the mat.
-      6. Soft Gaussian inner shadow biased to the top/left of the poster
-         (light source upper-left). The shadow is alpha-composited
-         DIRECTLY onto the poster pixels — no white intermediate layer —
-         so the existing paper/photo background is darkened in place.
+    Layers (back to front) on a TRANSPARENT outer canvas:
+      1. Outer drop shadow (offset down + right, soft Gaussian).
+         The shadow alpha-composites onto whatever is behind the PNG,
+         so when the poster is rendered on a webpage the shadow appears
+         to fall on the website background — strongest at the right
+         edge of the right frame side and the bottom of the frame.
+      2. The poster, sized to fit exactly inside the frame's inner
+         window — paper/photo extends to the very inside edge of the
+         frame. NO mat band, NO white border.
+      3. A cast shadow on the poster from the upper-left light hitting
+         the frame's left and top edges. Alpha-composited DIRECTLY onto
+         the poster pixels (paper/photo darkens in place).
+      4. The frame overlay PNG (mitered corners, transparent inner
+         window, subtle inner bevel) on top — its own alpha is what
+         makes only the frame ring show.
 
-    Returns an RGBA image with dims ``poster + 2*thick + 2*outer_pad`` on
-    each axis. Outside the frame and its drop shadow, alpha=0.
-
-    frame_style: one of SUPPORTED_FRAME_STYLES.
+    Returns an RGBA image with the outer drop-shadow padding included.
+    Outside the frame + shadow reach, alpha=0.
     """
     if frame_style not in SUPPORTED_FRAME_STYLES:
+        return poster
+
+    overlay_src = _load_frame_overlay(frame_style)
+    if overlay_src is None:
+        logger.warning(
+            "Frame overlay for style=%s unavailable — returning unframed poster.",
+            frame_style,
+        )
         return poster
 
     pw, ph = poster.size
     short_dim = min(pw, ph)
     thick = max(60, int(round(short_dim * frame_thickness_frac)))
-    mat_w = max(20, int(round(short_dim * mat_inset_frac)))
-    pad = max(80, int(round(short_dim * outer_pad_frac)))
+    pad = max(120, int(round(short_dim * outer_pad_frac)))
 
     # Frame-only dims (poster + thick on each side).
     f_w = pw + 2 * thick
@@ -758,32 +863,15 @@ def _compose_with_frame(
     # Frame's top-left in output coords.
     fx, fy = pad, pad
 
-    tex_target_long = max(thick * 4, 1200)
-    tex = _load_or_synth_frame_texture(frame_style, tex_target_long)
-    if tex is None:
-        logger.warning(
-            "Frame texture for style=%s unavailable — returning unframed poster.",
-            frame_style,
-        )
-        return poster
-
-    # ----- Step 1: build the outer canvas as fully TRANSPARENT RGBA so
-    # the drop shadow alpha-composites onto whatever is behind the PNG
-    # (CSS background on the web, print paper when downloaded). No
-    # hardcoded "wall" colour anywhere. -----
+    # ----- Step 1: transparent outer canvas. -----
     out_canvas = Image.new("RGBA", (out_w, out_h), (0, 0, 0, 0))
 
-    # ----- Step 2: outer drop shadow. Build a separate RGBA shadow
-    # layer (transparent everywhere except under/around the frame),
-    # Gaussian-blur it so the alpha fades to 0 at the edge of its
-    # reach, then alpha_composite onto the transparent canvas. The
-    # result: the shadow is black with varying alpha — when the PNG is
-    # shown on any background, the shadow appears to fall onto it. -----
+    # ----- Step 2: outer drop shadow on the website background. -----
     try:
-        shadow_offset_x = max(8, int(round(short_dim * 0.004)))
-        shadow_offset_y = max(12, int(round(short_dim * 0.006)))
-        shadow_blur = max(20, int(round(short_dim * 0.012)))
-        shadow_alpha = 80  # ~31% under the frame, fading to 0 at the edge.
+        shadow_offset_x = max(16, int(round(short_dim * 0.0072)))
+        shadow_offset_y = max(20, int(round(short_dim * 0.009)))
+        shadow_blur = max(32, int(round(short_dim * 0.016)))
+        shadow_alpha = 180
 
         outer_shadow = Image.new("RGBA", (out_w, out_h), (0, 0, 0, 0))
         sdraw = ImageDraw.Draw(outer_shadow)
@@ -795,90 +883,52 @@ def _compose_with_frame(
             fill=(0, 0, 0, shadow_alpha),
         )
         outer_shadow = outer_shadow.filter(ImageFilter.GaussianBlur(shadow_blur))
-        # Composite the shadow onto the transparent canvas. Pixels far
-        # from the frame keep alpha=0; pixels near it get a soft black
-        # alpha gradient.
         out_canvas = Image.alpha_composite(out_canvas, outer_shadow)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Outer shadow failed: %s", exc)
 
-    # ----- Step 3: tiled wood-grain frame texture. -----
-    framed = Image.new("RGB", (f_w, f_h))
-    for y in range(0, f_h, tex.height):
-        for x in range(0, f_w, tex.width):
-            framed.paste(tex, (x, y))
-
-    fdraw = ImageDraw.Draw(framed)
-
-    # ----- Step 4: cream paper mat band just inside the frame
-    # opening, simulating a printed mat.
-    mat_x1 = thick - mat_w
-    mat_y1 = thick - mat_w
-    mat_x2 = f_w - thick + mat_w
-    mat_y2 = f_h - thick + mat_w
-    fdraw.rectangle(
-        [(mat_x1, mat_y1), (mat_x2, mat_y2)],
-        fill=mat_color_hex,
-    )
-
-    # ----- Step 5: paste the poster at the inner opening. The poster
-    # is opaque (full paper texture or photo), so this fully covers the
-    # mat region except for the visible cream strip between thick-mat_w
-    # and thick. -----
-    framed.paste(poster.convert("RGB"), (thick, thick))
-
-    # ----- Step 6: inner shadow on the poster edge. We build a
-    # blurred dark band on the inside of the poster opening, biased
-    # toward the top/left edges so the print looks lit from the
-    # upper-left and recessed below glass. The shadow is composited
-    # DIRECTLY onto the poster's existing pixels — no white layer — so
-    # the cream paper / photo background is darkened in place.
+    # ----- Step 3: cast shadow ONTO the poster (top + left edges). -----
+    # Light from upper-left → the frame's top + left inner edges cast a
+    # soft shadow onto the poster surface. Right + bottom barely shadow.
+    poster_rgba = poster.convert("RGBA")
     try:
-        inner_blur = max(12, int(round(short_dim * 0.006)))
-        inner_band = max(inner_blur, int(round(short_dim * 0.010)))
+        cast_alpha_max = 110
+        cast_inset = max(20, int(round(short_dim * 0.014)))   # falloff distance
+        cast_blur = max(12, int(round(short_dim * 0.008)))
 
-        # Build the inner shadow at poster-size so the rectangles can be
-        # drawn at the poster's local coordinates and the alpha never
-        # bleeds onto the mat/frame.
-        inner_shadow_poster = Image.new("RGBA", (pw, ph), (0, 0, 0, 0))
-        sdraw2 = ImageDraw.Draw(inner_shadow_poster)
-        # Top edge — full strength.
-        sdraw2.rectangle([(0, 0), (pw, inner_band)], fill=(0, 0, 0, 110))
-        # Left edge — full strength.
-        sdraw2.rectangle([(0, 0), (inner_band, ph)], fill=(0, 0, 0, 110))
-        # Bottom edge — fainter (light from upper-left, less shadow here).
-        sdraw2.rectangle(
-            [(0, ph - inner_band), (pw, ph)], fill=(0, 0, 0, 45)
-        )
-        # Right edge — fainter.
-        sdraw2.rectangle(
-            [(pw - inner_band, 0), (pw, ph)], fill=(0, 0, 0, 45)
-        )
-        inner_shadow_poster = inner_shadow_poster.filter(
-            ImageFilter.GaussianBlur(inner_blur)
-        )
-        # Hard-mask the alpha to the poster footprint so the blur halo
-        # cannot extend outside the poster onto the mat.
+        cast = Image.new("RGBA", (pw, ph), (0, 0, 0, 0))
+        cdraw = ImageDraw.Draw(cast)
+        # Build a stack of progressively-thinner bands to approximate a
+        # gradient that peaks at the top + left edges and fades inward.
+        steps = 14
+        for i in range(steps):
+            t = i / max(1, steps - 1)            # 0 .. 1
+            a = int(round(cast_alpha_max * (1.0 - t)))
+            band = max(1, int(round(cast_inset * (1.0 - t))))
+            # Top band.
+            cdraw.rectangle([(0, i), (pw, i + band)], fill=(0, 0, 0, a))
+            # Left band.
+            cdraw.rectangle([(i, 0), (i + band, ph)], fill=(0, 0, 0, a))
+        cast = cast.filter(ImageFilter.GaussianBlur(cast_blur))
+        # Hard-clip alpha to poster footprint (defensive — should already be).
         from PIL import ImageChops as _ImageChops
-        poster_mask = Image.new("L", (pw, ph), 255)
-        sa = inner_shadow_poster.split()[3]
-        clipped_alpha = _ImageChops.multiply(sa, poster_mask)
-        inner_shadow_poster.putalpha(clipped_alpha)
-
-        # Composite the inner shadow ONTO the poster's RGBA, then paste
-        # the darkened poster back at (thick, thick). This darkens the
-        # actual paper/photo pixels — no white layer involved.
-        poster_rgba = poster.convert("RGBA")
-        poster_rgba = Image.alpha_composite(poster_rgba, inner_shadow_poster)
-        framed.paste(poster_rgba.convert("RGB"), (thick, thick))
+        clip = Image.new("L", (pw, ph), 255)
+        ca = cast.split()[3]
+        cast.putalpha(_ImageChops.multiply(ca, clip))
+        poster_rgba = Image.alpha_composite(poster_rgba, cast)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Inner shadow failed: %s", exc)
+        logger.warning("Cast shadow failed: %s", exc)
 
-    # ----- Final paste: drop the opaque framed poster onto the
-    # transparent (shadow-only) outer canvas. The frame itself is
-    # opaque RGB; outside the frame, only the shadow's alpha shows.
-    framed_rgba = framed.convert("RGBA")
-    out_canvas.paste(framed_rgba, (fx, fy))
+    # Paste the (now slightly-shadowed) poster at the inner-window
+    # position — there is NO mat between the poster and the frame's
+    # inner edge.
+    out_canvas.paste(poster_rgba, (fx + thick, fy + thick), poster_rgba)
+
+    # ----- Step 4: frame overlay PNG on top, built via 9-slice so the
+    # mitered corners stay uniform regardless of poster aspect ratio.
+    overlay = _build_frame_from_overlay(overlay_src, f_w, f_h, thick)
+    out_canvas.alpha_composite(overlay, (fx, fy))
+
     return out_canvas
 
 

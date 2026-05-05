@@ -208,6 +208,10 @@
             <span class="cv3-frame-swatch cv3-frame-white"></span>
             <span class="cv3-frame-name">White</span>
           </button>
+          <button type="button" class="cv3-frame-tile" data-frame="pine" role="radio" aria-checked="false" title="Pine">
+            <span class="cv3-frame-swatch cv3-frame-pine"></span>
+            <span class="cv3-frame-name">Pine</span>
+          </button>
           <button type="button" class="cv3-frame-tile" data-frame="" role="radio" aria-checked="false" title="No frame">
             <span class="cv3-frame-swatch cv3-frame-none"></span>
             <span class="cv3-frame-name">None</span>
@@ -335,6 +339,7 @@
           </div>
           <div id="cv3-canvas-watermark" class="cv3-watermark" style="display:none" aria-hidden="true"></div>
         </div>
+        <img id="cv3-canvas-frame-overlay" class="cv3-canvas-frame-overlay" src="/static/frame_overlays/walnut.png" alt="">
       </div>
     </div>
     <div class="cv3-canvas-status">
@@ -821,14 +826,13 @@
     const wrap = frameEl ? frameEl.parentElement : canvas.parentElement;
     const padding = 32;
     // Frame chrome ratios (matches poster_layout/renderer.py _compose_with_frame).
-    // border = 6% of poster short-dim, mat = 1.8%, outer pad = 3%.
-    // Pre-compute the framed-outer dims so we fit them inside the wrap.
+    // overlay-PNG frame thickness = 7% of poster short-dim, drop-shadow pad = 6%.
+    // No mat — the frame's inner edge sits flush with the poster.
     const hasFrame = !!(state.frameStyle);
-    const FT = hasFrame ? 0.060 : 0;       // frame thickness frac
-    const MT = hasFrame ? 0.018 : 0;       // mat thickness frac
-    const PT = hasFrame ? 0.030 : 0;       // outer pad (drop shadow gutter) frac
+    const FT = hasFrame ? 0.070 : 0;       // frame thickness frac
+    const PT = hasFrame ? 0.060 : 0;       // outer pad (drop shadow gutter) frac
     const shortDim = Math.min(state.canvasW, state.canvasH);
-    const chromeEachSide = shortDim * (FT + MT + PT);
+    const chromeEachSide = shortDim * (FT + PT);
     const outerW = state.canvasW + 2 * chromeEachSide;
     const outerH = state.canvasH + 2 * chromeEachSide;
 
@@ -841,17 +845,20 @@
     const w = state.canvasW * canvasScale;
     const h = state.canvasH * canvasScale;
 
-    // Style the frame chrome (transparent border for wood texture, padding for cream mat,
-    // margin for drop-shadow breathing room).
+    // Style the frame chrome. The frame is now an absolutely-positioned
+    // overlay PNG (.cv3-canvas-frame-overlay) extending `thickPx` beyond
+    // each side of #cv3-canvas. `margin` provides drop-shadow breathing
+    // room outside the frame.
     if (frameEl) {
       if (hasFrame) {
         const thickPx = shortDim * FT * canvasScale;
-        const matPx = shortDim * MT * canvasScale;
         const padPx = shortDim * PT * canvasScale;
-        frameEl.style.borderWidth = thickPx + 'px';
-        frameEl.style.padding = matPx + 'px';
-        frameEl.style.margin = padPx + 'px';
+        frameEl.style.setProperty('--cv3-frame-thick', thickPx + 'px');
+        frameEl.style.borderWidth = '0px';
+        frameEl.style.padding = '0px';
+        frameEl.style.margin = (padPx + thickPx) + 'px';
       } else {
+        frameEl.style.setProperty('--cv3-frame-thick', '0px');
         frameEl.style.borderWidth = '0px';
         frameEl.style.padding = '0px';
         frameEl.style.margin = '0px';
@@ -1208,6 +1215,15 @@
           fEl.className = 'cv3-canvas-frame' + (fr ? ' cv3-canvas-frame--' + fr : ' cv3-canvas-frame--none');
           fEl.dataset.frame = fr || 'none';
           fEl.dataset.orientation = orient;
+        }
+        var fOv = document.getElementById('cv3-canvas-frame-overlay');
+        if (fOv) {
+          if (fr) {
+            fOv.src = '/static/frame_overlays/' + fr + '.png';
+            fOv.style.display = '';
+          } else {
+            fOv.style.display = 'none';
+          }
         }
         // Re-render so the downloaded PNG reflects the chosen frame.
         scheduleLayout();
