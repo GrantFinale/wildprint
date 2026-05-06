@@ -2,7 +2,9 @@
 
 **Date:** 2026-05-05
 **Branch:** `phase-0-foundation`
-**Status:** **Code-complete; staging + integration smoke deferred until external accounts land.**
+**Status:** **Code-complete and CI green; staging + integration smoke deferred until external accounts land.**
+
+**CI:** [run 25432145104 ✓](https://github.com/GrantFinale/wildprint/actions/runs/25432145104) — lint, typecheck (mypy strict), pytest, docker build × 2 all green on commit `8b6da9d`.
 
 ---
 

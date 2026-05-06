@@ -1,6 +1,6 @@
 # fishingposter.com — Prodigi Integration & Admin Refactor Plan
 
-**Status:** Decisions locked 2026-05-05; ready to start Phase 0 once email viability confirmed.
+**Status:** Phase 0 code-complete (10 commits on `phase-0-foundation`, pushed to GitHub 2026-05-05). Staging + integration smoke deferred pending external accounts. See [docs/phase-0-done.md](phase-0-done.md) for status.
 **Date:** 2026-05-05
 
 ---
@@ -18,7 +18,7 @@
 | 7 | **Email** | **Resend** | Self-host on existing mail-server droplet was investigated and ruled out: DO blocks outbound port 25 + 587, no PTR, droplet is already serving journeyperfect.com/5story.com personal mail via maddy. Resend gives 3k/mo free, sub-10-min setup, three DNS records on fishingposter.com via `doctl`. |
 | 8 | **Address validation** | Smarty | ~$0.005/lookup, autocomplete widget; 250 free for testing |
 | 9 | **Production domain** | `fishingposter.com` (single source of truth) | wildlife.5story.com retired; fishingposter.com already DO-managed and pointed at the benedict-ventures droplet |
-| 10 | **External accounts** | Fresh signups for Resend, Cloudflare R2, Smarty | All under benedictmt@gmail.com on free tiers; billing rolls to DO-linked card if/when limits hit |
+| 10 | **External accounts** | Fresh signups for Resend, Smarty; **DO Spaces for object storage (not R2)** — aligns with parallel PDF guide work | All under benedictmt@gmail.com / DO-linked billing |
 | 11 | **Watermark style** | Subtle diagonal "fishingposter.com" text @ ~10% opacity | Confirmed — see render tier 2 in architecture section |
 | 12 | **Staging environment** | Separate Coolify app at `staging.fishingposter.com` on same droplet | Same Postgres container, separate `fishingposter_staging` DB; Prodigi sandbox + Stripe test mode |
 
