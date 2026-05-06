@@ -14,6 +14,13 @@ sqlalchemy>=2.0,<3.0
 alembic>=1.13
 psycopg[binary]>=3.1
 
+# Phase 0.6 — Admin auth (Flask-Login + Argon2) + RBAC
+flask-login>=0.6.3
+argon2-cffi>=23.1
+flask-wtf>=1.2
+sqlalchemy-utils>=0.41
+email-validator>=2.0
+
 # Phase 0.9 — observability (structlog + Sentry)
 structlog>=24.1
 sentry-sdk[flask]>=2.0

@@ -23,12 +23,9 @@ if str(ROOT) not in sys.path:
 
 from review_app.db.base import Base  # noqa: E402
 
-# Importing this module triggers registration of every concrete model on
-# Base.metadata. As new sub-tasks add models (auth, ai-usage, orders, ...)
-# they should be imported here so autogenerate picks them up. Phase 0.2 has
-# no models yet — list intentionally empty.
-# Example for future sub-tasks:
-#   from review_app.auth import models as _auth_models  # noqa: F401
+# Importing model modules triggers their registration on Base.metadata so
+# that Alembic autogenerate sees them. Add new sub-task model modules here.
+from review_app.auth import models as _auth_models  # noqa: F401, E402
 
 
 config = context.config
