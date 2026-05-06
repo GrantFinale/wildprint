@@ -1,0 +1,63 @@
+# wildprint — RQ worker image (Phase 0.4)
+#
+# Mirrors the main Dockerfile's base image and Python deps so worker jobs
+# can import the same modules the web app uses (renderer, providers, etc.).
+# The CMD is the only meaningful difference: this container runs the RQ
+# worker loop instead of gunicorn.
+#
+# Coolify configuration notes:
+#   - Set REDIS_URL in the worker service's env.
+#   - Set --stop-timeout=300 (5 min) so SIGTERM lets the largest tier-3
+#     render finish before SIGKILL. See docs/deploy-notes.md.
+#   - Run as a SEPARATE Coolify service from the web app (independent
+#     scaling + independent rolling deploys).
+
+FROM python:3.11-slim
+
+# Same system deps as the web image: Pillow + rembg + onnxruntime need
+# libgl/libglib/libgomp; curl is kept for ad-hoc debugging.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
+    curl \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python deps first for better layer caching. Mirror the web
+# image's extra runtime installs so worker jobs can import everything
+# the web process can.
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir gunicorn numpy rembg onnxruntime replicate requests
+
+# Copy the app — same set as the web image so the renderer is reachable.
+COPY config/ ./config/
+COPY data/ ./data/
+COPY prompts/ ./prompts/
+COPY providers/ ./providers/
+COPY scripts/ ./scripts/
+COPY poster_layout/ ./poster_layout/
+COPY review_app/ ./review_app/
+COPY webapp/ ./webapp/
+COPY assets/ ./assets/
+COPY metadata/manifest_schema.json ./metadata/
+
+# Seed masters so render jobs that need them work immediately.
+COPY output/master ./output/master
+
+RUN mkdir -p output/raw output/normalized output/posters output/uploads output/backgrounds metadata
+
+ENV PYTHONUNBUFFERED=1
+
+# SIGTERM triggers RQ's warm shutdown (finish current job, then exit).
+# Coolify must give us enough grace time before SIGKILL — see deploy-notes.md.
+STOPSIGNAL SIGTERM
+
+# Basic process check; a deeper Redis-ping healthcheck can land in 0.9.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
+    CMD pgrep -f "review_app.queue.worker" >/dev/null || exit 1
+
+CMD ["python", "-m", "review_app.queue.worker"]

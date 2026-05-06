@@ -5,3 +5,6 @@ Flask>=3.0
 openai>=1.0
 numpy>=1.24
 stripe>=9.0
+rq>=1.16
+redis>=5.0
+fakeredis>=2.20
