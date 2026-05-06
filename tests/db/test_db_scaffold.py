@@ -65,7 +65,12 @@ def test_uuid7_is_time_ordered() -> None:
 
 
 def test_alembic_upgrade_head_against_sqlite(tmp_path: Path) -> None:
-    """`alembic upgrade head` must run cleanly and create alembic_version."""
+    """`alembic upgrade head` must run cleanly and land on the current head.
+
+    This test is head-agnostic: it discovers the current head from Alembic's
+    ScriptDirectory rather than hardcoding a revision id, so adding new
+    migrations does not require updating this assertion.
+    """
     db_file = tmp_path / "scaffold.db"
     env = os.environ.copy()
     env["DATABASE_URL"] = f"sqlite:///{db_file}"
@@ -81,7 +86,16 @@ def test_alembic_upgrade_head_against_sqlite(tmp_path: Path) -> None:
         f"alembic upgrade head failed:\nstdout={result.stdout}\nstderr={result.stderr}"
     )
 
-    # Verify alembic_version table exists and holds our baseline revision.
+    # Discover the current head dynamically from the Alembic config.
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    alembic_cfg = Config(str(REPO_ROOT / "alembic.ini"))
+    script = ScriptDirectory.from_config(alembic_cfg)
+    expected_head = script.get_current_head()
+    assert expected_head is not None, "Alembic has no head revision"
+
+    # Verify alembic_version table exists and holds exactly one row matching head.
     import sqlite3
 
     conn = sqlite3.connect(db_file)
@@ -89,7 +103,36 @@ def test_alembic_upgrade_head_against_sqlite(tmp_path: Path) -> None:
         rows = conn.execute("SELECT version_num FROM alembic_version").fetchall()
     finally:
         conn.close()
-    assert rows == [("0001_baseline",)]
+    assert len(rows) == 1, f"expected exactly one alembic_version row, got {rows!r}"
+    assert rows[0] == (expected_head,), (
+        f"alembic_version mismatch: got {rows[0]!r}, expected ({expected_head!r},)"
+    )
+
+    # Downgrade to base and confirm the alembic_version table is empty
+    # (or has been dropped entirely, depending on Alembic version).
+    downgrade = subprocess.run(
+        [sys.executable, "-m", "alembic", "downgrade", "base"],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert downgrade.returncode == 0, (
+        f"alembic downgrade base failed:\nstdout={downgrade.stdout}\nstderr={downgrade.stderr}"
+    )
+
+    conn = sqlite3.connect(db_file)
+    try:
+        table_exists = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='alembic_version'"
+        ).fetchone()
+        if table_exists is not None:
+            remaining = conn.execute("SELECT version_num FROM alembic_version").fetchall()
+            assert remaining == [], (
+                f"alembic_version still has rows after downgrade base: {remaining!r}"
+            )
+    finally:
+        conn.close()
 
 
 def test_alembic_upgrade_is_idempotent(tmp_path: Path) -> None:
