@@ -92,13 +92,17 @@ from review_app.ai import init_app as _init_ai
 from review_app.auth import init_app as _init_auth
 from review_app.auth.routes import auth_bp as _auth_bp
 from review_app.db.session import init_app as _init_db
+from review_app.email import init_app as _init_email
 from review_app.observability import init_app as _init_obs
+from review_app.storage import init_app as _init_storage
 
 _init_obs(app)
 _init_db(app)
 _init_auth(app)
 app.register_blueprint(_auth_bp)
 _init_ai(app)
+_init_storage(app)
+_init_email(app)
 _cli.register(app)
 
 # ---------------------------------------------------------------------------
