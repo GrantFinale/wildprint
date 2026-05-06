@@ -8,3 +8,8 @@ stripe>=9.0
 rq>=1.16
 redis>=5.0
 fakeredis>=2.20
+
+# Phase 0.2 — SQLAlchemy + Alembic scaffold
+sqlalchemy>=2.0,<3.0
+alembic>=1.13
+psycopg[binary]>=3.1
