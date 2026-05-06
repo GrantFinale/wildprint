@@ -95,8 +95,11 @@ class OpenAIProvider(BaseProvider):
             )
 
         try:
+            # Telemetry-wrapped OpenAI client (Phase 0.10). Falls back to
+            # a no-op DB write when AI_LOGGING_ENABLED is unset, so this
+            # is a safe drop-in replacement for `from openai import OpenAI`.
+            from review_app.ai.openai_client import OpenAI
             from openai import (
-                OpenAI,
                 APIError,
                 RateLimitError,
                 BadRequestError,

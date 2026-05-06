@@ -15,7 +15,15 @@ import urllib.request
 from pathlib import Path
 
 try:
-    import replicate
+    # Telemetry-wrapped Replicate proxy (Phase 0.10). Drop-in for
+    # `import replicate` — pure passthrough when AI_LOGGING_ENABLED is unset.
+    # Falls back to the real replicate package if review_app isn't on the
+    # path (this script may be run standalone before the package is
+    # installed in dev environments).
+    try:
+        from review_app.ai import replicate_client as replicate
+    except ImportError:
+        import replicate
 except ImportError:
     print("pip install replicate", file=sys.stderr)
     sys.exit(1)

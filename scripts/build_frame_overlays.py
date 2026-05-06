@@ -78,7 +78,13 @@ def _ensure_pine_texture(target_path: Path) -> Image.Image:
 
     if token:
         try:
-            import replicate  # type: ignore
+            # Telemetry-wrapped Replicate proxy (Phase 0.10). Falls back to
+            # the real `replicate` package when review_app isn't on the path
+            # (e.g. running this script standalone in a fresh checkout).
+            try:
+                from review_app.ai import replicate_client as replicate  # type: ignore
+            except ImportError:
+                import replicate  # type: ignore
             print(f"[pine] generating via Flux schnell ...")
             t0 = time.time()
             output = replicate.run(

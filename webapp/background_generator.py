@@ -6,7 +6,10 @@ import uuid
 import time
 from pathlib import Path
 
-import replicate
+# Telemetry-wrapped Replicate client (Phase 0.10). Drop-in replacement
+# for `import replicate` — no behavior change when AI_LOGGING_ENABLED is
+# unset; writes one ai_usage_log row per .run() call when enabled.
+from review_app.ai import replicate_client as replicate
 import requests
 
 from config.settings import PROJECT_ROOT, REPLICATE_API_TOKEN

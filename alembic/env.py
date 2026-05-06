@@ -26,6 +26,7 @@ from review_app.db.base import Base  # noqa: E402
 # Importing model modules triggers their registration on Base.metadata so
 # that Alembic autogenerate sees them. Add new sub-task model modules here.
 from review_app.auth import models as _auth_models  # noqa: F401, E402
+from review_app.ai import models as _ai_models  # noqa: F401, E402
 
 
 config = context.config

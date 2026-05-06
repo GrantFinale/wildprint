@@ -175,9 +175,16 @@ class RecraftProvider(BaseProvider):
             },
         )
 
+        # Telemetry-wrapped Recraft call (Phase 0.10). The `track` context
+        # manager times the call and writes one ai_usage_log row when
+        # AI_LOGGING_ENABLED is set; otherwise it's a no-op pass-through.
+        # Exceptions raised inside the block propagate unchanged with
+        # status='error' recorded.
+        from review_app.ai import recraft_client as _recraft_log
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
-                payload = _json.loads(resp.read().decode("utf-8"))
+            with _recraft_log.track(model=self.model, n=1.0):
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    payload = _json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             # Try to surface the server-provided error body for debugging.
             try:
