@@ -15,3 +15,6 @@ ruff>=0.6
 # --- Type stubs (for mypy strict on new modules) ---
 types-redis
 types-requests
+
+# --- Phase 0.5 — email/outbox tests (HTTP mocking) ---
+responses>=0.25
