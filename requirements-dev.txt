@@ -15,6 +15,12 @@ ruff>=0.6
 # --- Type stubs (for mypy strict on new modules) ---
 types-redis
 types-requests
+boto3-stubs[s3]>=1.34
+
+# --- Mock cloud services (Phase 0.3) ---
+# `[s3,server]` because tests use ThreadedMotoServer to fetch signed URLs
+# end-to-end via stdlib urllib.
+moto[s3,server]>=5.0
 
 # --- Phase 0.5 — email/outbox tests (HTTP mocking) ---
 responses>=0.25
