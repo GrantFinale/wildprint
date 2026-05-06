@@ -18,6 +18,7 @@ integration, etc.).
 """
 from __future__ import annotations
 
+import contextlib
 from typing import Any
 
 from .logging import (
@@ -42,17 +43,15 @@ def init_app(app: Any) -> None:
     init_sentry()
     configure_structlog()
     install_flask_request_hooks(app)
-    try:
+    # Blueprint already registered — fine, init_app was called twice.
+    with contextlib.suppress(AssertionError, ValueError):
         app.register_blueprint(_obs_test_bp)
-    except (AssertionError, ValueError):
-        # Blueprint already registered — fine, init_app was called twice.
-        pass
 
 
 __all__ = [
-    "init_app",
-    "get_logger",
     "bind_request_context",
     "clear_request_context",
+    "get_logger",
+    "init_app",
     "scrub_pii",
 ]

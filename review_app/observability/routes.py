@@ -12,6 +12,7 @@ gate this with ``@requires_role('admin')``.
 from __future__ import annotations
 
 import os
+from typing import NoReturn
 
 from flask import Blueprint, abort
 
@@ -19,8 +20,13 @@ _obs_test_bp: Blueprint = Blueprint("_obs_test", __name__)
 
 
 @_obs_test_bp.route("/admin/_sentry_test", methods=["GET"])
-def sentry_test() -> None:
-    """Raise a RuntimeError so Sentry can capture and tag it."""
+def sentry_test() -> NoReturn:
+    """Raise a RuntimeError so Sentry can capture and tag it.
+
+    Either `abort(404)` or the explicit raise unwinds the stack — this
+    function never returns normally, hence `NoReturn`. (Flask's route
+    typevar rejects `Callable[..., None]`.)
+    """
     if os.getenv("OBS_TEST_ENABLED") != "true":
         abort(404)
     raise RuntimeError("intentional test exception for Sentry")

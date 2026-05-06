@@ -13,9 +13,12 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .pii import scrub_pii
+
+if TYPE_CHECKING:
+    from sentry_sdk.types import Event, Hint
 
 _log = logging.getLogger(__name__)
 
@@ -72,9 +75,12 @@ def _build_integrations() -> list[Any]:
     return integrations
 
 
-def _before_send(event: dict[str, Any], hint: dict[str, Any]) -> dict[str, Any]:
+def _before_send(event: Event, hint: Hint) -> Event | None:
     """Sentry `before_send` hook — strips PII from every outgoing event."""
-    return scrub_pii(event, hint)
+    # `Event` is a TypedDict in sentry-sdk; `scrub_pii` returns a plain dict
+    # that satisfies the same shape. Cast through Any to avoid an inferential
+    # mismatch on the structural type.
+    return scrub_pii(event, hint)  # type: ignore[arg-type, return-value]
 
 
 def init_sentry() -> bool:

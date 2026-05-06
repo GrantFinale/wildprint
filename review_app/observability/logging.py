@@ -126,9 +126,12 @@ def install_flask_request_hooks(app: Any) -> None:
     - clear the context on teardown so RQ workers / next requests start
       clean
     """
-    from flask import g, request  # local import: keep module importable without Flask at import time
+    from flask import (  # local import: keep module importable without Flask at import time
+        g,
+        request,
+    )
 
-    @app.before_request  # type: ignore[misc]
+    @app.before_request  # type: ignore[untyped-decorator]
     def _bind_obs_context() -> None:
         request_id = request.headers.get("X-Request-Id") or str(uuid.uuid4())
         g.request_id = request_id
@@ -142,7 +145,7 @@ def install_flask_request_hooks(app: Any) -> None:
             ctx["user_id"] = user_id
         bind_request_context(**ctx)
 
-    @app.teardown_request  # type: ignore[misc]
+    @app.teardown_request  # type: ignore[untyped-decorator]
     def _clear_obs_context(_exc: BaseException | None) -> None:
         clear_request_context()
 
@@ -154,13 +157,15 @@ def _try_current_user_id() -> str | int | None:
     or anything goes wrong — observability must never crash the request.
     """
     try:
-        from flask_login import current_user  # type: ignore[import-not-found]
+        from flask_login import current_user
     except Exception:
         return None
     try:
         if getattr(current_user, "is_authenticated", False):
             uid = getattr(current_user, "id", None)
             if uid is not None:
+                # getattr() returns Any; the runtime type is whatever Flask-Login
+                # sets `id` to (typically str), but mypy can't narrow that here.
                 return uid  # type: ignore[no-any-return]
     except Exception:
         return None
@@ -168,9 +173,9 @@ def _try_current_user_id() -> str | int | None:
 
 
 __all__ = [
-    "configure_structlog",
-    "get_logger",
     "bind_request_context",
     "clear_request_context",
+    "configure_structlog",
+    "get_logger",
     "install_flask_request_hooks",
 ]
