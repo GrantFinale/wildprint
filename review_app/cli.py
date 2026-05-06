@@ -15,7 +15,7 @@ stays a pure no-op until the wiring pass calls `register()`.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import click
@@ -97,13 +97,13 @@ def deactivate_user(email: str) -> None:
         user = User.get_active_by_email(session, email_norm)
         if user is None:
             raise click.ClickException(f"No active user with email {email_norm!r}.")
-        user.deleted_at = datetime.now(timezone.utc)
+        user.deleted_at = datetime.now(UTC)
         session.add(user)
 
     click.secho(f"deactivated {email_norm}", fg="yellow")
 
 
-def register(app: "Flask") -> None:
+def register(app: Flask) -> None:
     """Attach all CLI commands to the given Flask app's `cli` group.
 
     Idempotent: re-registering the same command name overwrites the prior

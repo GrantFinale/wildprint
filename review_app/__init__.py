@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from flask import Flask
 
 
-def create_app(testing: bool = False) -> "Flask":
+def create_app(testing: bool = False) -> Flask:
     """Return the wildprint Flask app, optionally configured for tests.
 
     Parameters

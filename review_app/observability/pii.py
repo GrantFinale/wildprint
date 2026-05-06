@@ -12,7 +12,8 @@ much cheaper than leaking a real secret to Sentry.
 from __future__ import annotations
 
 import re
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 REDACTED: str = "[REDACTED]"
 
@@ -90,4 +91,4 @@ def scrub_pii(
     return _scrub_mapping(event)
 
 
-__all__ = ["scrub_pii", "REDACTED"]
+__all__ = ["REDACTED", "scrub_pii"]

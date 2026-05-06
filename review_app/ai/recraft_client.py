@@ -23,8 +23,8 @@ status='ok'/'error' based on whether the wrapped block raised.
 from __future__ import annotations
 
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Iterator, Optional
 
 from review_app.ai.log import record_call
 
@@ -82,7 +82,7 @@ def record(
     units: float,
     latency_ms: int,
     status: str,
-    error_class: Optional[str] = None,
+    error_class: str | None = None,
 ) -> None:
     """Explicit recording entry point for callers managing their own timing."""
     record_call(

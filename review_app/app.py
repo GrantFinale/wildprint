@@ -10,9 +10,6 @@ Or:
 """
 from __future__ import annotations
 
-
-from __future__ import annotations
-
 import json
 import os
 import re
@@ -21,9 +18,10 @@ import subprocess
 import threading
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from collections.abc import Callable, Iterator
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Callable, Iterator, Optional
+from typing import Optional
 
 from flask import (
     Flask,
@@ -45,19 +43,16 @@ except ImportError:  # pragma: no cover — stripe is optional at boot time
     stripe = None  # type: ignore
 
 from config.settings import (
+    MANIFEST_PATH,
+    MASTER_DIR,
+    METADATA_DIR,
+    NORMALIZED_DIR,
+    OUTPUT_DIR,
     PROJECT_ROOT,
     RAW_DIR,
-    NORMALIZED_DIR,
-    MASTER_DIR,
-    OUTPUT_DIR,
     SPECIES_JSON,
     STYLES_JSON,
-    MANIFEST_PATH,
-    METADATA_DIR,
 )
-from scripts.build_manifest import load_manifest, save_manifest, find_record
-from scripts.select_master import mark_selected, copy_masters
-from webapp.habitat_engine import recommend as habitat_recommend, get_species_by_slugs, state_to_region
 from poster_layout import (
     EditorialMultiRenderer,
     FileSystemMasterImageLoader,
@@ -68,7 +63,13 @@ from poster_layout import (
     SpeciesRef,
     select_layout_engine,
 )
-
+from scripts.build_manifest import find_record, load_manifest, save_manifest
+from scripts.select_master import copy_masters, mark_selected
+from webapp.habitat_engine import (
+    get_species_by_slugs,
+    recommend as habitat_recommend,
+    state_to_region,
+)
 
 app = Flask(__name__)
 # Persist signed-cookie session secret. In dev, a per-process random key is
@@ -86,12 +87,12 @@ app.secret_key = (
 # so this block is safe in dev, staging, and prod even before every env var
 # is populated. See docs/phase-0-breakdown.md.
 # ---------------------------------------------------------------------------
-from review_app.observability import init_app as _init_obs
-from review_app.db.session import init_app as _init_db
+from review_app import cli as _cli
+from review_app.ai import init_app as _init_ai
 from review_app.auth import init_app as _init_auth
 from review_app.auth.routes import auth_bp as _auth_bp
-from review_app.ai import init_app as _init_ai
-from review_app import cli as _cli
+from review_app.db.session import init_app as _init_db
+from review_app.observability import init_app as _init_obs
 
 _init_obs(app)
 _init_db(app)
@@ -143,7 +144,7 @@ def _check_basic_auth(header_value: str) -> bool:
     try:
         decoded = base64.b64decode(header_value[6:]).decode("utf-8")
         user, _, pw = decoded.partition(":")
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
     return hmac.compare_digest(user, _ADMIN_USER) and hmac.compare_digest(
         pw, _ADMIN_PASSWORD
@@ -214,7 +215,7 @@ def rate_limit(max_calls: int, window_seconds: int = 3600):
 
 def _load_json(path) -> list:
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         return []
@@ -258,7 +259,7 @@ def _load_species_overrides() -> dict[str, dict]:
     to ``species_scale`` clamped to 0.7-1.5.
     """
     try:
-        with open(SPECIES_OVERRIDES_PATH, "r", encoding="utf-8") as f:
+        with open(SPECIES_OVERRIDES_PATH, encoding="utf-8") as f:
             data = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return {}
@@ -307,7 +308,7 @@ def _load_admin_settings() -> dict:
     when the file is missing or unreadable.
     """
     try:
-        with open(ADMIN_SETTINGS_PATH, "r", encoding="utf-8") as f:
+        with open(ADMIN_SETTINGS_PATH, encoding="utf-8") as f:
             data = json.load(f)
         if isinstance(data, dict):
             return data
@@ -357,7 +358,7 @@ _LEADS_LOCK = threading.Lock()
 def _load_leads() -> list[dict]:
     """Read all stored leads from the persistent leads.json file."""
     try:
-        with open(LEADS_PATH, "r", encoding="utf-8") as f:
+        with open(LEADS_PATH, encoding="utf-8") as f:
             data = json.load(f)
         if isinstance(data, list):
             return data
@@ -380,7 +381,7 @@ def _save_lead(email: str, lake_name: str, state_code: str) -> dict:
     email = (email or "").strip().lower()
     lake_name = (lake_name or "").strip()
     state_code = (state_code or "").strip().upper()
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    now = datetime.now(UTC).isoformat(timespec="seconds")
     with _LEADS_LOCK:
         leads = _load_leads()
         existing = next(
@@ -415,7 +416,7 @@ def _mark_lead_paid(email: str, stripe_session_id: str) -> dict | None:
     email = (email or "").strip().lower()
     if not email:
         return None
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    now = datetime.now(UTC).isoformat(timespec="seconds")
     with _LEADS_LOCK:
         leads = _load_leads()
         existing = next(
@@ -504,7 +505,7 @@ def get_variations(
 
 def get_selected(
     records: list[dict], species_slug: str, style_slug: str
-) -> Optional[dict]:
+) -> dict | None:
     for r in records:
         if (
             r.get("species_slug") == species_slug
@@ -517,7 +518,7 @@ def get_selected(
 
 def display_record(
     records: list[dict], species_slug: str, style_slug: str
-) -> Optional[dict]:
+) -> dict | None:
     """Return the record to use as a display thumbnail for a (species, style)."""
     selected = get_selected(records, species_slug, style_slug)
     if selected is not None:
@@ -526,7 +527,7 @@ def display_record(
     return variations[0] if variations else None
 
 
-def record_image_relpath(record: dict) -> Optional[str]:
+def record_image_relpath(record: dict) -> str | None:
     """Prefer normalized path if it exists on disk, fall back to raw."""
     normalized = record.get("normalized_path")
     raw = record.get("raw_path")
@@ -546,14 +547,14 @@ def record_image_relpath(record: dict) -> Optional[str]:
     return normalized or raw
 
 
-def _find_style(styles: list[dict], slug: str) -> Optional[dict]:
+def _find_style(styles: list[dict], slug: str) -> dict | None:
     for s in styles:
         if s.get("slug") == slug:
             return s
     return None
 
 
-def _find_species(species: list[dict], slug: str) -> Optional[dict]:
+def _find_species(species: list[dict], slug: str) -> dict | None:
     for sp in species:
         if sp.get("slug") == slug:
             return sp
@@ -625,10 +626,10 @@ _VALID_CATEGORIES = {"fish", "turtle", "bird"}
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
-def _truthy(val: Optional[str]) -> bool:
+def _truthy(val: str | None) -> bool:
     if val is None:
         return False
     return val.strip().lower() in {"1", "true", "on", "yes"}
@@ -902,7 +903,7 @@ def _build_argv(cmd_id: str, form: dict) -> list[str]:
 
 def _trim_old_jobs(max_age_seconds: int = 3600) -> None:
     """Drop JOBS entries older than max_age_seconds (based on started_at)."""
-    cutoff = datetime.now(timezone.utc) - timedelta(seconds=max_age_seconds)
+    cutoff = datetime.now(UTC) - timedelta(seconds=max_age_seconds)
     with JOBS_LOCK:
         stale = []
         for jid, job in JOBS.items():
@@ -1095,7 +1096,7 @@ def api_create_checkout_session():
                 "state": state_code,
             },
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return jsonify({"error": f"Stripe error: {exc}"}), 502
     return jsonify({"url": checkout.url})
 
@@ -1126,7 +1127,7 @@ def checkout_success():
                 _mark_lead_paid(paid_email, session_id)
                 session["email"] = paid_email
                 session["unlocked"] = True
-        except Exception:  # noqa: BLE001
+        except Exception:
             payment_status = "verify_failed"
 
     from urllib.parse import urlencode
@@ -1158,7 +1159,7 @@ def stripe_webhook():
         event = stripe.Webhook.construct_event(  # type: ignore[union-attr]
             payload, sig_header, STRIPE_WEBHOOK_SECRET
         )
-    except Exception:  # noqa: BLE001
+    except Exception:
         return jsonify({"error": "Invalid signature"}), 400
 
     if event.get("type") == "checkout.session.completed":
@@ -1323,7 +1324,7 @@ def recent_images():
         species_slug = parts[1] if len(parts) >= 2 else ""
         # Derive variation from filename suffix _v{n}
         stem = png.stem
-        variation: Optional[int] = None
+        variation: int | None = None
         if "_v" in stem:
             tail = stem.rsplit("_v", 1)[-1]
             try:
@@ -1343,7 +1344,7 @@ def recent_images():
                 "variation": variation,
                 "raw_path": rel_str,
                 "mtime_iso": datetime.fromtimestamp(
-                    stat.st_mtime, tz=timezone.utc
+                    stat.st_mtime, tz=UTC
                 ).isoformat(timespec="seconds"),
                 "mtime": stat.st_mtime,
             }
@@ -1385,7 +1386,7 @@ def recent_posters():
                 "path": rel_str,
                 "bytes": stat.st_size,
                 "mtime_iso": datetime.fromtimestamp(
-                    stat.st_mtime, tz=timezone.utc
+                    stat.st_mtime, tz=UTC
                 ).isoformat(timespec="seconds"),
                 "mtime": stat.st_mtime,
             }
@@ -1830,7 +1831,7 @@ def api_upload_background():
         from PIL import Image as _PILImage
         with _PILImage.open(_io.BytesIO(file_bytes)) as probe:
             pw, ph = probe.size
-    except Exception:  # noqa: BLE001
+    except Exception:
         return jsonify({"error": "Could not read image"}), 400
     if pw < 1536 or ph < 1024:
         return jsonify(
@@ -1866,7 +1867,7 @@ def api_list_backgrounds():
             "path": str(rel),
             "url": f"/image/{rel}",
             "size_mb": round(p.stat().st_size / 1024 / 1024, 1),
-            "mtime_iso": datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc).isoformat(),
+            "mtime_iso": datetime.fromtimestamp(p.stat().st_mtime, tz=UTC).isoformat(),
         })
     return jsonify({"backgrounds": items[:24]})
 
@@ -1913,7 +1914,7 @@ def _load_background_regions() -> dict[str, list[str]]:
     if not regions_file.exists():
         return {}
     try:
-        with open(regions_file, "r", encoding="utf-8") as f:
+        with open(regions_file, encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return {}
@@ -1986,7 +1987,7 @@ def api_public_backgrounds():
 @admin_required
 def api_generate_background():
     """Trigger a background image generation via Replicate."""
-    from webapp.background_generator import generate_landscape, PRESET_LANDSCAPES
+    from webapp.background_generator import PRESET_LANDSCAPES, generate_landscape
     data = request.get_json(force=True)
     preset = data.get("preset")
     custom_prompt = data.get("prompt")
@@ -2527,7 +2528,7 @@ def admin_data():
         regions_data = json.load(
             open(Path(PROJECT_ROOT) / "data" / "regions.json")
         )
-    except Exception:  # noqa: BLE001
+    except Exception:
         regions_data = {}
 
     major_categories = {"fish", "bird", "turtle", "reptile", "amphibian", "mammal"}

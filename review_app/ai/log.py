@@ -16,7 +16,6 @@ import os
 import sys
 import traceback
 from decimal import Decimal
-from typing import Optional
 
 from review_app.ai import pricing
 
@@ -39,10 +38,10 @@ def record_call(
     units_out: float,
     latency_ms: int,
     status: str,
-    error_class: Optional[str] = None,
-    render_spec_id: Optional[str] = None,
-    user_id: Optional[str] = None,
-    request_hash: Optional[str] = None,
+    error_class: str | None = None,
+    render_spec_id: str | None = None,
+    user_id: str | None = None,
+    request_hash: str | None = None,
 ) -> None:
     """Persist one row in `ai_usage_log`.
 
@@ -77,7 +76,7 @@ def record_call(
             units_in=units_in,
             units_out=units_out,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         # Pricing must never break the call. Default to 0 and continue.
         print(
             f"[ai.log] pricing failed for {provider}/{model}: {exc}",
@@ -114,7 +113,7 @@ def record_call(
             session.commit()
         finally:
             session.close()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         # Log + swallow. Anything (DB unavailable, schema mismatch,
         # serialization failure) must NOT propagate — the upstream API
         # call has already completed (or failed) and its result/exception

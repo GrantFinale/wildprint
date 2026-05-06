@@ -14,8 +14,9 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from flask import Response, current_app, redirect, request, url_for
 from flask_login import current_user

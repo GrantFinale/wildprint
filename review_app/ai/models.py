@@ -15,7 +15,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy import (
     BigInteger,
@@ -46,18 +45,18 @@ class AIUsageLog(Base):
     provider: Mapped[str] = mapped_column(Text, nullable=False)
     model: Mapped[str] = mapped_column(Text, nullable=False)
     endpoint: Mapped[str] = mapped_column(Text, nullable=False)
-    render_spec_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+    render_spec_id: Mapped[uuid.UUID | None] = mapped_column(
         # No FK at the model level — the migration installs it
         # conditionally because render_specs may not exist yet in Phase 0.
         nullable=True,
     )
-    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
-    tokens_in: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    tokens_out: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    units: Mapped[Optional[Decimal]] = mapped_column(
+    tokens_in: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    tokens_out: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    units: Mapped[Decimal | None] = mapped_column(
         Numeric(precision=12, scale=4),
         nullable=True,
     )
@@ -66,10 +65,10 @@ class AIUsageLog(Base):
         nullable=False,
         server_default=text("0"),
     )
-    latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(Text, nullable=False)
-    error_class: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    request_hash: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    error_class: Mapped[str | None] = mapped_column(Text, nullable=True)
+    request_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
