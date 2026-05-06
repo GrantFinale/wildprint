@@ -81,6 +81,26 @@ app.secret_key = (
 )
 
 # ---------------------------------------------------------------------------
+# Phase 0 wiring: observability, db, new admin auth, AI logging, CLI commands.
+# Each init_app() is a safe no-op when its env flag/credentials are absent,
+# so this block is safe in dev, staging, and prod even before every env var
+# is populated. See docs/phase-0-breakdown.md.
+# ---------------------------------------------------------------------------
+from review_app.observability import init_app as _init_obs
+from review_app.db.session import init_app as _init_db
+from review_app.auth import init_app as _init_auth
+from review_app.auth.routes import auth_bp as _auth_bp
+from review_app.ai import init_app as _init_ai
+from review_app import cli as _cli
+
+_init_obs(app)
+_init_db(app)
+_init_auth(app)
+app.register_blueprint(_auth_bp)
+_init_ai(app)
+_cli.register(app)
+
+# ---------------------------------------------------------------------------
 # Stripe configuration (gracefully degrades when keys are absent)
 # ---------------------------------------------------------------------------
 
