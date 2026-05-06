@@ -120,19 +120,29 @@ follow_imports = "skip"
 module = "tests.*"
 ignore_errors = true
 
-# Third-party libs without stubs.
+# Third-party libs without stubs. Listed even when not currently imported
+# from review_app/ so future code that imports them doesn't break CI.
 [[tool.mypy.overrides]]
 module = [
     "stripe.*",
-    "fakeredis.*",
     "rq.*",
     "openai.*",
-    "PIL.*",
-    "alembic.*",
+    "replicate.*",
+    "flask_login.*",
+    "flask_wtf.*",
+]
+ignore_missing_imports = true
+
+# Pre-strict legacy modules — ignore both errors and missing imports. They
+# get pulled in transitively when mypy follows imports out of `review_app/`,
+# but we don't want to gate CI on cleaning them up. Phase 0.7 plan.
+[[tool.mypy.overrides]]
+module = [
     "scripts.*",
     "webapp.*",
     "config.*",
 ]
+ignore_errors = true
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------
@@ -175,7 +185,10 @@ exclude = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["B011", "B017", "F401", "F811"]
-"review_app/app.py" = ["F401", "F403", "F405", "E402", "B"]
+# Legacy monolith — pre-existing patterns we're not refactoring under Phase 0.
+# SIM110/SIM115/RUF001/E701 cover an inline elif-ladder, an unmanaged file
+# open, a Unicode `×` in a flash message, and other minor style nits.
+"review_app/app.py" = ["F401", "F403", "F405", "E402", "B", "SIM110", "SIM115", "RUF001", "E701"]
 "review_app/queue/worker.py" = ["I001", "F401", "RUF100", "UP045", "UP006"]
 "alembic/env.py" = ["F401", "E402"]
 
