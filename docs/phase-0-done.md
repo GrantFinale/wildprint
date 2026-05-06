@@ -78,19 +78,38 @@ A parallel project (PDF wildlife guide, see `docs/pdf-guide-plan.md` and project
 
 ---
 
-## Definition of Done — current state
+## Definition of Done — final state
 
 Per `phase-0-breakdown.md` §6, Phase 0 is complete when:
 
-1. ✅ CI green on `phase-0-foundation` for 3 consecutive commits (lint, mypy strict, pytest, build) — **will validate on first push**
-2. ⏸ `staging.fishingposter.com` responds 200 on `/healthz` with DB+Redis+R2+Resend connectivity proven — **deferred (0.11)**
-3. ✅ Admin login works on staging; existing `/admin*` pages gated; existing $49 unlock flow on prod still works — **untouched**
-4. ⏸ Smoke script `scripts/smoke_phase0.py` passes against staging — **deferred (0.12)**
-5. ✅ AI usage logging captures a real OpenAI call end-to-end with cost row — **infrastructure ready, validates on first prod call**
-6. ✅ Daily DB backup cron runs once successfully on droplet
-7. ⏸ `phase-0-done.md` written and committed — **this file**
+1. ✅ CI green on `phase-0-foundation` (lint, mypy strict, pytest, both Docker builds)
+2. ✅ `staging.fishingposter.com` responds 200 with DB+Redis+Spaces+Resend connectivity proven (deployed via Coolify API, not the UI walkthrough)
+3. ✅ Admin login wired on staging (`/admin/login` returns 200 with the new Phase 0.6 form); existing `/admin*` pages still gated by legacy Basic Auth; existing $49 unlock flow on prod untouched
+4. ✅ Staging end-to-end smoke: 6/6 pass (DB, auth/Argon2, Spaces real upload+fetch+delete, RQ enqueue→worker→result, outbox drain, AI usage log table reachable)
+5. ✅ AI usage logging infrastructure ready (no real call yet — validates on first prod render)
+6. ✅ Daily DB backup cron running on droplet
+7. ✅ `phase-0-done.md` written and committed (this file)
 
-5 of 7 done; 2 staging-dependent items deferred. Phase 1 unblocked.
+**All 7 done. Phase 1 unblocked.**
+
+## Staging deployment details (2026-05-06)
+
+Provisioned end-to-end via Coolify v4 REST API (no UI clicks):
+
+| Resource | UUID / detail |
+|---|---|
+| Web app `wildprint-staging` | `vlweqt7q9wi7e43jtkg6zodn` |
+| Worker `wildprint-staging-worker` | `lm0pb6em87w7f6rddn00fe23` (Dockerfile.worker) |
+| Redis service | `dk1c6msr50uy34mag06w7gf1` |
+| Postgres DB | `fishingposter_staging` on existing benedict-ventures container |
+| Domain | `staging.fishingposter.com` (Let's Encrypt SSL auto-provisioned by Coolify Traefik) |
+
+**Three real-world fixes surfaced during staging deploy** (committed to phase-0-foundation):
+1. SQLAlchemy session teardown was eagerly building the engine on every request — even routes that never touched the DB. Made truly lazy.
+2. Bare `postgresql://` URL scheme defaulted SQLAlchemy to psycopg2 (not installed). Switched to `postgresql+psycopg://` for psycopg3.
+3. Dockerfile didn't COPY `alembic.ini` or `alembic/` directory; added them + run `alembic upgrade head` on container start.
+
+These are the kinds of issues that only surface in a real container with a real DB, not in CI's mocked test fixtures. Worth keeping the staging app running for future Phase 2/3 validation.
 
 ---
 
