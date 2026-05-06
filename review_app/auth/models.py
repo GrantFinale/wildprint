@@ -12,8 +12,8 @@ re-hash on next successful login — no schema change.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING, ClassVar, Optional
+from datetime import datetime
+from typing import TYPE_CHECKING
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
@@ -36,7 +36,7 @@ _PH: PasswordHasher = PasswordHasher()
 VALID_ROLES: frozenset[str] = frozenset({"admin", "staff", "viewer"})
 
 
-class User(Base, UUIDPKMixin, TimestampMixin, UserMixin):
+class User(Base, UUIDPKMixin, TimestampMixin, UserMixin):  # type: ignore[misc]  # flask-login UserMixin has type Any
     """Admin / staff user account."""
 
     __tablename__ = "users"
@@ -52,12 +52,12 @@ class User(Base, UUIDPKMixin, TimestampMixin, UserMixin):
     # One of: 'admin', 'staff', 'viewer'. Enforced by CHECK constraint.
     role: Mapped[str] = mapped_column(Text, nullable=False)
 
-    last_login_at: Mapped[Optional[datetime]] = mapped_column(
+    last_login_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
     # Soft-delete marker. Active rows have deleted_at IS NULL.
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+    deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
@@ -93,7 +93,7 @@ class User(Base, UUIDPKMixin, TimestampMixin, UserMixin):
             _PH.verify(self.password_hash, plain)
         except VerifyMismatchError:
             return False
-        except Exception:  # noqa: BLE001
+        except Exception:
             # Corrupt hash, unsupported algo, etc. Fail closed.
             return False
         # Opportunistic re-hash if argon2 params have been bumped since this
@@ -121,7 +121,7 @@ class User(Base, UUIDPKMixin, TimestampMixin, UserMixin):
     # Query helpers
     # ------------------------------------------------------------------
     @classmethod
-    def get_active_by_id(cls, session: "Session", user_id: str | uuid.UUID) -> Optional["User"]:
+    def get_active_by_id(cls, session: Session, user_id: str | uuid.UUID) -> User | None:
         """Look up a non-deleted user by primary key. Returns None if absent."""
         try:
             uid = user_id if isinstance(user_id, uuid.UUID) else uuid.UUID(str(user_id))
@@ -136,7 +136,7 @@ class User(Base, UUIDPKMixin, TimestampMixin, UserMixin):
         return user
 
     @classmethod
-    def get_active_by_email(cls, session: "Session", email: str) -> Optional["User"]:
+    def get_active_by_email(cls, session: Session, email: str) -> User | None:
         """Case-insensitive lookup of an active user by email."""
         from sqlalchemy import func, select
 
@@ -153,7 +153,7 @@ class User(Base, UUIDPKMixin, TimestampMixin, UserMixin):
     # Construction
     # ------------------------------------------------------------------
     @classmethod
-    def create(cls, *, email: str, password: str, role: str) -> "User":
+    def create(cls, *, email: str, password: str, role: str) -> User:
         """Build a new User instance with hashed password.
 
         Caller is responsible for adding to a session and committing.
@@ -171,4 +171,4 @@ class User(Base, UUIDPKMixin, TimestampMixin, UserMixin):
         return f"<User {self.email!r} role={self.role!r}>"
 
 
-__all__ = ["User", "VALID_ROLES"]
+__all__ = ["VALID_ROLES", "User"]

@@ -18,13 +18,11 @@ interference.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 from urllib.parse import urlparse
 
 from flask import (
     Blueprint,
-    Response,
     current_app,
     flash,
     redirect,
@@ -32,6 +30,7 @@ from flask import (
     request,
     url_for,
 )
+from flask.typing import ResponseReturnValue
 from flask_login import login_required, login_user, logout_user
 
 from review_app.auth.models import User
@@ -50,7 +49,7 @@ def _is_safe_redirect(target: str | None) -> bool:
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
-def login() -> Response | str:
+def login() -> ResponseReturnValue:
     """Render the login form (GET) or process credentials (POST)."""
     next_url = request.args.get("next") or request.form.get("next")
 
@@ -99,7 +98,7 @@ def login() -> Response | str:
 
         # Success. Update last_login_at + commit (verify_password may have
         # also opportunistically rehashed; both writes commit together).
-        user.last_login_at = datetime.now(timezone.utc)
+        user.last_login_at = datetime.now(UTC)
         session.add(user)
         session.flush()  # ensure UPDATE before login_user reads .id
 
@@ -117,8 +116,8 @@ def login() -> Response | str:
 
 
 @auth_bp.route("/logout", methods=["GET", "POST"])
-@login_required
-def logout() -> Response:
+@login_required  # type: ignore[untyped-decorator]  # flask-login decorator is loosely typed
+def logout() -> ResponseReturnValue:
     """Clear the Flask-Login session and redirect to the login page."""
     logout_user()
     flash("Signed out.", "info")

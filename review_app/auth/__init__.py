@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from flask_login import LoginManager, current_user
 from flask_wtf.csrf import CSRFProtect
@@ -40,8 +40,8 @@ login_manager.login_message_category = "info"
 csrf: CSRFProtect = CSRFProtect()
 
 
-@login_manager.user_loader
-def _load_user(user_id: str) -> Optional[User]:
+@login_manager.user_loader  # type: ignore[untyped-decorator]  # flask-login user_loader is loosely typed
+def _load_user(user_id: str) -> User | None:
     """Flask-Login user loader. Returns None for unknown / soft-deleted users."""
     from review_app.db import get_session
 
@@ -49,7 +49,7 @@ def _load_user(user_id: str) -> Optional[User]:
         return User.get_active_by_id(session, user_id)
 
 
-def init_app(app: "Flask") -> None:
+def init_app(app: Flask) -> None:
     """Attach login_manager + CSRF to the given Flask app.
 
     Idempotent: safe to call multiple times. Does NOT register the auth
