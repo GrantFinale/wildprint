@@ -131,7 +131,7 @@ def drain_outbox_job(batch_size: int = 10) -> dict[str, Any]:
                     html=html,
                     text=text,
                 )
-            except Exception as exc:  # noqa: BLE001 — outbox catches everything
+            except Exception as exc:
                 error_msg = f"{type(exc).__name__}: {exc}"
                 logger.warning(
                     "drain_outbox: send failed for id=%s kind=%s — %s",

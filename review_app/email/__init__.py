@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 
 def send(
-    session: "Session",
+    session: Session,
     kind: str,
     to: str,
     payload: dict[str, Any],
@@ -92,7 +92,7 @@ def _known_kinds() -> frozenset[str]:
     return frozenset(KIND_TO_TEMPLATE.keys())
 
 
-def init_app(app: "Flask") -> None:
+def init_app(app: Flask) -> None:
     """Flask wiring stub.
 
     Currently a no-op. Reserved for future use (e.g. registering an admin

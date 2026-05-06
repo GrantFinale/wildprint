@@ -40,13 +40,13 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
+from review_app.db.base import Base
+
 # SQLite treats `INTEGER PRIMARY KEY` as a rowid alias (auto-increments);
 # it does NOT do the same for `BIGINT PRIMARY KEY`. Use a dialect variant
 # so Postgres still gets a real BIGINT while SQLite tests work without
 # manual id assignment.
 _BigIntPK = BigInteger().with_variant(Integer(), "sqlite")
-
-from review_app.db.base import Base
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -167,7 +167,7 @@ class OutboxEntry(Base):
 # Repository functions
 # ---------------------------------------------------------------------------
 def enqueue(
-    session: "Session",
+    session: Session,
     *,
     kind: str,
     to: str,
@@ -201,7 +201,7 @@ def enqueue(
     return entry
 
 
-def claim_batch(session: "Session", limit: int = 10) -> list[OutboxEntry]:
+def claim_batch(session: Session, limit: int = 10) -> list[OutboxEntry]:
     """Atomically claim up to ``limit`` due rows for processing.
 
     Selects rows where status IN ('pending','failed') and next_retry_at <=
@@ -246,7 +246,7 @@ def claim_batch(session: "Session", limit: int = 10) -> list[OutboxEntry]:
     return rows
 
 
-def mark_sent(session: "Session", entry_id: int, message_id: str) -> None:
+def mark_sent(session: Session, entry_id: int, message_id: str) -> None:
     """Terminal success — flip status=sent, stamp sent_at, record provider id.
 
     The provider message id is appended to the payload under
@@ -269,7 +269,7 @@ def mark_sent(session: "Session", entry_id: int, message_id: str) -> None:
     session.flush()
 
 
-def mark_failed(session: "Session", entry_id: int, error: str) -> None:
+def mark_failed(session: Session, entry_id: int, error: str) -> None:
     """Increment attempts; schedule next retry or flip to ``dead``.
 
     Schedule:

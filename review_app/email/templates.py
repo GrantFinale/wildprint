@@ -24,6 +24,7 @@ from typing import Any, Final
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
+
 # ---------------------------------------------------------------------------
 # Errors
 # ---------------------------------------------------------------------------
