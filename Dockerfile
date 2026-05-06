@@ -32,6 +32,11 @@ COPY webapp/ ./webapp/
 COPY assets/ ./assets/
 COPY metadata/manifest_schema.json ./metadata/
 
+# Phase 0: Alembic migrations + tooling config
+COPY alembic.ini ./
+COPY alembic/ ./alembic/
+COPY pyproject.toml ./
+
 # Seed masters into the image so the app works immediately.
 # Runtime-generated content (uploads, posters, new generations, backgrounds)
 # lives under /app/output which is mounted as a persistent volume.
@@ -51,5 +56,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
 # Gunicorn with 2 workers, 4 threads each. Masters load fast; most work is
 # subprocess-bound (batch_generate) or network-bound (Replicate), so threaded
 # workers are fine for this scale.
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "-w", "2", "--threads", "4", \
-     "--timeout", "180", "review_app.app:app"]
+#
+# Run alembic upgrade head before gunicorn so schema is current. If
+# DATABASE_URL is unset (legacy single-tenant deploys), skip migrations
+# silently — the app's lazy DB init makes that path harmless.
+CMD ["sh", "-c", "if [ -n \"$DATABASE_URL\" ]; then alembic upgrade head || exit 1; fi && exec gunicorn -b 0.0.0.0:8080 -w 2 --threads 4 --timeout 180 review_app.app:app"]
