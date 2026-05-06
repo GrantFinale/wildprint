@@ -1,0 +1,17 @@
+Thanks for your order, {{ customer_name }}.
+
+We've got it. Your order #{{ order_number }} is confirmed and we're getting
+started on it now.
+
+ORDER SUMMARY
+-------------
+{% for item in line_items %}
+- {{ item.name }}{% if item.size %} ({{ item.size }}){% endif %} x{{ item.quantity }}  ${{ "%.2f"|format(item.price_cents / 100) }}
+{% endfor %}
+
+Total: ${{ "%.2f"|format(total_cents / 100) }} {{ currency|default("USD") }}
+
+We'll email you again when it goes into production, and once more when
+it ships.
+
+— fishingposter.com

@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Refund processed</title></head>
+<body style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+  <p>We've processed a refund for order <strong>#{{ order_number }}</strong>{% if amount_cents %} of ${{ "%.2f"|format(amount_cents / 100) }}{% endif %}.</p>
+  <p style="color: #999;">TBD — Phase 3 will fill in.</p>
+</body>
+</html>
