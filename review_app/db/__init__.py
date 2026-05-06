@@ -9,18 +9,17 @@ environments without a `DATABASE_URL` (CI lint, local script imports, etc.).
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Iterator, Optional
 
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
 from review_app.db.base import Base
 
-
-_engine: Optional[Engine] = None
-_session_factory: Optional[sessionmaker[Session]] = None
-_scoped_session: Optional[scoped_session[Session]] = None
+_engine: Engine | None = None
+_session_factory: sessionmaker[Session] | None = None
+_scoped_session: scoped_session[Session] | None = None
 
 
 def _resolve_database_url() -> str:
@@ -119,10 +118,10 @@ def __getattr__(name: str) -> object:
 __all__ = [
     "Base",
     "SessionLocal",
-    "engine",
     "db_session",
+    "engine",
     "get_engine",
+    "get_scoped_session",
     "get_session",
     "get_session_factory",
-    "get_scoped_session",
 ]

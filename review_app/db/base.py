@@ -7,11 +7,10 @@ here. Keep this file dependency-free and import-safe — it must not require
 """
 from __future__ import annotations
 
-import os
 import secrets
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import DateTime, MetaData, event
@@ -21,7 +20,6 @@ from sqlalchemy.orm import (
     Session,
     mapped_column,
 )
-
 
 # Alembic-friendly constraint naming. Without this, autogenerate produces
 # anonymous constraint names that diff noisily across environments.
@@ -98,27 +96,27 @@ class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
     )
 
 
 @event.listens_for(Session, "before_flush")
 def _bump_updated_at(session: Session, flush_context: Any, instances: Any) -> None:
     """Touch `updated_at` on every dirty TimestampMixin instance pre-flush."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for obj in session.dirty:
         if isinstance(obj, TimestampMixin) and session.is_modified(obj, include_collections=False):
             obj.updated_at = now
 
 
 __all__ = [
-    "Base",
     "NAMING_CONVENTION",
+    "Base",
     "TimestampMixin",
     "UUIDPKMixin",
     "uuid7",

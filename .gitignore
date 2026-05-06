@@ -25,6 +25,14 @@ output/uploads/
 metadata/manifest.json
 metadata/generation.log
 
+# Test + coverage artifacts
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+.tox/
+.nox/
+
 # OS
 .DS_Store
 Thumbs.db

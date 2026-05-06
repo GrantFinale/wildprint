@@ -1,0 +1,188 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wildprint"
+version = "0.1.0"
+description = "Wildprint — wildlife poster generation and print-on-demand pipeline."
+requires-python = ">=3.11"
+readme = "README.md"
+license = { text = "Proprietary" }
+authors = [{ name = "Grant" }]
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+include = ["review_app*"]
+exclude = ["tests*", "poster_layout*", "scripts*", "webapp*", "config*"]
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+markers = [
+    "integration: requires real DB/Redis/network (opt in via --integration)",
+    "slow: takes >1s",
+]
+addopts = "-ra --strict-markers --strict-config"
+filterwarnings = [
+    # Promote our own deprecation warnings to errors so we catch them in CI.
+    "error::DeprecationWarning:review_app.*",
+    # Third-party deprecations are noisy and out of our control — ignore.
+    "ignore::DeprecationWarning:flask.*",
+    "ignore::DeprecationWarning:werkzeug.*",
+    "ignore::DeprecationWarning:sqlalchemy.*",
+    "ignore::DeprecationWarning:rq.*",
+    "ignore::DeprecationWarning:redis.*",
+    "ignore::PendingDeprecationWarning",
+    "ignore::ResourceWarning",
+]
+log_cli = false
+log_cli_level = "INFO"
+
+# ---------------------------------------------------------------------------
+# coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["review_app"]
+branch = true
+omit = [
+    "poster_layout/*",
+    "tests/*",
+    "*/migrations/*",
+    "alembic/*",
+    "review_app/app.py",          # legacy monolith — excluded from gate
+]
+
+[tool.coverage.report]
+fail_under = 60
+show_missing = true
+skip_covered = false
+precision = 1
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    "\\.\\.\\.",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+# ---------------------------------------------------------------------------
+# mypy — strict for new modules; legacy + renderer + tests excluded
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+warn_return_any = true
+warn_unused_ignores = true
+namespace_packages = true
+explicit_package_bases = true
+mypy_path = "."
+files = ["review_app"]
+exclude = [
+    "^poster_layout/",
+    "^tests/",
+    "^alembic/",
+    "^scripts/",
+    "^webapp/",
+    "^config/",
+]
+
+# Renderer is intentionally untouched — relax strictness if it gets imported.
+[[tool.mypy.overrides]]
+module = "poster_layout.*"
+ignore_errors = true
+follow_imports = "skip"
+
+# Legacy monolithic Flask app — pre-strict; will be peeled apart over time.
+[[tool.mypy.overrides]]
+module = "review_app.app"
+ignore_errors = true
+follow_imports = "skip"
+
+# Worker module imports structlog (Phase 0.9 dep) — relax until 0.9 lands.
+[[tool.mypy.overrides]]
+module = "review_app.queue.worker"
+ignore_errors = true
+follow_imports = "skip"
+
+# Tests don't need to satisfy strict mode (fixtures use Any liberally).
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
+# Third-party libs without stubs.
+[[tool.mypy.overrides]]
+module = [
+    "stripe.*",
+    "fakeredis.*",
+    "rq.*",
+    "openai.*",
+    "PIL.*",
+    "alembic.*",
+    "scripts.*",
+    "webapp.*",
+    "config.*",
+]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = [
+    "poster_layout",
+    "alembic/versions",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "output",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # bugbear
+    "UP",   # pyupgrade
+    "SIM",  # simplify
+    "C4",   # comprehensions
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "E501",   # handled by formatter / line-length is a soft limit
+    "B008",   # function-call-in-default-arg (Flask/Click pattern)
+    "SIM117", # nested with-statements are sometimes clearer
+]
+exclude = [
+    "poster_layout/*",
+    "alembic/versions/*",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011", "B017", "F401", "F811"]
+"review_app/app.py" = ["F401", "F403", "F405", "E402", "B"]
+"review_app/queue/worker.py" = ["I001", "F401", "RUF100", "UP045", "UP006"]
+"alembic/env.py" = ["F401", "E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["review_app", "poster_layout", "scripts", "webapp", "config"]
+combine-as-imports = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

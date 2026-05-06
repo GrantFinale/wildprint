@@ -13,11 +13,20 @@ ad-hoc scripts, or when someone is just running the renderer locally).
 from __future__ import annotations
 
 import os
-from typing import Any, Callable, Final, Optional
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Final
 
 from redis import Redis
 from rq import Queue
 from rq.job import Job
+
+# `redis-py` types `Redis` as generic (via type stubs) but it isn't a runtime
+# generic. Alias the bytes-flavored variant for type checkers; at runtime,
+# use the bare `Redis` class.
+if TYPE_CHECKING:
+    RedisConn = Redis[bytes]
+else:
+    RedisConn = Redis
 
 # Reserved queue names. `default` is the only queue actively used in
 # Phase 0; `high` and `low` are reserved for future use (e.g. fast email
@@ -28,7 +37,7 @@ QUEUE_LOW: Final[str] = "low"
 
 QUEUE_NAMES: Final[tuple[str, ...]] = (QUEUE_HIGH, QUEUE_DEFAULT, QUEUE_LOW)
 
-_redis_singleton: Optional[Redis] = None
+_redis_singleton: RedisConn | None = None
 _queues: dict[str, Queue] = {}
 
 
@@ -42,7 +51,7 @@ def _redis_url() -> str:
     return url
 
 
-def get_redis() -> Redis:
+def get_redis() -> RedisConn:
     """Return a process-wide Redis connection, opening it lazily."""
     global _redis_singleton
     if _redis_singleton is None:
@@ -50,7 +59,7 @@ def get_redis() -> Redis:
     return _redis_singleton
 
 
-def get_queue(name: str = QUEUE_DEFAULT, *, connection: Optional[Redis] = None) -> Queue:
+def get_queue(name: str = QUEUE_DEFAULT, *, connection: RedisConn | None = None) -> Queue:
     """Return (and cache) the RQ Queue for `name`.
 
     `connection` is exposed primarily so tests can inject a fakeredis
@@ -72,7 +81,7 @@ def enqueue(
     func: Callable[..., Any],
     *args: Any,
     queue: str = QUEUE_DEFAULT,
-    connection: Optional[Redis] = None,
+    connection: RedisConn | None = None,
     job_timeout: int = 600,
     **kwargs: Any,
 ) -> Job:

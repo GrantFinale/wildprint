@@ -6,7 +6,7 @@ pool) on teardown.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from review_app.db import get_scoped_session
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from flask import Flask
 
 
-def init_app(app: "Flask") -> None:
+def init_app(app: Flask) -> None:
     """Register the SQLAlchemy session teardown on the given Flask app.
 
     Idempotent: safe to call multiple times. Does NOT touch any other Flask
@@ -22,7 +22,7 @@ def init_app(app: "Flask") -> None:
     to the existing monolithic `app.py` without disturbing anything else.
     """
     @app.teardown_appcontext
-    def _shutdown_session(exception: Optional[BaseException]) -> None:
+    def _shutdown_session(exception: BaseException | None) -> None:
         session = get_scoped_session()
         if exception is not None:
             session.rollback()

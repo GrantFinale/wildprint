@@ -7,7 +7,7 @@ they should pull their own dependencies via well-known module paths.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def ping_job(echo: str = "pong") -> dict[str, str]:
@@ -18,7 +18,7 @@ def ping_job(echo: str = "pong") -> dict[str, str]:
     """
     return {
         "echo": echo,
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
     }
 
 
