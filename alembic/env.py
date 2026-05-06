@@ -28,6 +28,7 @@ from review_app.db.base import Base  # noqa: E402
 from review_app.auth import models as _auth_models  # noqa: F401, E402
 from review_app.ai import models as _ai_models  # noqa: F401, E402
 from review_app.email import outbox as _email_outbox  # noqa: F401, E402
+from review_app.prodigi import db_models as _prodigi_models  # noqa: F401, E402
 
 
 config = context.config
