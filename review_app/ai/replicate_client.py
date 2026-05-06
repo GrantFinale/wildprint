@@ -82,7 +82,7 @@ class Client:
     """Telemetry-wrapped replacement for `replicate.Client`."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        from replicate import Client as _RealClient  # type: ignore[import-not-found]
+        from replicate import Client as _RealClient
 
         self._inner = _RealClient(*args, **kwargs)
         # Bind the wrapped run as a bound-method-like attribute. Using
@@ -96,7 +96,7 @@ class Client:
 
 def run(model_ref: Any, *args: Any, **kwargs: Any) -> Any:
     """Telemetry-wrapped equivalent of `replicate.run(...)`."""
-    import replicate as _real_replicate  # type: ignore[import-not-found]
+    import replicate as _real_replicate
 
     return _wrap_run(_real_replicate.run)(model_ref, *args, **kwargs)
 
@@ -108,9 +108,9 @@ def __getattr__(name: str) -> Any:
     `replicate.predictions.create(...)` continue to work even though we
     don't intercept those endpoints (yet).
     """
-    import replicate as _real_replicate  # type: ignore[import-not-found]
+    import replicate as _real_replicate
 
     return getattr(_real_replicate, name)
 
 
-__all__ = ["Client", "PROVIDER", "run"]
+__all__ = ["PROVIDER", "Client", "run"]

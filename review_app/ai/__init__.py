@@ -29,9 +29,9 @@ follow the same `init_app` convention used by `auth` and `observability`.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from review_app.ai import (  # noqa: F401  (re-exports)
+from review_app.ai import (
     openai_client,
     pricing,
     recraft_client,
@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from flask import Flask
 
 
-def init_app(app: "Flask") -> None:  # noqa: ARG001
+def init_app(app: Flask) -> None:
     """Wire the AI package into the Flask app.
 
     Currently a no-op — the wrappers don't need request/teardown hooks
@@ -58,7 +58,7 @@ __all__ = [
     "init_app",
     "openai_client",
     "pricing",
-    "recraft_client",
     "record_call",
+    "recraft_client",
     "replicate_client",
 ]

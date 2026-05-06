@@ -185,7 +185,7 @@ class OpenAI:
         # package installed (e.g. on a worker that only ever talks to
         # Replicate). The error surfaces only when someone actually
         # constructs the client.
-        from openai import OpenAI as _RealOpenAI  # type: ignore[import-not-found]
+        from openai import OpenAI as _RealOpenAI
 
         self._inner = _RealOpenAI(*args, **kwargs)
         self.chat = _ChatProxy(self._inner.chat)
@@ -212,8 +212,8 @@ def _extract_usage(response: Any) -> tuple[int, int]:
         prompt = getattr(usage, "prompt_tokens", 0) or 0
         completion = getattr(usage, "completion_tokens", 0) or 0
         return (int(prompt), int(completion))
-    except Exception:  # noqa: BLE001
+    except Exception:
         return (0, 0)
 
 
-__all__ = ["OpenAI", "PROVIDER"]
+__all__ = ["PROVIDER", "OpenAI"]
