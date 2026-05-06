@@ -1,0 +1,21 @@
+{
+  "outcome": "Ok",
+  "product": {
+    "sku": "GLOBAL-CFPM-16X20",
+    "description": "Classic Frame, 16x20 inches",
+    "productDimensions": {"width": 16.0, "height": 20.0, "units": "in"},
+    "attributes": {
+      "color": ["black", "white", "natural", "antique-silver", "antique-gold", "brown", "dark-grey", "light-grey"]
+    },
+    "printAreas": {"default": {"required": true}},
+    "variants": [
+      {
+        "attributes": {"color": "black"},
+        "shipsTo": ["US", "CA", "GB"],
+        "printAreaSizes": {
+          "default": {"horizontalResolution": 4800, "verticalResolution": 6000}
+        }
+      }
+    ]
+  }
+}

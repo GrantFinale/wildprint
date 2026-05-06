@@ -1,0 +1,15 @@
+{
+  "specversion": "1.0",
+  "id": "evt_abc123",
+  "type": "com.prodigi.order.status.stage.changed#InProgress",
+  "source": "https://api.prodigi.com",
+  "subject": "ord_1234567",
+  "time": "2024-09-01T10:05:00.000Z",
+  "datacontenttype": "application/json",
+  "data": {
+    "order": {
+      "id": "ord_1234567",
+      "status": {"stage": "InProgress", "issues": []}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "specversion": "1.0",
+  "id": "evt_shipment_456",
+  "type": "com.prodigi.shipment.tracking.updated",
+  "source": "https://api.prodigi.com",
+  "subject": "ord_2222222",
+  "time": "2024-09-02T18:00:00.000Z",
+  "datacontenttype": "application/json",
+  "data": {
+    "order": {"id": "ord_2222222"},
+    "shipment": {
+      "id": "shp_AAAA",
+      "status": "Shipped",
+      "carrier": {"name": "USPS", "service": "First Class"},
+      "tracking": {"number": "9400111111111111111111", "url": "https://tools.usps.com/go/TrackConfirmAction?tLabels=9400111111111111111111"}
+    }
+  }
+}

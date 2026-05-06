@@ -1,0 +1,58 @@
+{
+  "outcome": "Ok",
+  "order": {
+    "id": "ord_2222222",
+    "created": "2024-09-01T10:00:00.000Z",
+    "lastUpdated": "2024-09-03T10:00:00.000Z",
+    "callbackUrl": null,
+    "merchantReference": "test-merchant-ref-2",
+    "shippingMethod": "Standard",
+    "idempotencyKey": "wildprint-test-002",
+    "status": {
+      "stage": "Complete",
+      "issues": [],
+      "details": {
+        "downloadAssets": "Complete",
+        "printReadyAssetsPrepared": "Complete",
+        "allocateProductionLocation": "Complete",
+        "inProduction": "Complete",
+        "shipping": "Complete"
+      }
+    },
+    "charges": [],
+    "shipments": [
+      {
+        "id": "shp_AAAA",
+        "status": "Shipped",
+        "carrier": {"name": "USPS", "service": "First Class"},
+        "dispatchDate": "2024-09-02T18:00:00.000Z",
+        "tracking": {
+          "number": "9400111111111111111111",
+          "url": "https://tools.usps.com/go/TrackConfirmAction?tLabels=9400111111111111111111"
+        },
+        "items": [{"itemId": "ori_222"}],
+        "fulfillmentLocation": {"countryCode": "US", "labCode": "PRD-US-LA-1"}
+      }
+    ],
+    "recipient": {
+      "name": "Test Recipient 2",
+      "address": {
+        "line1": "1 Infinite Loop",
+        "postalOrZipCode": "95014",
+        "countryCode": "US",
+        "townOrCity": "Cupertino",
+        "stateOrCounty": "CA"
+      }
+    },
+    "items": [
+      {
+        "id": "ori_222",
+        "sku": "GLOBAL-CFPM-12X16",
+        "copies": 2,
+        "sizing": "fillPrintArea",
+        "attributes": {"color": "natural"},
+        "assets": [{"printArea": "default", "url": "https://example.com/test2.png"}]
+      }
+    ]
+  }
+}

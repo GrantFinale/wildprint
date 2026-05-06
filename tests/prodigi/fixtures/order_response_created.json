@@ -1,0 +1,56 @@
+{
+  "outcome": "Created",
+  "order": {
+    "id": "ord_1234567",
+    "created": "2024-09-01T10:00:00.000Z",
+    "lastUpdated": "2024-09-01T10:00:01.000Z",
+    "callbackUrl": "https://example.com/webhook/prodigi",
+    "merchantReference": "test-merchant-ref-1",
+    "shippingMethod": "Standard",
+    "idempotencyKey": "wildprint-test-001",
+    "status": {
+      "stage": "InProgress",
+      "issues": [],
+      "details": {
+        "downloadAssets": "InProgress",
+        "printReadyAssetsPrepared": "NotStarted",
+        "allocateProductionLocation": "NotStarted",
+        "inProduction": "NotStarted",
+        "shipping": "NotStarted"
+      }
+    },
+    "charges": [],
+    "shipments": [],
+    "recipient": {
+      "name": "Test Recipient",
+      "email": "test@example.com",
+      "address": {
+        "line1": "1600 Pennsylvania Ave NW",
+        "line2": null,
+        "postalOrZipCode": "20500",
+        "countryCode": "US",
+        "townOrCity": "Washington",
+        "stateOrCounty": "DC"
+      }
+    },
+    "items": [
+      {
+        "id": "ori_111",
+        "merchantReference": "item #1",
+        "sku": "GLOBAL-CFPM-16X20",
+        "copies": 1,
+        "sizing": "fillPrintArea",
+        "attributes": {"color": "black"},
+        "recipientCost": {"amount": "55.00", "currency": "USD"},
+        "assets": [
+          {
+            "printArea": "default",
+            "url": "https://example.com/test.png",
+            "md5Hash": "deadbeef"
+          }
+        ]
+      }
+    ]
+  },
+  "traceParent": "00-0123456789abcdef0123456789abcdef-0123456789abcdef-00"
+}

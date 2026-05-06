@@ -1,0 +1,45 @@
+{
+  "outcome": "Created",
+  "quotes": [
+    {
+      "shipmentMethod": "Budget",
+      "costSummary": {
+        "items": {"amount": "12.00", "currency": "USD"},
+        "shipping": {"amount": "4.00", "currency": "USD"},
+        "totalCost": {"amount": "16.00", "currency": "USD"},
+        "totalTax": {"amount": "0.00", "currency": "USD"}
+      },
+      "shipments": [
+        {
+          "carrier": {"name": "USPS", "service": "Ground"},
+          "fulfillmentLocation": {"countryCode": "US", "labCode": "PRD-US-LA-1"},
+          "cost": {"amount": "4.00", "currency": "USD"},
+          "items": ["1"]
+        }
+      ],
+      "items": [
+        {
+          "id": "1",
+          "sku": "GLOBAL-CFPM-12X16",
+          "copies": 1,
+          "unitCost": {"amount": "12.00", "currency": "USD"},
+          "attributes": {"color": "black"},
+          "assets": [{"printArea": "default"}]
+        }
+      ],
+      "issues": []
+    },
+    {
+      "shipmentMethod": "Standard",
+      "costSummary": {
+        "items": {"amount": "12.00", "currency": "USD"},
+        "shipping": {"amount": "6.00", "currency": "USD"},
+        "totalCost": {"amount": "18.00", "currency": "USD"}
+      },
+      "shipments": [],
+      "items": []
+    }
+  ],
+  "issues": [],
+  "traceParent": "00-aaa-bbb-00"
+}
