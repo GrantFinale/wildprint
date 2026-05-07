@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Your Account · fishingposter.com{% endblock %}</title>
+  <title>{% block title %}Your Account · FishingPoster.com{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,7 +17,7 @@
 
   <header class="account-header" role="banner">
     <div class="container">
-      <a href="{{ url_for('account.overview') }}" class="brand" aria-label="fishingposter.com home">fishingposter<span class="brand-dot">.</span>com</a>
+      <a href="{{ url_for('account.overview') }}" class="brand" aria-label="FishingPoster.com home">FishingPoster<span class="brand-dot">.</span>com</a>
       <nav class="account-nav" aria-label="Account">
         {% if g.current_customer %}
           <a href="{{ url_for('account.overview') }}" {% if request.endpoint == 'account.overview' %}class="is-active" aria-current="page"{% endif %}>Overview</a>
@@ -48,7 +48,7 @@
 
   <footer class="account-footer" role="contentinfo">
     <div class="container">
-      <small>&copy; fishingposter.com</small>
+      <small>&copy; FishingPoster.com</small>
     </div>
   </footer>
 </body>
