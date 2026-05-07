@@ -66,20 +66,14 @@ def _default_master_renderer(
 ) -> Image.Image:
     """Default master-image producer.
 
-    Wraps ``poster_layout.EditorialPosterRenderer`` for now. Imported lazily
-    so unit tests that mock the renderer don't pull in the full poster_layout
-    dependency tree.
-
-    Phase 2 ships the wrapper; the actual route-handler cutover (which will
-    pass real :class:`LayoutResult` objects through here) lands in Phase 3.
-    Until then this raises so an accidental call in a code path we forgot
-    to wire up fails loudly rather than silently producing garbage.
+    Wraps :func:`review_app.render.wildprint_renderer.render_master_image`,
+    which in turn drives ``poster_layout.EditorialMultiRenderer``. Import
+    is lazy so unit tests that pass a custom ``master_renderer`` (or stub
+    this module) don't pull in the full poster_layout dependency tree.
     """
-    raise NotImplementedError(
-        "_default_master_renderer is a Phase 3 wiring placeholder. "
-        "Pass a custom `master_renderer` to render_tier() until the "
-        "route handlers are migrated. See docs/render-tiers.md."
-    )
+    from review_app.render.wildprint_renderer import render_master_image
+
+    return render_master_image(spec, width, height)
 
 
 def _resize_to_long_edge(
