@@ -38,32 +38,32 @@ class KindNotFoundError(KeyError):
 # Tuple shape: (subject_jinja, html_template_filename, text_template_filename)
 KIND_TO_TEMPLATE: Final[dict[str, tuple[str, str, str]]] = {
     "email.order_confirmed": (
-        "Order confirmed — fishingposter.com #{{ order_number }}",
+        "Order confirmed — FishingPoster.com #{{ order_number }}",
         "order_confirmed.html.j2",
         "order_confirmed.txt.j2",
     ),
     "email.in_production": (
-        "Your fishingposter.com order is in production",
+        "Your FishingPoster.com order is in production",
         "in_production.html.j2",
         "in_production.txt.j2",
     ),
     "email.shipped": (
-        "Your fishingposter.com order has shipped",
+        "Your FishingPoster.com order has shipped",
         "shipped.html.j2",
         "shipped.txt.j2",
     ),
     "email.delivered": (
-        "Your fishingposter.com order was delivered",
+        "Your FishingPoster.com order was delivered",
         "delivered.html.j2",
         "delivered.txt.j2",
     ),
     "email.refunded": (
-        "Refund processed — fishingposter.com",
+        "Refund processed — FishingPoster.com",
         "refunded.html.j2",
         "refunded.txt.j2",
     ),
     "email.problem": (
-        "We hit a snag with your fishingposter.com order",
+        "We hit a snag with your FishingPoster.com order",
         "problem.html.j2",
         "problem.txt.j2",
     ),

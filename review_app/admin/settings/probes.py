@@ -135,7 +135,15 @@ def probe_prodigi() -> ProbeResult:
 
 
 def probe_resend() -> ProbeResult:
-    """GET ``/domains`` against Resend's API."""
+    """GET ``/domains`` against Resend's API.
+
+    Send-only ("restricted") API keys (``re_*``) cannot list domains and
+    return HTTP 401 with body ``{"name":"restricted_api_key", ...}``. That
+    is *not* a failure for our purposes — those keys are best practice for
+    transactional senders. We treat ``restricted_api_key`` as healthy and
+    surface a note so operators know the probe couldn't fully exercise the
+    key.
+    """
 
     def _run() -> ProbeResult:
         api_key = os.environ.get("RESEND_API_KEY", "").strip()
@@ -159,6 +167,22 @@ def probe_resend() -> ProbeResult:
                 timeout=8.0,
             )
             latency = _ms(start)
+            # Restricted (send-only) keys: Resend returns 401 with a
+            # ``restricted_api_key`` body. Reaching that response proves
+            # the key is valid for sending — POST /emails works.
+            if resp.status_code == 401:
+                body_text = ""
+                try:
+                    body_text = resp.text or ""
+                except Exception:  # pragma: no cover - defensive
+                    body_text = ""
+                if "restricted_api_key" in body_text:
+                    return ProbeResult(
+                        ok=True,
+                        latency_ms=latency,
+                        error=None,
+                        note="restricted send-only key (POST /emails OK)",
+                    )
             if resp.status_code not in (200, 401, 403):
                 # 401/403 still proves we reached Resend.
                 return ProbeResult(

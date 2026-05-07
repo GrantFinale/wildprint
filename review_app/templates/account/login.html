@@ -1,5 +1,5 @@
 {% extends "account/_base.html" %}
-{% block title %}Sign in · fishingposter.com{% endblock %}
+{% block title %}Sign in · FishingPoster.com{% endblock %}
 {% block content %}
 <div class="magic-link-form">
   <section class="card">
@@ -11,6 +11,7 @@
       <p>Enter your email and we'll send you a one-time sign-in link.</p>
       {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
       <form method="post" action="{{ url_for('account.login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
         <input type="hidden" name="next" value="{{ next_url|e }}">
         <label for="login-email">Email
           <input id="login-email" type="email" name="email" required autofocus autocomplete="email" inputmode="email">

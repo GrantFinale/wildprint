@@ -3,8 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>wildprint — See exactly what's living in your lake</title>
-  <meta name="description" content="A bespoke wildlife guide for your lake. Free 3-species preview. Full guide $49. Built on DNR, eBird, USGS, and iNaturalist data.">
+  <title>FishingPoster.com — See exactly what's living in your lake</title>
+  <meta name="description" content="FishingPoster.com — a bespoke fish &amp; wildlife guide for your lake. Free 3-species preview. Full guide $49. Built on DNR, eBird, USGS, and iNaturalist data.">
+  <meta property="og:site_name" content="FishingPoster.com">
+  <meta property="og:title" content="FishingPoster.com — See exactly what's living in your lake">
+  <meta property="og:description" content="A bespoke fish &amp; wildlife guide for your lake. Free 3-species preview.">
+  <meta name="twitter:title" content="FishingPoster.com — See exactly what's living in your lake">
+  <meta name="twitter:description" content="A bespoke fish &amp; wildlife guide for your lake. Free 3-species preview.">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='landing.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lora:wght@400;700&display=swap" rel="stylesheet">
@@ -12,7 +17,7 @@
 <body class="lp-body">
 
   <header class="lp-header">
-    <a href="/" class="lp-logo">wildprint</a>
+    <a href="/" class="lp-logo">FishingPoster.com</a>
     <nav class="lp-nav">
       <a href="#how">How it works</a>
       <a href="#preview">What's free</a>
@@ -49,7 +54,7 @@
       </div>
 
       <figure class="lp-hero-art">
-        <img src="{{ url_for('static', filename='sample/sample_poster.jpg') }}" alt="Sample wildprint poster showing illustrated lake species" loading="eager">
+        <img src="{{ url_for('static', filename='sample/sample-poster.jpg') }}" alt="Sample FishingPoster.com poster showing illustrated lake species" loading="eager">
         <figcaption>Sample full-guide poster</figcaption>
       </figure>
     </section>
@@ -166,7 +171,7 @@
 
   <footer class="lp-footer">
     <p class="lp-trustbar">Sourced from state DNR &amp; USGS &nbsp;|&nbsp; Built with eBird hotspots &nbsp;|&nbsp; Every guide bespoke to one lake</p>
-    <p class="lp-copy">&copy; wildprint &middot; <a href="mailto:hello@wildlife.5story.com">hello@wildlife.5story.com</a></p>
+    <p class="lp-copy">&copy; FishingPoster.com &middot; <a href="mailto:hello@fishingposter.com">hello@fishingposter.com</a></p>
   </footer>
 
   <script>
