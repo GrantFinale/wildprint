@@ -396,7 +396,7 @@ def register(admin_bp: Blueprint) -> None:
 def _resolve_actor_user_id() -> uuid.UUID:
     """Mirror admin.orders.routes._resolve_actor_user_id (shadow-mode safe)."""
     try:
-        from flask_login import current_user  # type: ignore
+        from flask_login import current_user
 
         uid = getattr(current_user, "id", None)
         if isinstance(uid, uuid.UUID):

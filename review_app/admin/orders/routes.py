@@ -509,7 +509,7 @@ def register(admin_bp: Blueprint) -> None:
             except RefundServiceError as exc:
                 _admin_session.close_session_if_owned(session, commit=False)
                 if request.is_json:
-                    return cast("Response", jsonify({"error": str(exc)})), 400  # type: ignore[return-value]
+                    return jsonify({"error": str(exc)}), 400  # type: ignore[return-value]
                 flash(f"Refund failed: {exc}", "error")
                 return cast(
                     "Response",
@@ -525,15 +525,12 @@ def register(admin_bp: Blueprint) -> None:
             )
             _admin_session.close_session_if_owned(session, commit=True)
             if request.is_json:
-                return cast(
-                    "Response",
-                    jsonify(
-                        {
-                            "id": str(rf.id),
-                            "status": rf.status,
-                            "amount_cents": rf.amount_cents,
-                        }
-                    ),
+                return jsonify(
+                    {
+                        "id": str(rf.id),
+                        "status": rf.status,
+                        "amount_cents": rf.amount_cents,
+                    }
                 )
             flash("Refund initiated.", "success")
             return cast(
@@ -564,9 +561,7 @@ def register(admin_bp: Blueprint) -> None:
             if order is None:
                 _admin_session.close_session_if_owned(session, commit=False)
                 if request.is_json:
-                    return cast(
-                        "Response", jsonify({"error": "order not found"})  # type: ignore[return-value]
-                    ), 404
+                    return jsonify({"error": "order not found"}), 404  # type: ignore[return-value]
                 flash("Order not found.", "error")
                 return cast(
                     "Response", redirect(url_for("admin.orders_list"))
@@ -599,7 +594,7 @@ def register(admin_bp: Blueprint) -> None:
             except ReprintRequestError as exc:
                 _admin_session.close_session_if_owned(session, commit=False)
                 if request.is_json:
-                    return cast("Response", jsonify({"error": str(exc)})), 400  # type: ignore[return-value]
+                    return jsonify({"error": str(exc)}), 400  # type: ignore[return-value]
                 flash(f"Reprint failed: {exc}", "error")
                 return cast(
                     "Response",
@@ -615,10 +610,7 @@ def register(admin_bp: Blueprint) -> None:
             )
             _admin_session.close_session_if_owned(session, commit=True)
             if request.is_json:
-                return cast(
-                    "Response",
-                    jsonify({"id": str(rr.id), "status": rr.status}),
-                )
+                return jsonify({"id": str(rr.id), "status": rr.status})
             flash("Reprint request created.", "success")
             return cast(
                 "Response",
@@ -635,8 +627,7 @@ def register(admin_bp: Blueprint) -> None:
     )
     @requires_role("admin", "staff")
     def orders_add_note(order_id: uuid.UUID) -> Response:
-        from review_app import audit
-        from review_app import notes as _notes
+        from review_app import audit, notes as _notes
 
         session = _admin_session.get_session()
         try:
@@ -693,7 +684,7 @@ def _resolve_actor_user_id() -> uuid.UUID:
     remain queryable. The bootstrap admin user replaces this once auth flips on.
     """
     try:
-        from flask_login import current_user  # type: ignore
+        from flask_login import current_user
 
         uid = getattr(current_user, "id", None)
         if isinstance(uid, uuid.UUID):

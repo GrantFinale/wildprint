@@ -48,7 +48,7 @@ EMAIL_TEMPLATE_KINDS: Final[tuple[str, ...]] = (
 
 # Phase 5b: storage moved to DB (review_app.content). These helpers wrap the
 # DB-backed get/set so the route handlers stay readable.
-def _load_templates(session: "Session | None" = None) -> dict[str, dict[str, str]]:
+def _load_templates(session: Session | None = None) -> dict[str, dict[str, str]]:
     from review_app.content import get_block
 
     out: dict[str, dict[str, str]] = {}
@@ -71,7 +71,7 @@ MARKETING_SLOTS: Final[tuple[str, ...]] = (
 )
 
 
-def _load_marketing(session: "Session | None" = None) -> dict[str, str]:
+def _load_marketing(session: Session | None = None) -> dict[str, str]:
     from review_app.content import get_block
 
     out: dict[str, str] = {}

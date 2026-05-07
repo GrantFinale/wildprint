@@ -182,8 +182,7 @@ def _run(session: Session, order_id: str) -> dict[str, Any]:
         # production. The operations analytics page (admin/analytics) reads
         # this column to compute AVG(in_production_at - paid_at).
         if getattr(order, "in_production_at", None) is None:
-            from datetime import UTC as _UTC
-            from datetime import datetime as _dt
+            from datetime import UTC as _UTC, datetime as _dt
 
             order.in_production_at = _dt.now(_UTC)
 

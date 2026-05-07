@@ -247,8 +247,7 @@ def register(admin_bp: Blueprint) -> None:
     def customers_add_note(customer_id: uuid.UUID) -> Response:
         from flask import redirect, url_for
 
-        from review_app import audit
-        from review_app import notes as _notes
+        from review_app import audit, notes as _notes
 
         session = _admin_session.get_session()
         try:
@@ -294,7 +293,7 @@ def register(admin_bp: Blueprint) -> None:
 def _resolve_actor_user_id() -> uuid.UUID:
     """Resolve current admin user id (shadow-mode safe)."""
     try:
-        from flask_login import current_user  # type: ignore
+        from flask_login import current_user
 
         uid = getattr(current_user, "id", None)
         if isinstance(uid, uuid.UUID):

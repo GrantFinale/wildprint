@@ -89,6 +89,9 @@ app.secret_key = (
 # safe even before every env var is populated.
 # ---------------------------------------------------------------------------
 from review_app import cli as _cli
+
+# Phase 5b additive imports — customer accounts, content blocks, notes.
+from review_app.account import init_app as _init_account
 from review_app.addresses import init_app as _init_addresses
 from review_app.admin import init_app as _init_admin
 from review_app.ai import init_app as _init_ai
@@ -96,9 +99,11 @@ from review_app.auth import init_app as _init_auth
 from review_app.auth.routes import auth_bp as _auth_bp
 from review_app.cart import init_app as _init_cart
 from review_app.checkout import init_app as _init_checkout
+from review_app.content import init_app as _init_content
 from review_app.customers import init_app as _init_customers
 from review_app.db.session import init_app as _init_db
 from review_app.email import init_app as _init_email
+from review_app.notes import init_app as _init_notes
 from review_app.observability import init_app as _init_obs
 from review_app.orders import init_app as _init_orders
 from review_app.preview import init_app as _init_preview
@@ -106,10 +111,6 @@ from review_app.prodigi import init_app as _init_prodigi
 from review_app.refunds import init_app as _init_refunds
 from review_app.render import init_app as _init_render
 from review_app.storage import init_app as _init_storage
-# Phase 5b additive imports — customer accounts, content blocks, notes.
-from review_app.account import init_app as _init_account
-from review_app.content import init_app as _init_content
-from review_app.notes import init_app as _init_notes
 
 _init_obs(app)
 _init_db(app)
@@ -141,8 +142,8 @@ _init_notes(app)
 # AFTER the admin/account blueprints so admin POSTs land in the
 # auto-capture path; wire BEFORE _cli.register so limiter init isn't
 # overshadowed by CLI command registration.
-from review_app.audit import init_app as _init_audit  # noqa: E402
-from review_app.limits import init_app as _init_limits  # noqa: E402
+from review_app.audit import init_app as _init_audit
+from review_app.limits import init_app as _init_limits
 
 _init_audit(app)
 _init_limits(app)
@@ -2074,6 +2075,7 @@ def api_background_presets():
 # above stays as a per-process belt-and-braces guard; the Flask-Limiter
 # decorator below is the cross-replica enforced limit.
 from review_app.limits import render_limit as _phase5a_render_limit
+
 
 @app.route("/api/generate-poster", methods=["POST"])
 @_phase5a_render_limit()
