@@ -1057,17 +1057,52 @@ def landing():
 @app.route("/api/lead", methods=["POST"])
 @rate_limit(60)
 def api_lead():
-    """Persist a lead and return the wizard redirect URL."""
+    """Persist a lead and return the wizard redirect URL.
+
+    Primary input: ``zip_code`` (5 digits). The handler resolves it to a
+    state abbreviation via Smarty (with a static prefix-table fallback),
+    persists the resolved state on the lead, and redirects to ``/create``
+    with the legacy ``state=...`` query param so downstream code keeps
+    working unchanged.
+
+    Backward compat: if the client sends ``state`` instead of (or alongside)
+    ``zip_code`` we honor it but emit a deprecation log line.
+    """
+    from review_app.addresses.zip_resolver import is_valid_zip, resolve_zip
+
     data = request.get_json(force=True, silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     lake_name = (data.get("lake_name") or "").strip()
-    state_code = (data.get("state") or "").strip().upper()
+    zip_code = (data.get("zip_code") or "").strip()
+    legacy_state = (data.get("state") or "").strip().upper()
+
     if not email or "@" not in email:
         return jsonify({"error": "Valid email required."}), 400
     if not lake_name:
         return jsonify({"error": "Lake name required."}), 400
-    if not state_code:
-        return jsonify({"error": "State / province required."}), 400
+
+    state_code = ""
+    resolution_source = ""
+    if zip_code:
+        if not is_valid_zip(zip_code):
+            return jsonify({"error": "ZIP code must be 5 digits."}), 400
+        resolved = resolve_zip(zip_code)
+        state_code = resolved["state"]
+        resolution_source = resolved["source"]
+        if not state_code:
+            return jsonify({"error": "Could not resolve ZIP to a US state."}), 400
+    elif legacy_state:
+        # Backward compat: callers that still POST ``state`` (older clients,
+        # tests). Log so we can spot stragglers in production.
+        import logging as _logging
+        _logging.getLogger(__name__).warning(
+            "api_lead: legacy 'state' field used (deprecated; prefer zip_code). state=%s",
+            legacy_state,
+        )
+        state_code = legacy_state
+        resolution_source = "legacy_state"
+    else:
+        return jsonify({"error": "ZIP code required."}), 400
 
     _save_lead(email, lake_name, state_code)
     # Remember the email in the session so /api/me knows who's coming back.
@@ -1077,12 +1112,20 @@ def api_lead():
 
     from urllib.parse import urlencode
 
-    qs = urlencode({
+    qs_params = {
         "lake": lake_name,
         "state": state_code,
         "email": email,
+    }
+    if zip_code:
+        qs_params["zip"] = zip_code
+    qs = urlencode(qs_params)
+    return jsonify({
+        "redirect": f"/create?{qs}",
+        "state": state_code,
+        "zip_code": zip_code,
+        "source": resolution_source,
     })
-    return jsonify({"redirect": f"/create?{qs}"})
 
 
 @app.route("/api/me")

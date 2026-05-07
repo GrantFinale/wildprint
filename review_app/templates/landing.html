@@ -40,8 +40,8 @@
             <input type="text" name="lake_name" required placeholder="e.g. Lake Michigan">
           </label>
           <label class="lp-field">
-            <span>State / Province</span>
-            <input type="text" name="state" required placeholder="e.g. MI" maxlength="3">
+            <span>ZIP code</span>
+            <input type="text" name="zip_code" required placeholder="e.g. 48104" maxlength="5" pattern="\d{5}" inputmode="numeric">
           </label>
           <label class="lp-field">
             <span>Email</span>
@@ -154,8 +154,8 @@
           <input type="text" name="lake_name" required placeholder="e.g. Lake Michigan">
         </label>
         <label class="lp-field">
-          <span>State / Province</span>
-          <input type="text" name="state" required placeholder="e.g. MI" maxlength="3">
+          <span>ZIP code</span>
+          <input type="text" name="zip_code" required placeholder="e.g. 48104" maxlength="5" pattern="\d{5}" inputmode="numeric">
         </label>
         <label class="lp-field">
           <span>Email</span>
@@ -185,11 +185,15 @@
         var fd = new FormData(form);
         var body = {
           lake_name: (fd.get('lake_name') || '').toString().trim(),
-          state: (fd.get('state') || '').toString().trim().toUpperCase(),
+          zip_code: (fd.get('zip_code') || '').toString().trim(),
           email: (fd.get('email') || '').toString().trim().toLowerCase()
         };
-        if (!body.lake_name || !body.state || !body.email || body.email.indexOf('@') < 0) {
-          if (errEl) errEl.textContent = 'Please fill in lake name, state, and a valid email.';
+        if (!body.lake_name || !body.zip_code || !body.email || body.email.indexOf('@') < 0) {
+          if (errEl) errEl.textContent = 'Please fill in lake name, ZIP code, and a valid email.';
+          return;
+        }
+        if (!/^\d{5}$/.test(body.zip_code)) {
+          if (errEl) errEl.textContent = 'ZIP code must be 5 digits.';
           return;
         }
         var btn = form.querySelector('button[type="submit"]');
