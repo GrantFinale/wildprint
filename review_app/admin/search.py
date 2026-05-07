@@ -22,6 +22,7 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from flask import render_template, request
 from flask.typing import ResponseReturnValue
@@ -32,6 +33,9 @@ from review_app.admin._helpers import crumbs
 from review_app.admin.routes import admin_bp
 from review_app.auth.decorators import requires_role
 from review_app.db import get_session
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -55,14 +59,14 @@ class SearchGroup:
     hits: list[SearchHit]
 
 
-def _is_postgres(session: object) -> bool:
+def _is_postgres(session: Session) -> bool:
     try:
         return session.bind.dialect.name == "postgresql"  # type: ignore[union-attr]
     except Exception:
         return False
 
 
-def _search_orders(session: object, q: str) -> list[SearchHit]:
+def _search_orders(session: Session, q: str) -> list[SearchHit]:
     from review_app.orders.models import Order
 
     qlow = q.lower()
@@ -83,7 +87,7 @@ def _search_orders(session: object, q: str) -> list[SearchHit]:
                     Order.status.ilike(f"%{qlow}%"),
                 )
             )
-        rows = session.execute(stmt).scalars().all()  # type: ignore[union-attr]
+        rows = session.execute(stmt).scalars().all()
     except (OperationalError, ProgrammingError):
         return []
 
@@ -99,7 +103,7 @@ def _search_orders(session: object, q: str) -> list[SearchHit]:
     ]
 
 
-def _search_customers(session: object, q: str) -> list[SearchHit]:
+def _search_customers(session: Session, q: str) -> list[SearchHit]:
     from review_app.customers.models import Customer
 
     qlow = q.lower()
@@ -119,7 +123,7 @@ def _search_customers(session: object, q: str) -> list[SearchHit]:
                     Customer.name.ilike(f"%{qlow}%"),
                 )
             )
-        rows = session.execute(stmt).scalars().all()  # type: ignore[union-attr]
+        rows = session.execute(stmt).scalars().all()
     except (OperationalError, ProgrammingError):
         return []
 
@@ -133,7 +137,7 @@ def _search_customers(session: object, q: str) -> list[SearchHit]:
     ]
 
 
-def _search_prodigi_skus(session: object, q: str) -> list[SearchHit]:
+def _search_prodigi_skus(session: Session, q: str) -> list[SearchHit]:
     try:
         from review_app.prodigi.db_models import ProdigiSku
     except ImportError:
@@ -157,7 +161,7 @@ def _search_prodigi_skus(session: object, q: str) -> list[SearchHit]:
                     ProdigiSku.size_inches.ilike(f"%{qlow}%"),
                 )
             )
-        rows = session.execute(stmt).scalars().all()  # type: ignore[union-attr]
+        rows = session.execute(stmt).scalars().all()
     except (OperationalError, ProgrammingError):
         return []
 
@@ -201,7 +205,7 @@ def _search_species(q: str) -> list[SearchHit]:
     return hits
 
 
-def _search_prodigi_orders(session: object, q: str) -> list[SearchHit]:
+def _search_prodigi_orders(session: Session, q: str) -> list[SearchHit]:
     try:
         from review_app.prodigi.db_models import ProdigiOrder
     except ImportError:
@@ -211,21 +215,21 @@ def _search_prodigi_orders(session: object, q: str) -> list[SearchHit]:
     stmt = select(ProdigiOrder).limit(_RESULT_LIMIT)
     try:
         stmt = stmt.where(ProdigiOrder.prodigi_order_id.ilike(f"%{qlow}%"))
-        rows = session.execute(stmt).scalars().all()  # type: ignore[union-attr]
+        rows = session.execute(stmt).scalars().all()
     except (OperationalError, ProgrammingError):
         return []
 
     return [
         SearchHit(
             label=p.prodigi_order_id or "(unsubmitted)",
-            sublabel=p.status or "",
+            sublabel=getattr(p, "status_stage", None) or "",
             href=f"/admin/fulfillment/orders/{p.id}",
         )
         for p in rows
     ]
 
 
-def _search_audit_log(session: object, q: str) -> list[SearchHit]:
+def _search_audit_log(session: Session, q: str) -> list[SearchHit]:
     try:
         from review_app.audit.models import AuditLogEntry
     except ImportError:
@@ -250,7 +254,7 @@ def _search_audit_log(session: object, q: str) -> list[SearchHit]:
                 )
             )
         rows = (
-            session.execute(stmt.order_by(AuditLogEntry.created_at.desc()))  # type: ignore[union-attr]
+            session.execute(stmt.order_by(AuditLogEntry.created_at.desc()))
             .scalars()
             .all()
         )

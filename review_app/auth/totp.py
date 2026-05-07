@@ -35,7 +35,7 @@ def _new_secret() -> str:
     """Return a fresh base32-encoded TOTP secret (160 bits)."""
     import pyotp
 
-    return pyotp.random_base32()  # type: ignore[no-any-return]
+    return pyotp.random_base32()
 
 
 def _new_recovery_code() -> str:
@@ -58,7 +58,7 @@ def _qr_data_url(uri: str) -> str:
     isn't available — the secret remains usable via manual entry.
     """
     try:
-        import qrcode  # type: ignore[import-not-found]
+        import qrcode  # type: ignore[import-untyped]
     except ImportError:
         # No QR support — return the URI itself so the template can show
         # a copy-paste fallback.

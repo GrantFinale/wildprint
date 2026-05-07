@@ -582,7 +582,9 @@ def settings_account_2fa_enroll() -> ResponseReturnValue:
 
     _flask_session["newly_issued_secret"] = str(payload["secret"])
     _flask_session["newly_issued_qr"] = str(payload["qr_data_url"])
-    _flask_session["newly_issued_recovery"] = list(payload["recovery_codes"])  # type: ignore[arg-type]
+    recovery = payload["recovery_codes"]
+    assert isinstance(recovery, list)
+    _flask_session["newly_issued_recovery"] = list(recovery)
     flash(
         "2FA enrollment complete. Save your recovery codes — they are shown once.",
         "success",

@@ -535,7 +535,7 @@ def catalog_render_presets_save(tier: int) -> ResponseReturnValue:
                 }
                 for k, v in values.items():
                     setattr(row, k, v)
-                row.updated_by_user_id = user_id_str
+                row.updated_by_user_id = user_id_str  # type: ignore[assignment]
 
             audit.record(
                 session,

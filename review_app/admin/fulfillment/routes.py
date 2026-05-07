@@ -281,12 +281,12 @@ def register(admin_bp: Blueprint) -> None:
                 .scalars()
                 .all()
             )
-            pending_requests: list[dict] = []
+            pending_requests: list[dict[str, Any]] = []
             for rr in pending_rows:
                 # Decode the comma-joined uuid string and look up line-items.
                 raw = (rr.line_item_ids or "").strip()
                 ids: list[str] = [s for s in raw.split(",") if s]
-                items_meta: list[dict] = []
+                items_meta: list[dict[str, Any]] = []
                 if ids:
                     try:
                         item_uuids = [uuid.UUID(s) for s in ids if s]

@@ -157,10 +157,10 @@ def _row_to_config(row: object, tier: int) -> TierConfig:
     default_bucket = _DEFAULT_BUCKETS.get(bucket_env, _baseline(tier).default_bucket)
     return TierConfig(
         tier=int(getattr(row, "tier", tier)),
-        long_edge_px=int(getattr(row, "long_edge_px")),
-        dpi=int(getattr(row, "dpi")),
+        long_edge_px=int(row.long_edge_px),  # type: ignore[attr-defined]
+        dpi=int(row.dpi),  # type: ignore[attr-defined]
         fmt=fmt,
-        jpeg_quality=int(getattr(row, "jpeg_quality") or 0),
+        jpeg_quality=int(getattr(row, "jpeg_quality", 0) or 0),
         watermark=bool(getattr(row, "watermark_enabled", False)),
         public=bool(getattr(row, "public_read", False)),
         bucket_env=bucket_env,
