@@ -447,6 +447,16 @@ def register(admin_bp: Blueprint) -> None:
                         if len(email_rows) >= 20:
                             break
 
+            # Phase 5b — render notes inline on the order detail page.
+            try:
+                from review_app import notes as _notes
+
+                order_notes = _notes.list_for(
+                    session, target_type="order", target_id=order.id
+                )
+            except Exception:
+                order_notes = []
+
             html = render_template(
                 "admin/orders/order_detail.html",
                 order=order,
@@ -458,14 +468,247 @@ def register(admin_bp: Blueprint) -> None:
                 shipments=shipments,
                 callbacks=callbacks,
                 emails=email_rows,
+                notes=order_notes,
             )
             return make_response(html)
         finally:
             _admin_session.close_session_if_owned(session, commit=False)
 
+    # -----------------------------------------------------------------
+    # Phase 5b — admin action endpoints wired from order detail buttons.
+    # -----------------------------------------------------------------
+    @admin_bp.route(
+        "/orders/<uuid:order_id>/refund",
+        methods=["POST"],
+        endpoint="orders_refund",
+    )
+    @requires_role("admin")
+    def orders_refund(order_id: uuid.UUID) -> Response:
+        from review_app import audit
+        from review_app.refunds.service import (
+            RefundServiceError,
+            request_refund,
+        )
+
+        session = _admin_session.get_session()
+        try:
+            data = request.get_json(silent=True) or request.form
+            try:
+                amount_cents = int(data.get("amount_cents") or 0)
+            except (TypeError, ValueError):
+                amount_cents = 0
+            reason = (data.get("reason") or "").strip() or None
+            try:
+                rf = request_refund(
+                    session,
+                    order_id=order_id,
+                    amount_cents=amount_cents,
+                    reason=reason,
+                    requested_by_user_id=None,
+                )
+            except RefundServiceError as exc:
+                _admin_session.close_session_if_owned(session, commit=False)
+                if request.is_json:
+                    return cast("Response", jsonify({"error": str(exc)})), 400  # type: ignore[return-value]
+                flash(f"Refund failed: {exc}", "error")
+                return cast(
+                    "Response",
+                    redirect(url_for("admin.orders_detail", order_id=str(order_id))),
+                )
+
+            audit.record(
+                session,
+                action="refund_initiated",
+                target_type="order",
+                target_id=str(order_id),
+                after={"amount_cents": amount_cents, "refund_id": str(rf.id)},
+            )
+            _admin_session.close_session_if_owned(session, commit=True)
+            if request.is_json:
+                return cast(
+                    "Response",
+                    jsonify(
+                        {
+                            "id": str(rf.id),
+                            "status": rf.status,
+                            "amount_cents": rf.amount_cents,
+                        }
+                    ),
+                )
+            flash("Refund initiated.", "success")
+            return cast(
+                "Response",
+                redirect(url_for("admin.orders_detail", order_id=str(order_id))),
+            )
+        except Exception:
+            _admin_session.close_session_if_owned(session, commit=False)
+            raise
+
+    @admin_bp.route(
+        "/orders/<uuid:order_id>/reprint",
+        methods=["POST"],
+        endpoint="orders_reprint",
+    )
+    @requires_role("admin", "staff")
+    def orders_reprint(order_id: uuid.UUID) -> Response:
+        from review_app import audit
+        from review_app.orders.models import Order
+        from review_app.refunds.reprints import (
+            ReprintRequestError,
+            request_reprint,
+        )
+
+        session = _admin_session.get_session()
+        try:
+            order = session.get(Order, order_id)
+            if order is None:
+                _admin_session.close_session_if_owned(session, commit=False)
+                if request.is_json:
+                    return cast(
+                        "Response", jsonify({"error": "order not found"})  # type: ignore[return-value]
+                    ), 404
+                flash("Order not found.", "error")
+                return cast(
+                    "Response", redirect(url_for("admin.orders_list"))
+                )
+
+            data = request.get_json(silent=True) or request.form
+            reason = (data.get("reason") or "").strip() or None
+            raw_ids = data.get("line_item_ids") or ""
+            line_item_ids: list[uuid.UUID] | None = None
+            if raw_ids:
+                line_item_ids = []
+                for piece in str(raw_ids).split(","):
+                    piece = piece.strip()
+                    if not piece:
+                        continue
+                    try:
+                        line_item_ids.append(uuid.UUID(piece))
+                    except ValueError:
+                        continue
+
+            try:
+                rr = request_reprint(
+                    session,
+                    order_id=order_id,
+                    customer_id=order.customer_id,
+                    reason=reason,
+                    line_item_ids=line_item_ids,
+                    requested_by_role="admin",
+                )
+            except ReprintRequestError as exc:
+                _admin_session.close_session_if_owned(session, commit=False)
+                if request.is_json:
+                    return cast("Response", jsonify({"error": str(exc)})), 400  # type: ignore[return-value]
+                flash(f"Reprint failed: {exc}", "error")
+                return cast(
+                    "Response",
+                    redirect(url_for("admin.orders_detail", order_id=str(order_id))),
+                )
+
+            audit.record(
+                session,
+                action="reprint_requested",
+                target_type="order",
+                target_id=str(order_id),
+                after={"reprint_id": str(rr.id)},
+            )
+            _admin_session.close_session_if_owned(session, commit=True)
+            if request.is_json:
+                return cast(
+                    "Response",
+                    jsonify({"id": str(rr.id), "status": rr.status}),
+                )
+            flash("Reprint request created.", "success")
+            return cast(
+                "Response",
+                redirect(url_for("admin.orders_detail", order_id=str(order_id))),
+            )
+        except Exception:
+            _admin_session.close_session_if_owned(session, commit=False)
+            raise
+
+    @admin_bp.route(
+        "/orders/<uuid:order_id>/notes",
+        methods=["POST"],
+        endpoint="orders_add_note",
+    )
+    @requires_role("admin", "staff")
+    def orders_add_note(order_id: uuid.UUID) -> Response:
+        from review_app import audit
+        from review_app import notes as _notes
+
+        session = _admin_session.get_session()
+        try:
+            body = (request.form.get("body") or "").strip()
+            if not body:
+                flash("Note body cannot be empty.", "error")
+                return cast(
+                    "Response",
+                    redirect(url_for("admin.orders_detail", order_id=str(order_id))),
+                )
+            author_id = _resolve_actor_user_id()
+            try:
+                note = _notes.add(
+                    session,
+                    target_type="order",
+                    target_id=order_id,
+                    body=body,
+                    author_user_id=author_id,
+                )
+            except ValueError as exc:
+                flash(f"Could not add note: {exc}", "error")
+                _admin_session.close_session_if_owned(session, commit=False)
+                return cast(
+                    "Response",
+                    redirect(url_for("admin.orders_detail", order_id=str(order_id))),
+                )
+            audit.record(
+                session,
+                action="note_added",
+                target_type="order",
+                target_id=str(order_id),
+                user_id=str(author_id),
+                after={"note_id": str(note.id)},
+            )
+            _admin_session.close_session_if_owned(session, commit=True)
+            flash("Note added.", "success")
+            return cast(
+                "Response",
+                redirect(url_for("admin.orders_detail", order_id=str(order_id))),
+            )
+        except Exception:
+            _admin_session.close_session_if_owned(session, commit=False)
+            raise
+
 
 # ---------------------------------------------------------------------------
 # Detail-page bulk lookups (kept module-level so they're easy to test)
+# ---------------------------------------------------------------------------
+def _resolve_actor_user_id() -> uuid.UUID:
+    """Resolve the current admin user id, with a stable fallback for shadow mode.
+
+    When ADMIN_AUTH_ENABLED is unset (shadow mode), Flask-Login's current_user
+    is anonymous; we use a deterministic placeholder UUID so audit trails
+    remain queryable. The bootstrap admin user replaces this once auth flips on.
+    """
+    try:
+        from flask_login import current_user  # type: ignore
+
+        uid = getattr(current_user, "id", None)
+        if isinstance(uid, uuid.UUID):
+            return uid
+        if isinstance(uid, str):
+            try:
+                return uuid.UUID(uid)
+            except ValueError:
+                pass
+    except Exception:
+        pass
+    # Stable shadow-mode placeholder.
+    return uuid.UUID("00000000-0000-0000-0000-000000000001")
+
+
 # ---------------------------------------------------------------------------
 def _bulk_customer_emails(
     session: Session, customer_ids: list[uuid.UUID]

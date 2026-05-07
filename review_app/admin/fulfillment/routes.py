@@ -283,6 +283,133 @@ def register(admin_bp: Blueprint) -> None:
         finally:
             _admin_session.close_session_if_owned(session, commit=False)
 
+    # -----------------------------------------------------------------
+    # Phase 5b — approve/reject reprint requests (the queue from Phase 5b).
+    # -----------------------------------------------------------------
+    @admin_bp.route(
+        "/fulfillment/reprints/<uuid:reprint_id>/approve",
+        methods=["POST"],
+        endpoint="fulfillment_reprint_approve",
+    )
+    @requires_role("admin")
+    def fulfillment_reprint_approve(reprint_id: uuid.UUID) -> Response:
+        from review_app import audit
+        from review_app.refunds.reprints import (
+            ReprintRequestError,
+            approve_reprint,
+        )
+
+        session = _admin_session.get_session()
+        try:
+            try:
+                rr = approve_reprint(
+                    session,
+                    reprint_id=reprint_id,
+                    admin_user_id=_resolve_actor_user_id(),
+                )
+            except ReprintRequestError as exc:
+                _admin_session.close_session_if_owned(session, commit=False)
+                flash(f"Could not approve reprint: {exc}", "error")
+                return cast(
+                    "Response",
+                    redirect(url_for("admin.fulfillment_reprints")),
+                )
+            audit.record(
+                session,
+                action="reprint_approved",
+                target_type="reprint_request",
+                target_id=str(reprint_id),
+                user_id=str(_resolve_actor_user_id()),
+                after={
+                    "status": rr.status,
+                    "new_prodigi_order_id": rr.new_prodigi_order_id,
+                },
+            )
+            _admin_session.close_session_if_owned(session, commit=True)
+            flash("Reprint approved.", "success")
+            return cast(
+                "Response", redirect(url_for("admin.fulfillment_reprints"))
+            )
+        except Exception:
+            _admin_session.close_session_if_owned(session, commit=False)
+            raise
+
+    @admin_bp.route(
+        "/fulfillment/reprints/<uuid:reprint_id>/reject",
+        methods=["POST"],
+        endpoint="fulfillment_reprint_reject",
+    )
+    @requires_role("admin")
+    def fulfillment_reprint_reject(reprint_id: uuid.UUID) -> Response:
+        from review_app import audit
+        from review_app.refunds.reprints import (
+            ReprintRequestError,
+            reject_reprint,
+        )
+
+        session = _admin_session.get_session()
+        try:
+            data = request.get_json(silent=True) or request.form
+            reason = (data.get("reason") or "").strip()
+            if not reason:
+                flash("Rejection reason is required.", "error")
+                _admin_session.close_session_if_owned(session, commit=False)
+                return cast(
+                    "Response",
+                    redirect(url_for("admin.fulfillment_reprints")),
+                )
+            try:
+                rr = reject_reprint(
+                    session,
+                    reprint_id=reprint_id,
+                    admin_user_id=_resolve_actor_user_id(),
+                    reason=reason,
+                )
+            except ReprintRequestError as exc:
+                _admin_session.close_session_if_owned(session, commit=False)
+                flash(f"Could not reject reprint: {exc}", "error")
+                return cast(
+                    "Response",
+                    redirect(url_for("admin.fulfillment_reprints")),
+                )
+            audit.record(
+                session,
+                action="reprint_rejected",
+                target_type="reprint_request",
+                target_id=str(reprint_id),
+                user_id=str(_resolve_actor_user_id()),
+                after={"status": rr.status, "reason": reason},
+            )
+            _admin_session.close_session_if_owned(session, commit=True)
+            flash("Reprint rejected.", "success")
+            return cast(
+                "Response", redirect(url_for("admin.fulfillment_reprints"))
+            )
+        except Exception:
+            _admin_session.close_session_if_owned(session, commit=False)
+            raise
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+def _resolve_actor_user_id() -> uuid.UUID:
+    """Mirror admin.orders.routes._resolve_actor_user_id (shadow-mode safe)."""
+    try:
+        from flask_login import current_user  # type: ignore
+
+        uid = getattr(current_user, "id", None)
+        if isinstance(uid, uuid.UUID):
+            return uid
+        if isinstance(uid, str):
+            try:
+                return uuid.UUID(uid)
+            except ValueError:
+                pass
+    except Exception:
+        pass
+    return uuid.UUID("00000000-0000-0000-0000-000000000001")
+
 
 # ---------------------------------------------------------------------------
 # Reprint creator

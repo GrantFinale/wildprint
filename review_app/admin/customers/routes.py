@@ -213,6 +213,15 @@ def register(admin_bp: Blueprint) -> None:
             ltv_map = _ltv_by_customer(session, [customer.id])
             order_count, ltv_cents, last_at = ltv_map.get(customer.id, (0, 0, None))
 
+            try:
+                from review_app import notes as _notes
+
+                customer_notes = _notes.list_for(
+                    session, target_type="customer", target_id=customer.id
+                )
+            except Exception:
+                customer_notes = []
+
             html = render_template(
                 "admin/customers/customer_detail.html",
                 customer=customer,
@@ -223,10 +232,81 @@ def register(admin_bp: Blueprint) -> None:
                 ltv_cents=ltv_cents,
                 last_order_at=last_at,
                 not_found=False,
+                notes=customer_notes,
             )
             return make_response(html)
         finally:
             _admin_session.close_session_if_owned(session, commit=False)
+
+    @admin_bp.route(
+        "/customers/<uuid:customer_id>/notes",
+        methods=["POST"],
+        endpoint="customers_add_note",
+    )
+    @requires_role("admin", "staff")
+    def customers_add_note(customer_id: uuid.UUID) -> Response:
+        from flask import redirect, url_for
+
+        from review_app import audit
+        from review_app import notes as _notes
+
+        session = _admin_session.get_session()
+        try:
+            body = (request.form.get("body") or "").strip()
+            if not body:
+                flash("Note body cannot be empty.", "error")
+                return redirect(  # type: ignore[return-value]
+                    url_for("admin.customers_detail", customer_id=str(customer_id))
+                )
+            author_id = _resolve_actor_user_id()
+            try:
+                note = _notes.add(
+                    session,
+                    target_type="customer",
+                    target_id=customer_id,
+                    body=body,
+                    author_user_id=author_id,
+                )
+            except ValueError as exc:
+                flash(f"Could not add note: {exc}", "error")
+                _admin_session.close_session_if_owned(session, commit=False)
+                return redirect(  # type: ignore[return-value]
+                    url_for("admin.customers_detail", customer_id=str(customer_id))
+                )
+            audit.record(
+                session,
+                action="note_added",
+                target_type="customer",
+                target_id=str(customer_id),
+                user_id=str(author_id),
+                after={"note_id": str(note.id)},
+            )
+            _admin_session.close_session_if_owned(session, commit=True)
+            flash("Note added.", "success")
+            return redirect(  # type: ignore[return-value]
+                url_for("admin.customers_detail", customer_id=str(customer_id))
+            )
+        except Exception:
+            _admin_session.close_session_if_owned(session, commit=False)
+            raise
+
+
+def _resolve_actor_user_id() -> uuid.UUID:
+    """Resolve current admin user id (shadow-mode safe)."""
+    try:
+        from flask_login import current_user  # type: ignore
+
+        uid = getattr(current_user, "id", None)
+        if isinstance(uid, uuid.UUID):
+            return uid
+        if isinstance(uid, str):
+            try:
+                return uuid.UUID(uid)
+            except ValueError:
+                pass
+    except Exception:
+        pass
+    return uuid.UUID("00000000-0000-0000-0000-000000000001")
 
 
 # Quiet linter
