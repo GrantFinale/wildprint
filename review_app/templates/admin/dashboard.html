@@ -1,0 +1,66 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>Dashboard</h1>
+  <p class="admin-page__subtitle">Operational health at a glance.</p>
+
+  <form method="get" action="{{ url_for('admin.dashboard') }}" class="admin-range-filter">
+    <span class="admin-range-filter__label">Range:</span>
+    {% for token, label in [('today','Today'),('7d','7 days'),('30d','30 days'),('mtd','MTD')] %}
+      <a
+        href="{{ url_for('admin.dashboard', range=token) }}"
+        class="admin-range-filter__option {% if range_token == token %}is-active{% endif %}"
+      >{{ label }}</a>
+    {% endfor %}
+  </form>
+</header>
+
+<section class="admin-stat-grid" aria-label="Today's stats">
+  <div class="admin-stat-card">
+    <div class="admin-stat-card__label">Today's orders</div>
+    <div class="admin-stat-card__value">{{ cards.todays_orders }}</div>
+  </div>
+  <div class="admin-stat-card">
+    <div class="admin-stat-card__label">Today's revenue</div>
+    <div class="admin-stat-card__value">{{ cards.todays_revenue_dollars() }}</div>
+  </div>
+  <div class="admin-stat-card">
+    <div class="admin-stat-card__label">In production</div>
+    <div class="admin-stat-card__value">{{ cards.in_production }}</div>
+  </div>
+  <div class="admin-stat-card">
+    <div class="admin-stat-card__label">Shipped (7d)</div>
+    <div class="admin-stat-card__value">{{ cards.shipped_7d }}</div>
+  </div>
+  <div class="admin-stat-card">
+    <div class="admin-stat-card__label">Errors</div>
+    <div class="admin-stat-card__value {% if cards.error_count > 0 %}admin-stat-card__value--alert{% endif %}">{{ cards.error_count }}</div>
+  </div>
+  <div class="admin-stat-card">
+    <div class="admin-stat-card__label">AI spend (MTD)</div>
+    <div class="admin-stat-card__value">{{ cards.ai_spend_mtd_dollars() }}</div>
+  </div>
+</section>
+
+<section class="admin-card">
+  <h2>Top SKUs (last 7 days)</h2>
+  {% if top_skus %}
+    <table class="admin-table">
+      <thead>
+        <tr><th>Internal SKU</th><th>Units</th><th>Revenue</th></tr>
+      </thead>
+      <tbody>
+        {% for row in top_skus %}
+          <tr>
+            <td><code>{{ row.internal_sku }}</code></td>
+            <td>{{ row.units }}</td>
+            <td>{{ row.revenue_dollars() }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="admin-empty">No order data yet — top SKU table will populate once orders flow.</p>
+  {% endif %}
+</section>
+{% endblock %}
