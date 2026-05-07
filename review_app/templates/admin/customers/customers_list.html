@@ -1,0 +1,65 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}Customers — wildprint admin{% endblock %}
+
+{% block content %}
+
+  <form class="filter-bar" method="get" action="{{ url_for('admin.customers_list') }}">
+    <input type="search" name="q" value="{{ filters.q }}"
+           placeholder="email or name">
+    <select name="bucket">
+      {% for slug, label, _min in buckets %}
+        <option value="{{ slug }}" {% if filters.bucket == slug %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Apply</button>
+  </form>
+
+  {% if customers %}
+    <table class="fp-table">
+      <thead>
+        <tr>
+          <th>Email</th><th>Name</th><th>Orders</th><th>LTV</th>
+          <th>Last order</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in customers %}
+          {% set entry = ltv.get(c.id, (0, 0, None)) %}
+          <tr>
+            <td>
+              <a href="{{ url_for('admin.customers_detail', customer_id=c.id) }}">
+                {{ c.email }}
+              </a>
+              {% if c.id in problems %}
+                <span class="badge badge--err" title="Has unresolved problem order">!</span>
+              {% endif %}
+            </td>
+            <td>{{ c.name or '—' }}</td>
+            <td>{{ entry[0] }}</td>
+            <td>${{ '%.2f'|format(entry[1] / 100) }}</td>
+            <td>
+              {% if entry[2] %}
+                {{ entry[2].strftime('%Y-%m-%d') }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if page_count > 1 %}
+      <div style="margin-top:1rem;color:var(--fp-muted);">
+        Page {{ page }} of {{ page_count }} — {{ total }} total
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <strong>No customers match.</strong>
+    </div>
+  {% endif %}
+
+{% endblock %}

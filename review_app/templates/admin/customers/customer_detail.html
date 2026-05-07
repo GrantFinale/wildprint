@@ -1,0 +1,126 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}
+  {% if customer %}{{ customer.email }}{% else %}Customer not found{% endif %}
+{% endblock %}
+
+{% block content %}
+
+  {% if not_found %}
+    <div class="empty-state">
+      <strong>Customer not found.</strong>
+      <a class="btn" href="{{ url_for('admin.customers_list') }}">Back to customers</a>
+    </div>
+
+  {% else %}
+
+    <div class="panel" data-section="profile">
+      <h2>Profile</h2>
+      <dl style="display:grid;grid-template-columns:max-content 1fr;gap:0.4rem 1rem;font-size:0.9rem;">
+        <dt style="color:var(--fp-muted);">Email</dt>
+        <dd>{{ customer.email }}</dd>
+        <dt style="color:var(--fp-muted);">Name</dt>
+        <dd>{{ customer.name or '—' }}</dd>
+        <dt style="color:var(--fp-muted);">Marketing opt-in</dt>
+        <dd>{{ 'Yes' if customer.marketing_opt_in else 'No' }}</dd>
+        <dt style="color:var(--fp-muted);">Stripe customer</dt>
+        <dd><code>{{ customer.stripe_customer_id or '—' }}</code></dd>
+        <dt style="color:var(--fp-muted);">Joined</dt>
+        <dd>{{ customer.created_at.strftime('%Y-%m-%d') if customer.created_at else '—' }}</dd>
+        <dt style="color:var(--fp-muted);">Order count</dt>
+        <dd>{{ order_count }}</dd>
+        <dt style="color:var(--fp-muted);">LTV</dt>
+        <dd>${{ '%.2f'|format(ltv_cents / 100) }}</dd>
+      </dl>
+    </div>
+
+    <div class="panel" data-section="addresses">
+      <h2>Addresses ({{ addresses|length }})</h2>
+      {% if addresses %}
+        <table class="fp-table">
+          <thead>
+            <tr><th>Default</th><th>Address</th><th>Validated</th></tr>
+          </thead>
+          <tbody>
+            {% for a in addresses %}
+              <tr>
+                <td>{{ '★' if a.is_default else '' }}</td>
+                <td>
+                  {{ a.line1 }}{% if a.line2 %}, {{ a.line2 }}{% endif %},
+                  {{ a.city }}, {{ a.state }} {{ a.zip }}, {{ a.country }}
+                </td>
+                <td>
+                  {% if a.validated_at %}
+                    <span class="badge badge--ok">{{ a.dpv_match_code or 'OK' }}</span>
+                  {% else %}
+                    <span class="badge badge--muted">unvalidated</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <em>No addresses on file.</em>
+      {% endif %}
+    </div>
+
+    <div class="panel" data-section="orders">
+      <h2>Orders ({{ orders|length }})</h2>
+      {% if orders %}
+        <table class="fp-table">
+          <thead>
+            <tr>
+              <th>Order #</th><th>Status</th><th>Total</th><th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in orders %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('admin.orders_detail', order_id=o.id) }}">
+                    {{ o.id.hex[:8] }}
+                  </a>
+                </td>
+                <td><span class="badge badge--muted">{{ o.status }}</span></td>
+                <td>${{ '%.2f'|format(o.total_cents / 100) }}</td>
+                <td>{{ o.created_at.strftime('%Y-%m-%d') if o.created_at else '—' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <em>No orders yet.</em>
+      {% endif %}
+    </div>
+
+    <div class="panel" data-section="emails">
+      <h2>Emails ({{ emails|length }})</h2>
+      {% if emails %}
+        <table class="fp-table">
+          <thead>
+            <tr><th>Created</th><th>Kind</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {% for e in emails %}
+              <tr>
+                <td>{{ e.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ e.kind }}</td>
+                <td><span class="badge badge--muted">{{ e.status }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <em>No emails sent.</em>
+      {% endif %}
+    </div>
+
+    <div class="panel" data-section="actions">
+      <h2>Actions</h2>
+      <p>Add note, send email (template picker), ban — Phase 5 wire-up.</p>
+    </div>
+
+  {% endif %}
+
+{% endblock %}
