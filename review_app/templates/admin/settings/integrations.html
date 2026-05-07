@@ -1,0 +1,35 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>Integrations</h1>
+  <p class="admin-page__subtitle">
+    Per-service configuration health. Real upstream pings are deferred to Phase 5
+    (background job writes to <code>health_checks</code> table). This page caches
+    results for 5 minutes.
+  </p>
+</header>
+
+<section class="admin-card">
+  <table class="admin-table">
+    <thead>
+      <tr><th>Service</th><th>Status</th><th>Note</th><th>Last call</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>{{ r.service }}</td>
+          <td>
+            {% if r.healthy %}
+              <span class="admin-status-dot admin-status-dot--ok" title="healthy"></span> healthy
+            {% else %}
+              <span class="admin-status-dot admin-status-dot--err" title="unconfigured"></span> unconfigured
+            {% endif %}
+          </td>
+          <td>{{ r.note }}</td>
+          <td class="admin-status">{{ r.last_call }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

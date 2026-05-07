@@ -1,0 +1,34 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>API keys</h1>
+  <p class="admin-page__subtitle">
+    Reference table only. <strong>API keys are managed via Coolify environment variables;</strong>
+    this page is for rotation reminders + visibility into what's configured.
+  </p>
+</header>
+
+<section class="admin-card">
+  <table class="admin-table">
+    <thead>
+      <tr><th>Service</th><th>Env var</th><th>Value (masked)</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>{{ r.service }}</td>
+          <td><code>{{ r.env_var }}</code></td>
+          <td><code>{{ r.masked_value }}</code></td>
+          <td>
+            {% if r.is_set %}
+              <span class="admin-badge admin-badge--ok">set</span>
+            {% else %}
+              <span class="admin-badge admin-badge--err">unset</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

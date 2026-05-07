@@ -1,0 +1,59 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>Users &amp; roles</h1>
+  <p class="admin-page__subtitle">
+    Manage admin/staff/viewer accounts. Invite new users with a one-time temp password.
+  </p>
+</header>
+
+{% if invited_email and temp_password %}
+  <section class="admin-card admin-card--alert">
+    <h2>User invited: {{ invited_email }}</h2>
+    <p>
+      Temporary password (shown <strong>once</strong>; share via Signal or 1Password):
+      <code class="admin-code-block">{{ temp_password }}</code>
+    </p>
+    <p class="admin-status">The invitee should change this on first login (formal reset flow ships in Phase 5).</p>
+  </section>
+{% endif %}
+
+<section class="admin-card">
+  <h2>Invite a user</h2>
+  <form method="post" action="{{ url_for('admin.settings_users_invite') }}" class="admin-form-row">
+    <input type="email" name="email" required placeholder="email@example.com" class="admin-input">
+    <select name="role" class="admin-input">
+      {% for r in valid_roles %}
+        <option value="{{ r }}">{{ r }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary">Invite</button>
+  </form>
+</section>
+
+<section class="admin-card">
+  <h2>Active users</h2>
+  {% if rows %}
+    <table class="admin-table">
+      <thead>
+        <tr><th>Email</th><th>Role</th><th>Last login</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for u in rows %}
+          <tr>
+            <td>{{ u.email }}</td>
+            <td><span class="admin-badge admin-badge--{{ u.role }}">{{ u.role }}</span></td>
+            <td>{{ u.last_login }}</td>
+            <td>{% if u.is_active %}<span class="admin-badge admin-badge--ok">active</span>{% else %}<span class="admin-badge">inactive</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="admin-empty">
+      No users yet. Bootstrap the first admin via:
+      <code>flask --app review_app.app create-admin you@example.com</code>
+    </p>
+  {% endif %}
+</section>
+{% endblock %}

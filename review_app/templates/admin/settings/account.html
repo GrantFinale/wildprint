@@ -1,0 +1,52 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>My account</h1>
+  <p class="admin-page__subtitle">
+    Self-service password change, 2FA enrollment, API token generation.
+  </p>
+</header>
+
+<section class="admin-card">
+  <h2>Profile</h2>
+  <dl class="admin-dl">
+    <dt>Email</dt><dd>{{ user_info.email }}</dd>
+    <dt>Role</dt><dd><span class="admin-badge admin-badge--{{ user_info.role }}">{{ user_info.role }}</span></dd>
+  </dl>
+</section>
+
+<section class="admin-card">
+  <h2>Change password</h2>
+  <form method="post" class="admin-form-stack">
+    <input type="hidden" name="action" value="change_password">
+    <label>Current password
+      <input type="password" name="old_password" autocomplete="current-password" required class="admin-input">
+    </label>
+    <label>New password
+      <input type="password" name="new_password" autocomplete="new-password" required class="admin-input">
+    </label>
+    <label>Confirm new password
+      <input type="password" name="confirm_password" autocomplete="new-password" required class="admin-input">
+    </label>
+    <button type="submit" class="btn btn-primary">Update password</button>
+  </form>
+</section>
+
+<section class="admin-card">
+  <h2>Two-factor authentication</h2>
+  <p>2FA enrollment is a Phase 5 feature.</p>
+  <form method="post" class="admin-form-row">
+    <input type="hidden" name="action" value="enable_2fa">
+    <button type="submit" class="btn" disabled title="Coming in Phase 5">Enable 2FA</button>
+  </form>
+</section>
+
+<section class="admin-card">
+  <h2>API tokens</h2>
+  <p>Per-user API tokens for the wildprint API ship in Phase 5.</p>
+  <form method="post" class="admin-form-row">
+    <input type="hidden" name="action" value="generate_token">
+    <button type="submit" class="btn" disabled title="Coming in Phase 5">Generate token</button>
+  </form>
+</section>
+{% endblock %}

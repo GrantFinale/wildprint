@@ -1,0 +1,39 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>Audit log</h1>
+  <p class="admin-page__subtitle">
+    Compliance trail — who did what, when, and to which entity.
+  </p>
+</header>
+
+<section class="admin-card admin-card--alert">
+  <h2>Coming in Phase 5</h2>
+  <p>
+    The <code>audit_log</code> table doesn't exist in the schema yet. Phase 5 adds
+    it via a new Alembic migration plus middleware to write rows on every
+    state-changing admin action.
+  </p>
+  <p>The eventual column layout is shown below as a placeholder.</p>
+</section>
+
+<section class="admin-card">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Actor</th>
+        <th>Action</th>
+        <th>Target</th>
+        <th>Before / after</th>
+        <th>IP</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td colspan="6" class="admin-empty-cell">No audit events yet.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+{% endblock %}
