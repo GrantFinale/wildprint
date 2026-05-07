@@ -832,15 +832,31 @@
   }
 
   // ---- Free-tier framed preview ----
+  // Free users see the SERVER-COMPOSITED preview only (Prodigi brown frame +
+  // species-lock overlay + 6% www.fishingposter.com watermark). The legacy
+  // live editor canvas stays HIDDEN for them — otherwise the customer sees
+  // the unframed/un-watermarked render flash for ~5-10s before the framed
+  // image arrives, which leaks the un-watermarked art and looks broken.
+  function setLiveEditorVisible(show) {
+    const frame = $('cv3-canvas-frame');
+    if (frame) frame.style.display = show ? '' : 'none';
+  }
   function hideFramedPreview() {
     const el = $('cv3-framed-preview');
     if (el) { el.style.display = 'none'; el.removeAttribute('src'); }
+    setLiveEditorVisible(true);
   }
   function fetchFramedPreview() {
     if (!state.selectedSpecies || state.selectedSpecies.length === 0) {
       hideFramedPreview();
       return;
     }
+    // Hide the live editor IMMEDIATELY — don't wait for the server render.
+    // Replace it with a simple "Preparing your preview…" state so the user
+    // doesn't see the unframed/un-watermarked render.
+    setLiveEditorVisible(false);
+    const el = $('cv3-framed-preview');
+    if (el) { el.style.display = 'none'; el.removeAttribute('src'); }
     fetch('/api/render-framed-preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -858,15 +874,21 @@
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data && data.poster_url) {
-          const el = $('cv3-framed-preview');
-          if (el) {
+          const elx = $('cv3-framed-preview');
+          if (elx) {
             // Cache-bust each render so the browser doesn't show a stale frame.
-            el.src = data.poster_url + '?t=' + Date.now();
-            el.style.display = 'block';
+            elx.src = data.poster_url + '?t=' + Date.now();
+            elx.style.display = 'block';
           }
+        } else {
+          // Server render failed — fall back to the live editor.
+          setLiveEditorVisible(true);
         }
       })
-      .catch(function() { /* best-effort overlay; failure leaves the editor visible */ });
+      .catch(function() {
+        // Server unreachable — fall back to the live editor so the user sees something.
+        setLiveEditorVisible(true);
+      });
   }
 
   // ---------------- Canvas drawing (live editor) ----------------
