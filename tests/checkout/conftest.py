@@ -18,7 +18,8 @@ Instead, this conftest:
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterator
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -30,7 +31,7 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture()
-def checkout_engine() -> Iterator["Engine"]:
+def checkout_engine() -> Iterator[Engine]:
     """Per-test in-memory SQLite engine + create_all of every model module."""
     from sqlalchemy import create_engine
 
@@ -40,19 +41,20 @@ def checkout_engine() -> Iterator["Engine"]:
         connect_args={"check_same_thread": False},
     )
 
-    from review_app.db import Base
+    import review_app.addresses.models
+    import review_app.ai.models
+
     # Side-effect imports — register every model module.
-    import review_app.auth.models  # noqa: F401
-    import review_app.ai.models  # noqa: F401
-    import review_app.email.outbox  # noqa: F401
-    import review_app.prodigi.db_models  # noqa: F401
-    import review_app.render.db_models  # noqa: F401
-    import review_app.customers.models  # noqa: F401
-    import review_app.addresses.models  # noqa: F401
-    import review_app.cart.models  # noqa: F401
-    import review_app.orders.models  # noqa: F401
-    import review_app.refunds.models  # noqa: F401
-    import review_app.checkout.stripe_events  # noqa: F401
+    import review_app.auth.models
+    import review_app.cart.models
+    import review_app.checkout.stripe_events
+    import review_app.customers.models
+    import review_app.email.outbox
+    import review_app.orders.models
+    import review_app.prodigi.db_models
+    import review_app.refunds.models
+    import review_app.render.db_models
+    from review_app.db import Base
 
     Base.metadata.create_all(engine)
     yield engine
@@ -60,15 +62,14 @@ def checkout_engine() -> Iterator["Engine"]:
 
 
 @pytest.fixture()
-def checkout_app(checkout_engine: "Engine") -> Iterator["Flask"]:
+def checkout_app(checkout_engine: Engine) -> Iterator[Flask]:
     """Build a minimal Flask app with only the cart + checkout blueprints."""
     from flask import Flask
     from sqlalchemy.orm import sessionmaker
 
+    import review_app.db as db_mod
     from review_app.cart import init_app as init_cart
     from review_app.checkout import init_app as init_checkout
-
-    import review_app.db as db_mod
 
     saved_engine = db_mod._engine
     saved_factory = db_mod._session_factory
@@ -94,12 +95,12 @@ def checkout_app(checkout_engine: "Engine") -> Iterator["Flask"]:
 
 
 @pytest.fixture()
-def checkout_client(checkout_app: "Flask") -> "FlaskClient":
+def checkout_client(checkout_app: Flask) -> FlaskClient:
     return checkout_app.test_client()
 
 
 @pytest.fixture()
-def checkout_db_session(checkout_engine: "Engine") -> Iterator["Session"]:
+def checkout_db_session(checkout_engine: Engine) -> Iterator[Session]:
     """A simple sessionmaker-backed session bound to the per-test engine.
 
     No SAVEPOINT rollback — the engine itself is per-test, so nothing leaks.
@@ -117,7 +118,7 @@ def checkout_db_session(checkout_engine: "Engine") -> Iterator["Session"]:
 
 
 @pytest.fixture()
-def populated_db(checkout_db_session: "Session") -> dict[str, Any]:
+def populated_db(checkout_db_session: Session) -> dict[str, Any]:
     """Populate the test DB with a cart, sku, render_spec, customer, address."""
     from datetime import UTC, datetime
 

@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 # Fixtures
 # ---------------------------------------------------------------------------
 @pytest.fixture()
-def order_setup(db_session: "Session") -> dict[str, Any]:
+def order_setup(db_session: Session) -> dict[str, Any]:
     """Build a minimal Order with one OrderItem + tier-3 RenderOutputRow."""
     from review_app.addresses.models import Address
     from review_app.customers.models import Customer
@@ -122,7 +122,7 @@ def order_setup(db_session: "Session") -> dict[str, Any]:
 
 @pytest.fixture()
 def patched_externals(
-    db_session: "Session", monkeypatch: pytest.MonkeyPatch
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> MagicMock:
     """Patch get_session, get_signed_url, and get_default_client.
 
@@ -181,7 +181,7 @@ def patched_externals(
 def test_create_prodigi_order_job_idempotent_under_retry(
     order_setup: dict[str, Any],
     patched_externals: MagicMock,
-    db_session: "Session",
+    db_session: Session,
 ) -> None:
     """Running the job twice returns the same Prodigi order id and only
     calls Prodigi once on the second attempt (local idempotency)."""
@@ -202,7 +202,7 @@ def test_create_prodigi_order_job_idempotent_under_retry(
 def test_create_prodigi_order_job_waits_for_render_tier_3(
     order_setup: dict[str, Any],
     patched_externals: MagicMock,
-    db_session: "Session",
+    db_session: Session,
 ) -> None:
     """If the tier-3 render isn't ready, the job raises so RQ retries."""
     from sqlalchemy import delete
@@ -221,7 +221,7 @@ def test_create_prodigi_order_job_waits_for_render_tier_3(
 def test_create_prodigi_order_job_handles_prodigi_4xx_gracefully(
     order_setup: dict[str, Any],
     patched_externals: MagicMock,
-    db_session: "Session",
+    db_session: Session,
 ) -> None:
     """A 4xx from Prodigi raises ProdigiCreateError (non-retryable)."""
     from review_app.prodigi.client import ProdigiClientError
@@ -237,7 +237,7 @@ def test_create_prodigi_order_job_handles_prodigi_4xx_gracefully(
 def test_create_prodigi_order_job_marks_order_in_production(
     order_setup: dict[str, Any],
     patched_externals: MagicMock,
-    db_session: "Session",
+    db_session: Session,
 ) -> None:
     """Successful Prodigi call flips order.status to 'in_production'."""
     order = order_setup["order"]

@@ -31,7 +31,7 @@ class CartConversionError(OrderServiceError):
 # Conversion
 # ---------------------------------------------------------------------------
 def place_order_from_cart(
-    session: "Session",
+    session: Session,
     *,
     cart: Cart,
     customer_id: uuid.UUID,

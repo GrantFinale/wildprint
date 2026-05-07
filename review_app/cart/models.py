@@ -52,10 +52,10 @@ class Cart(Base, TimestampMixin):
         Text, nullable=False, server_default=text("'open'"), default="open"
     )
 
-    customer: Mapped["Customer | None"] = relationship(
+    customer: Mapped[Customer | None] = relationship(
         "Customer", back_populates="carts"
     )
-    items: Mapped[list["CartItem"]] = relationship(
+    items: Mapped[list[CartItem]] = relationship(
         "CartItem",
         back_populates="cart",
         cascade="all, delete-orphan",
@@ -121,7 +121,7 @@ class CartItem(Base, TimestampMixin):
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     unit_price_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
-    cart: Mapped["Cart"] = relationship("Cart", back_populates="items")
+    cart: Mapped[Cart] = relationship("Cart", back_populates="items")
 
     __table_args__ = (
         CheckConstraint("quantity > 0", name="ck_cart_items_quantity_positive"),

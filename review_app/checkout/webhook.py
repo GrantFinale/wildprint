@@ -46,7 +46,7 @@ webhook_bp = Blueprint("stripe_webhook_v2", __name__)
 # ---------------------------------------------------------------------------
 # DB session helpers (mirror cart/routes)
 # ---------------------------------------------------------------------------
-def _get_session() -> "Session":
+def _get_session() -> Session:
     from flask import g
 
     existing = getattr(g, "db", None)
@@ -61,7 +61,7 @@ def _get_session() -> "Session":
     return session
 
 
-def _close_session_if_owned(session: "Session", commit: bool) -> None:
+def _close_session_if_owned(session: Session, commit: bool) -> None:
     from flask import g
 
     if not getattr(g, "db_owned_by_request", False):
@@ -94,7 +94,7 @@ def stripe_webhook_v2() -> Response:
     except stripe_client.StripeSignatureError as exc:
         _log.warning("stripe webhook v2 invalid signature: %s", exc)
         return make_response(jsonify({"error": "invalid signature"}), 400)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         _log.exception("stripe webhook v2 verification crashed")
         return make_response(jsonify({"error": "verification failed", "detail": str(exc)}), 400)
 
@@ -126,7 +126,7 @@ def stripe_webhook_v2() -> Response:
         # Stripe stops retrying); only mark error for true exceptions.
         try:
             _dispatch_event(session, event)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             _log.exception("stripe webhook v2 handler crashed for event_id=%s", event_id)
             ev_row.processed_status = "error"
             ev_row.processed_at = datetime.now(UTC)
@@ -150,7 +150,7 @@ def stripe_webhook_v2() -> Response:
 # ---------------------------------------------------------------------------
 # Dispatcher
 # ---------------------------------------------------------------------------
-def _dispatch_event(session: "Session", event: dict[str, Any]) -> None:
+def _dispatch_event(session: Session, event: dict[str, Any]) -> None:
     """Route by ``event['type']``. Unknown events are silently OK."""
     handlers: dict[str, Any] = {
         "checkout.session.completed": _handle_checkout_session_completed,
@@ -169,9 +169,8 @@ def _dispatch_event(session: "Session", event: dict[str, Any]) -> None:
 # ---------------------------------------------------------------------------
 # Event handlers — each idempotent, each delegates side effects to the outbox
 # ---------------------------------------------------------------------------
-def _handle_checkout_session_completed(session: "Session", event: dict[str, Any]) -> None:
+def _handle_checkout_session_completed(session: Session, event: dict[str, Any]) -> None:
     """Persist Order + OrderItems and enqueue prodigi.create_order + render.tier_3 + email."""
-    from review_app.cart import service as cart_service
     from review_app.cart.models import Cart
     from review_app.customers.models import Customer
     from review_app.email.outbox import enqueue
@@ -269,7 +268,7 @@ def _handle_checkout_session_completed(session: "Session", event: dict[str, Any]
     )
 
 
-def _handle_payment_intent_succeeded(session: "Session", event: dict[str, Any]) -> None:
+def _handle_payment_intent_succeeded(session: Session, event: dict[str, Any]) -> None:
     """Mark the order ``paid`` (no-op if already paid). Idempotent by PI id."""
     from sqlalchemy import select
 
@@ -325,7 +324,7 @@ def _handle_payment_intent_succeeded(session: "Session", event: dict[str, Any]) 
             )
 
 
-def _handle_payment_intent_failed(session: "Session", event: dict[str, Any]) -> None:
+def _handle_payment_intent_failed(session: Session, event: dict[str, Any]) -> None:
     """Mark the order ``cancelled`` and enqueue a payment_failed email."""
     from sqlalchemy import select
 
@@ -366,11 +365,11 @@ def _handle_payment_intent_failed(session: "Session", event: dict[str, Any]) -> 
                     "failure_message": pi.get("last_payment_error", {}).get("message", ""),
                 },
             )
-        except Exception:  # noqa: BLE001
+        except Exception:
             _log.warning("could not enqueue email.payment_failed (kind missing?)")
 
 
-def _handle_charge_refunded(session: "Session", event: dict[str, Any]) -> None:
+def _handle_charge_refunded(session: Session, event: dict[str, Any]) -> None:
     """Stripe refund event landed (initiated from dashboard or our own /refunds).
 
     For Phase 3b we mirror the refund row + flip status. The full refund
@@ -431,7 +430,7 @@ def _handle_charge_refunded(session: "Session", event: dict[str, Any]) -> None:
                     "amount_cents": refund_amount_cents,
                 },
             )
-        except Exception:  # noqa: BLE001
+        except Exception:
             _log.warning("could not enqueue email.refunded")
 
 

@@ -17,10 +17,23 @@ Tests mock these functions instead of stubbing the entire ``stripe`` package.
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from review_app.cart.service import CartDTO
+
+
+def _to_dict(obj: Any) -> dict[str, Any]:
+    """Coerce a Stripe SDK object (StripeObject) to a plain dict.
+
+    The SDK's typeshed stubs don't expose ``to_dict``, so we cast.
+    """
+    if isinstance(obj, dict):
+        return obj
+    if hasattr(obj, "to_dict"):
+        return cast(dict[str, Any], obj.to_dict())
+    # Fallback: pull __dict__ keys (Stripe objects are dict-like).
+    return {k: getattr(obj, k) for k in dir(obj) if not k.startswith("_")}
 
 
 # ---------------------------------------------------------------------------
@@ -68,7 +81,7 @@ def _webhook_secret() -> str:
 # ---------------------------------------------------------------------------
 def create_checkout_session_for_cart(
     *,
-    cart: "CartDTO",
+    cart: CartDTO,
     customer_email: str,
     success_url: str,
     cancel_url: str,
@@ -121,7 +134,11 @@ def create_checkout_session_for_cart(
 
     session = stripe.checkout.Session.create(
         mode="payment",
-        line_items=line_items,
+        # cast: typeshed expects a TypedDict per line item, but the SDK
+        # accepts plain dicts at runtime. The fields are right (price_data
+        # nested with currency/unit_amount/product_data) — just not the
+        # name that mypy expects.
+        line_items=cast(Any, line_items),
         customer_email=customer_email,
         success_url=success_url,
         cancel_url=cancel_url,
@@ -132,9 +149,7 @@ def create_checkout_session_for_cart(
         # the printed poster, conceptually "in the box".
         allow_promotion_codes=True,
     )
-    if hasattr(session, "to_dict"):
-        return session.to_dict()  # type: ignore[no-any-return]
-    return dict(session)
+    return _to_dict(session)
 
 
 def create_payment_intent(
@@ -152,9 +167,7 @@ def create_payment_intent(
         currency=currency,
         metadata=metadata or {},
     )
-    if hasattr(pi, "to_dict"):
-        return pi.to_dict()  # type: ignore[no-any-return]
-    return dict(pi)
+    return _to_dict(pi)
 
 
 def create_refund(
@@ -174,15 +187,12 @@ def create_refund(
     }
     if amount_cents is not None:
         kwargs["amount"] = amount_cents
-    if reason:
-        # Stripe allows: 'duplicate', 'fraudulent', 'requested_by_customer'.
-        if reason in {"duplicate", "fraudulent", "requested_by_customer"}:
-            kwargs["reason"] = reason
+    # Stripe allows: 'duplicate', 'fraudulent', 'requested_by_customer'.
+    if reason and reason in {"duplicate", "fraudulent", "requested_by_customer"}:
+        kwargs["reason"] = reason
 
     refund = stripe.Refund.create(**kwargs)
-    if hasattr(refund, "to_dict"):
-        return refund.to_dict()  # type: ignore[no-any-return]
-    return dict(refund)
+    return _to_dict(refund)
 
 
 def retrieve_event(event_id: str) -> dict[str, Any]:
@@ -191,9 +201,7 @@ def retrieve_event(event_id: str) -> dict[str, Any]:
     import stripe
 
     event = stripe.Event.retrieve(event_id)
-    if hasattr(event, "to_dict"):
-        return event.to_dict()  # type: ignore[no-any-return]
-    return dict(event)
+    return _to_dict(event)
 
 
 def construct_event_from_payload(payload: bytes, signature: str) -> dict[str, Any]:
@@ -205,13 +213,14 @@ def construct_event_from_payload(payload: bytes, signature: str) -> dict[str, An
     import stripe
 
     try:
-        event = stripe.Webhook.construct_event(payload, signature, secret)
+        # construct_event isn't typed in the SDK stubs.
+        event = stripe.Webhook.construct_event(  # type: ignore[no-untyped-call]
+            payload, signature, secret
+        )
     except Exception as exc:  # SignatureVerificationError or ValueError
         raise StripeSignatureError(f"Stripe signature verification failed: {exc}") from exc
 
-    if hasattr(event, "to_dict"):
-        return event.to_dict()  # type: ignore[no-any-return]
-    return dict(event)
+    return _to_dict(event)
 
 
 __all__ = [

@@ -25,7 +25,7 @@ checkout_bp = Blueprint("checkout", __name__)
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def _get_session() -> "Session":
+def _get_session() -> Session:
     from flask import g
 
     existing = getattr(g, "db", None)
@@ -40,7 +40,7 @@ def _get_session() -> "Session":
     return session
 
 
-def _close_session_if_owned(session: "Session", commit: bool) -> None:
+def _close_session_if_owned(session: Session, commit: bool) -> None:
     from flask import g
 
     if not getattr(g, "db_owned_by_request", False):
@@ -155,7 +155,7 @@ def api_checkout_start() -> Response:
             )
         except stripe_client.StripeNotConfiguredError as exc:
             return make_response(jsonify({"error": str(exc)}), 503)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return make_response(
                 jsonify({"error": "Stripe checkout session creation failed", "detail": str(exc)}),
                 502,

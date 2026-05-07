@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 # Fixtures
 # ---------------------------------------------------------------------------
 @pytest.fixture()
-def order_with_prodigi(db_session: "Session") -> dict[str, Any]:
+def order_with_prodigi(db_session: Session) -> dict[str, Any]:
     """Build an Order + a ProdigiOrder row tied to it.
 
     Sets up the SQLite path: prodigi_orders.fishingposter_order_id is stored
@@ -93,7 +93,7 @@ def patched_externals(monkeypatch: pytest.MonkeyPatch) -> dict[str, MagicMock]:
 def test_request_refund_succeeds_when_prodigi_cancellable(
     order_with_prodigi: dict[str, Any],
     patched_externals: dict[str, MagicMock],
-    db_session: "Session",
+    db_session: Session,
 ) -> None:
     """Happy path: Prodigi cancels OK, Stripe refunds OK, status='succeeded'."""
     order = order_with_prodigi["order"]
@@ -117,7 +117,7 @@ def test_request_refund_succeeds_when_prodigi_cancellable(
 def test_request_refund_proceeds_with_stripe_when_prodigi_cancel_window_passed(
     order_with_prodigi: dict[str, Any],
     patched_externals: dict[str, MagicMock],
-    db_session: "Session",
+    db_session: Session,
 ) -> None:
     """Prodigi rejects cancel (already in production) — Stripe still refunds."""
     from review_app.prodigi.client import ProdigiClientError
@@ -143,7 +143,7 @@ def test_request_refund_proceeds_with_stripe_when_prodigi_cancel_window_passed(
 def test_request_refund_idempotent(
     order_with_prodigi: dict[str, Any],
     patched_externals: dict[str, MagicMock],
-    db_session: "Session",
+    db_session: Session,
 ) -> None:
     """Calling twice on an already-refunded order returns the existing row."""
     order = order_with_prodigi["order"]
@@ -171,7 +171,7 @@ def test_request_refund_idempotent(
 def test_request_refund_fails_loudly_when_stripe_rejects(
     order_with_prodigi: dict[str, Any],
     patched_externals: dict[str, MagicMock],
-    db_session: "Session",
+    db_session: Session,
 ) -> None:
     """Stripe refund failure → StripeRefundFailedError + refund.status='failed'."""
     from sqlalchemy import select
@@ -197,7 +197,7 @@ def test_request_refund_fails_loudly_when_stripe_rejects(
 
 
 def test_request_refund_handles_no_prodigi_order(
-    db_session: "Session",
+    db_session: Session,
     patched_externals: dict[str, MagicMock],
 ) -> None:
     """Refund initiated before Prodigi order was created — Stripe still refunds,

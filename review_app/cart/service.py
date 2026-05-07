@@ -128,7 +128,7 @@ def cart_to_dto(cart: Cart) -> CartDTO:
 # Cart resolution
 # ---------------------------------------------------------------------------
 def get_or_create_cart(
-    session: "Session",
+    session: Session,
     *,
     customer_id: uuid.UUID | None = None,
     session_token: str | None = None,
@@ -182,7 +182,7 @@ def get_or_create_cart(
     return cart
 
 
-def get_cart_by_id(session: "Session", cart_id: uuid.UUID) -> Cart:
+def get_cart_by_id(session: Session, cart_id: uuid.UUID) -> Cart:
     """Load a cart by id; raise :class:`CartNotFoundError` if missing."""
     cart = session.get(Cart, cart_id)
     if cart is None:
@@ -200,7 +200,7 @@ def _validate_quantity(quantity: int) -> None:
         )
 
 
-def _lookup_sku_price(session: "Session", internal_sku: str) -> int:
+def _lookup_sku_price(session: Session, internal_sku: str) -> int:
     """Return ``retail_price_cents`` for an active SKU, or raise."""
     from sqlalchemy import select
 
@@ -219,7 +219,7 @@ def _lookup_sku_price(session: "Session", internal_sku: str) -> int:
     return int(sku.retail_price_cents)
 
 
-def _validate_render_spec(session: "Session", render_spec_id: uuid.UUID | None) -> None:
+def _validate_render_spec(session: Session, render_spec_id: uuid.UUID | None) -> None:
     """Confirm the render_spec row exists if one was supplied."""
     if render_spec_id is None:
         return
@@ -231,7 +231,7 @@ def _validate_render_spec(session: "Session", render_spec_id: uuid.UUID | None) 
 
 
 def add_item(
-    session: "Session",
+    session: Session,
     cart: Cart,
     *,
     prodigi_sku_internal: str,
@@ -291,7 +291,7 @@ def add_item(
 
 
 def update_quantity(
-    session: "Session",
+    session: Session,
     cart: Cart,
     *,
     item_id: uuid.UUID,
@@ -324,7 +324,7 @@ def update_quantity(
 
 
 def remove_item(
-    session: "Session",
+    session: Session,
     cart: Cart,
     *,
     item_id: uuid.UUID,
@@ -349,7 +349,7 @@ def compute_totals(cart: Cart) -> dict[str, int]:
 # Anonymous → customer cart merge
 # ---------------------------------------------------------------------------
 def merge_anonymous_into_customer(
-    session: "Session",
+    session: Session,
     *,
     session_token: str,
     customer_id: uuid.UUID,

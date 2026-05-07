@@ -33,7 +33,7 @@ _FLAG_CHECKOUT = "_wildprint_checkout_bp_registered"
 _FLAG_WEBHOOK = "_wildprint_stripe_webhook_v2_registered"
 
 
-def init_app(app: "Flask") -> None:
+def init_app(app: Flask) -> None:
     """Register the checkout + Stripe-webhook-v2 blueprints (idempotent)."""
     if not app.config.get(_FLAG_CHECKOUT):
         app.register_blueprint(checkout_bp)

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 # Helper to drive the webhook with a fake-verified event.
 # ---------------------------------------------------------------------------
 def _post_event(
-    client: "FlaskClient",
+    client: FlaskClient,
     monkeypatch: pytest.MonkeyPatch,
     event: dict[str, Any],
 ) -> Any:
@@ -66,13 +66,14 @@ def _checkout_session_event(
 # Tests
 # ---------------------------------------------------------------------------
 def test_webhook_signature_verified_and_event_persisted(
-    checkout_client: "FlaskClient",
+    checkout_client: FlaskClient,
     populated_db: dict[str, Any],
-    checkout_db_session: "Session",
+    checkout_db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from review_app.checkout.stripe_events import StripeEvent
     from sqlalchemy import select
+
+    from review_app.checkout.stripe_events import StripeEvent
 
     event = _checkout_session_event(
         event_id="evt_001",
@@ -92,13 +93,14 @@ def test_webhook_signature_verified_and_event_persisted(
 
 
 def test_webhook_dedupe_by_event_id(
-    checkout_client: "FlaskClient",
+    checkout_client: FlaskClient,
     populated_db: dict[str, Any],
-    checkout_db_session: "Session",
+    checkout_db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from review_app.checkout.stripe_events import StripeEvent
     from sqlalchemy import func, select
+
+    from review_app.checkout.stripe_events import StripeEvent
 
     event = _checkout_session_event(
         event_id="evt_dup",
@@ -121,9 +123,9 @@ def test_webhook_dedupe_by_event_id(
 
 
 def test_webhook_session_completed_persists_order_and_outbox_rows(
-    checkout_client: "FlaskClient",
+    checkout_client: FlaskClient,
     populated_db: dict[str, Any],
-    checkout_db_session: "Session",
+    checkout_db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from sqlalchemy import select
@@ -157,9 +159,9 @@ def test_webhook_session_completed_persists_order_and_outbox_rows(
 
 
 def test_webhook_payment_intent_succeeded_marks_order_paid(
-    checkout_client: "FlaskClient",
+    checkout_client: FlaskClient,
     populated_db: dict[str, Any],
-    checkout_db_session: "Session",
+    checkout_db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from sqlalchemy import select
@@ -206,9 +208,9 @@ def test_webhook_payment_intent_succeeded_marks_order_paid(
 
 
 def test_webhook_payment_intent_failed_marks_order_cancelled(
-    checkout_client: "FlaskClient",
+    checkout_client: FlaskClient,
     populated_db: dict[str, Any],
-    checkout_db_session: "Session",
+    checkout_db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from sqlalchemy import select
@@ -246,7 +248,7 @@ def test_webhook_payment_intent_failed_marks_order_cancelled(
 
 
 def test_webhook_invalid_signature_returns_400(
-    checkout_client: "FlaskClient",
+    checkout_client: FlaskClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from review_app.checkout import stripe_client as sc

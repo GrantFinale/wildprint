@@ -54,7 +54,7 @@ SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def _get_session() -> "Session":
+def _get_session() -> Session:
     """Return a SQLAlchemy session bound to this request.
 
     Prefers a Flask-extension-style ``g.db`` if the legacy app exposes one;
@@ -75,7 +75,7 @@ def _get_session() -> "Session":
     return session
 
 
-def _close_session_if_owned(session: "Session", commit: bool) -> None:
+def _close_session_if_owned(session: Session, commit: bool) -> None:
     """Commit/rollback + close a session that this request opened."""
     from flask import g
 
@@ -131,7 +131,7 @@ def _ensure_session_token(response: Response | None = None) -> str:
     return token
 
 
-def _resolve_cart(session: "Session", *, mint_cookie: bool, response: Response | None = None) -> tuple[Cart, str | None]:
+def _resolve_cart(session: Session, *, mint_cookie: bool, response: Response | None = None) -> tuple[Cart, str | None]:
     """Find or create the cart for this request. Returns (cart, session_token).
 
     ``session_token`` is None when the visitor is logged in (we don't carry
@@ -222,7 +222,7 @@ def api_cart_add() -> Response:
         # Build the JSON body and stitch it onto the cookie-bearing response.
         body_payload = jsonify({"cart": _serialize_dto(dto)})
         response.set_data(body_payload.get_data())
-        response.mimetype = body_payload.mimetype
+        response.mimetype = body_payload.mimetype or "application/json"
         response.status_code = 200
         committed = True
         return response
@@ -241,7 +241,7 @@ def api_cart_get() -> Response:
         dto = cart_service.cart_to_dto(cart)
         body_payload = jsonify({"cart": _serialize_dto(dto)})
         response.set_data(body_payload.get_data())
-        response.mimetype = body_payload.mimetype
+        response.mimetype = body_payload.mimetype or "application/json"
         response.status_code = 200
         committed = True
         return response

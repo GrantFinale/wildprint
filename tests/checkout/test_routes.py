@@ -15,9 +15,9 @@ if TYPE_CHECKING:
 
 
 def test_checkout_start_rejects_unverified_address(
-    checkout_client: "FlaskClient",
+    checkout_client: FlaskClient,
     populated_db: dict[str, Any],
-    checkout_db_session: "Session",
+    checkout_db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # Flip the address back to unverified.
@@ -39,7 +39,7 @@ def test_checkout_start_rejects_unverified_address(
 
 
 def test_checkout_start_creates_stripe_session_for_valid_cart(
-    checkout_client: "FlaskClient",
+    checkout_client: FlaskClient,
     populated_db: dict[str, Any],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -67,13 +67,14 @@ def test_checkout_start_creates_stripe_session_for_valid_cart(
 
 
 def test_checkout_start_returns_400_for_empty_cart(
-    checkout_client: "FlaskClient",
+    checkout_client: FlaskClient,
     populated_db: dict[str, Any],
-    checkout_db_session: "Session",
+    checkout_db_session: Session,
 ) -> None:
     # Empty the cart.
-    from review_app.cart.models import CartItem
     from sqlalchemy import delete
+
+    from review_app.cart.models import CartItem
 
     checkout_db_session.execute(delete(CartItem).where(CartItem.cart_id == populated_db["cart"].id))
     checkout_db_session.commit()
@@ -91,7 +92,7 @@ def test_checkout_start_returns_400_for_empty_cart(
 
 
 def test_checkout_start_returns_404_for_unknown_cart(
-    checkout_client: "FlaskClient",
+    checkout_client: FlaskClient,
     populated_db: dict[str, Any],
 ) -> None:
     resp = checkout_client.post(
@@ -106,7 +107,7 @@ def test_checkout_start_returns_404_for_unknown_cart(
 
 
 def test_checkout_start_validates_email(
-    checkout_client: "FlaskClient",
+    checkout_client: FlaskClient,
     populated_db: dict[str, Any],
 ) -> None:
     resp = checkout_client.post(

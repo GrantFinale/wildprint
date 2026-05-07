@@ -49,7 +49,7 @@ class StripeRefundFailedError(RefundServiceError):
 # Public API
 # ---------------------------------------------------------------------------
 def request_refund(
-    session: "Session",
+    session: Session,
     *,
     order_id: uuid.UUID,
     amount_cents: int,
@@ -124,7 +124,7 @@ def request_refund(
         refund.status = "failed"
         session.flush()
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         _log.error("Stripe refund failed for order %s: %s", order.id, exc)
         refund.status = "failed"
         session.flush()
@@ -151,7 +151,7 @@ def request_refund(
                     "prodigi_cancel_succeeded": refund.prodigi_cancel_succeeded,
                 },
             )
-        except Exception:  # noqa: BLE001
+        except Exception:
             _log.warning("could not enqueue email.refunded")
 
     refund.customer_notified_at = datetime.now(UTC)
@@ -163,7 +163,7 @@ def request_refund(
 # Helpers
 # ---------------------------------------------------------------------------
 def _attempt_prodigi_cancel(
-    session: "Session", order: object, refund: Refund
+    session: Session, order: object, refund: Refund
 ) -> None:
     """Best-effort Prodigi cancel. Mutates ``refund`` in place; never raises."""
     from sqlalchemy import select
@@ -201,7 +201,7 @@ def _attempt_prodigi_cancel(
             order_uuid, exc.status_code, exc,
         )
         refund.prodigi_cancel_succeeded = False
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         _log.warning(
             "Prodigi cancel crashed for order %s: %s", order_uuid, exc
         )
@@ -222,7 +222,7 @@ def _normalize_stripe_reason(reason: str | None) -> str | None:
     return "requested_by_customer"
 
 
-def _customer_email(session: "Session", order: object) -> str | None:
+def _customer_email(session: Session, order: object) -> str | None:
     from review_app.customers.models import Customer
 
     customer = session.get(Customer, order.customer_id)  # type: ignore[attr-defined]

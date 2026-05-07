@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 # Fixtures
 # ---------------------------------------------------------------------------
 @pytest.fixture()
-def sku(db_session: "Session") -> ProdigiSku:
+def sku(db_session: Session) -> ProdigiSku:
     """Insert a representative ProdigiSku used across the tests."""
     s = ProdigiSku(
         internal_sku="FP-CLA-16X20-AGOLD",
@@ -42,7 +42,7 @@ def sku(db_session: "Session") -> ProdigiSku:
 
 
 @pytest.fixture()
-def render_spec(db_session: "Session") -> RenderSpecRow:
+def render_spec(db_session: Session) -> RenderSpecRow:
     """Insert a render_spec row so cart.render_spec_id FKs validate."""
     row = RenderSpecRow(
         spec_hash="a" * 64,
@@ -55,7 +55,7 @@ def render_spec(db_session: "Session") -> RenderSpecRow:
 
 
 @pytest.fixture()
-def customer(db_session: "Session") -> Customer:
+def customer(db_session: Session) -> Customer:
     """Insert a customer for customer-bound cart tests."""
     c = Customer.create(email="buyer@example.com")
     db_session.add(c)
@@ -67,7 +67,7 @@ def customer(db_session: "Session") -> Customer:
 # Tests
 # ---------------------------------------------------------------------------
 def test_add_item_creates_cart_for_anonymous_session(
-    db_session: "Session", sku: ProdigiSku, render_spec: RenderSpecRow
+    db_session: Session, sku: ProdigiSku, render_spec: RenderSpecRow
 ) -> None:
     cart = cart_service.get_or_create_cart(db_session, session_token="abc123")
     assert cart.id is not None
@@ -89,7 +89,7 @@ def test_add_item_creates_cart_for_anonymous_session(
 
 
 def test_add_item_idempotent_for_same_render_spec_and_sku(
-    db_session: "Session", sku: ProdigiSku, render_spec: RenderSpecRow
+    db_session: Session, sku: ProdigiSku, render_spec: RenderSpecRow
 ) -> None:
     cart = cart_service.get_or_create_cart(db_session, session_token="abc")
     cart_service.add_item(
@@ -110,7 +110,7 @@ def test_add_item_idempotent_for_same_render_spec_and_sku(
 
 
 def test_add_item_validates_quantity_zero(
-    db_session: "Session", sku: ProdigiSku, render_spec: RenderSpecRow
+    db_session: Session, sku: ProdigiSku, render_spec: RenderSpecRow
 ) -> None:
     cart = cart_service.get_or_create_cart(db_session, session_token="abc")
     with pytest.raises(cart_service.InvalidQuantityError):
@@ -123,7 +123,7 @@ def test_add_item_validates_quantity_zero(
 
 
 def test_add_item_validates_unknown_sku(
-    db_session: "Session", render_spec: RenderSpecRow
+    db_session: Session, render_spec: RenderSpecRow
 ) -> None:
     cart = cart_service.get_or_create_cart(db_session, session_token="abc")
     with pytest.raises(cart_service.SkuNotFoundError):
@@ -136,7 +136,7 @@ def test_add_item_validates_unknown_sku(
 
 
 def test_compute_totals_sums_line_totals(
-    db_session: "Session", sku: ProdigiSku, render_spec: RenderSpecRow
+    db_session: Session, sku: ProdigiSku, render_spec: RenderSpecRow
 ) -> None:
     cart = cart_service.get_or_create_cart(db_session, session_token="abc")
     cart_service.add_item(
@@ -150,7 +150,7 @@ def test_compute_totals_sums_line_totals(
 
 
 def test_update_quantity_zero_removes_line(
-    db_session: "Session", sku: ProdigiSku, render_spec: RenderSpecRow
+    db_session: Session, sku: ProdigiSku, render_spec: RenderSpecRow
 ) -> None:
     cart = cart_service.get_or_create_cart(db_session, session_token="abc")
     dto = cart_service.add_item(
@@ -166,7 +166,7 @@ def test_update_quantity_zero_removes_line(
 
 
 def test_remove_item_drops_line(
-    db_session: "Session", sku: ProdigiSku, render_spec: RenderSpecRow
+    db_session: Session, sku: ProdigiSku, render_spec: RenderSpecRow
 ) -> None:
     cart = cart_service.get_or_create_cart(db_session, session_token="abc")
     dto = cart_service.add_item(
@@ -180,7 +180,7 @@ def test_remove_item_drops_line(
 
 
 def test_merge_anonymous_into_customer_resolves_quantity_conflict(
-    db_session: "Session", sku: ProdigiSku, render_spec: RenderSpecRow,
+    db_session: Session, sku: ProdigiSku, render_spec: RenderSpecRow,
     customer: Customer,
 ) -> None:
     """Both carts have the same SKU+spec — last-modified wins."""
@@ -220,7 +220,7 @@ def test_merge_anonymous_into_customer_resolves_quantity_conflict(
 
 
 def test_merge_anonymous_into_customer_promotes_when_no_customer_cart(
-    db_session: "Session", sku: ProdigiSku, render_spec: RenderSpecRow,
+    db_session: Session, sku: ProdigiSku, render_spec: RenderSpecRow,
     customer: Customer,
 ) -> None:
     """Customer has no open cart — anon cart is promoted to the customer."""
@@ -243,7 +243,7 @@ def test_merge_anonymous_into_customer_promotes_when_no_customer_cart(
 
 
 def test_merge_anonymous_into_customer_with_no_anon_cart_returns_customer_cart(
-    db_session: "Session", customer: Customer,
+    db_session: Session, customer: Customer,
 ) -> None:
     merged = cart_service.merge_anonymous_into_customer(
         db_session,

@@ -29,7 +29,7 @@ __all__ = ["Cart", "CartItem", "cart_bp", "init_app"]
 _BLUEPRINT_REGISTERED_FLAG = "_wildprint_cart_bp_registered"
 
 
-def init_app(app: "Flask") -> None:
+def init_app(app: Flask) -> None:
     """Register the cart blueprint on a Flask app (idempotent).
 
     Reads no env vars and performs no I/O — only blueprint registration. Safe

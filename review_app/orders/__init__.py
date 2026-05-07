@@ -34,7 +34,7 @@ __all__ = [
 ]
 
 
-def init_app(app: "Flask") -> None:
+def init_app(app: Flask) -> None:
     """Register order admin/lookup routes. No-op until Phase 4."""
     _ = app
     return None

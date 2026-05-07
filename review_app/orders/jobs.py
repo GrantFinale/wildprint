@@ -89,7 +89,7 @@ def create_prodigi_order_job(order_id: str) -> dict[str, Any]:
     return result
 
 
-def _run(session: "Session", order_id: str) -> dict[str, Any]:
+def _run(session: Session, order_id: str) -> dict[str, Any]:
     from sqlalchemy import select
 
     from review_app.email.outbox import enqueue
@@ -192,7 +192,7 @@ def _run(session: "Session", order_id: str) -> dict[str, Any]:
                     "prodigi_order_id": prodigi_order.id,
                 },
             )
-        except Exception:  # noqa: BLE001
+        except Exception:
             _log.warning("could not enqueue email.in_production")
 
     return {
@@ -205,7 +205,7 @@ def _run(session: "Session", order_id: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Builders
 # ---------------------------------------------------------------------------
-def _build_prodigi_items(session: "Session", order: "Order") -> list[dict[str, Any]]:
+def _build_prodigi_items(session: Session, order: Order) -> list[dict[str, Any]]:
     """Build the Prodigi `items` array for an order.
 
     Each item gets a signed Spaces URL pointing at the tier-3 print asset.
@@ -278,7 +278,7 @@ def _build_prodigi_items(session: "Session", order: "Order") -> list[dict[str, A
     return items_payload
 
 
-def _build_prodigi_recipient(session: "Session", order: "Order") -> dict[str, Any]:
+def _build_prodigi_recipient(session: Session, order: Order) -> dict[str, Any]:
     """Build the Prodigi `recipient` payload from the order's shipping address."""
     if order.shipping_address_id is None:
         raise OrderJobError(f"Order {order.id} has no shipping_address_id")
@@ -306,14 +306,14 @@ def _build_prodigi_recipient(session: "Session", order: "Order") -> dict[str, An
     }
 
 
-def _customer_email(session: "Session", order: "Order") -> str | None:
+def _customer_email(session: Session, order: Order) -> str | None:
     from review_app.customers.models import Customer
 
     customer = session.get(Customer, order.customer_id)
     return customer.email if customer else None
 
 
-def _customer_name(session: "Session", order: "Order") -> str | None:
+def _customer_name(session: Session, order: Order) -> str | None:
     from review_app.customers.models import Customer
 
     customer = session.get(Customer, order.customer_id)
@@ -332,7 +332,7 @@ def _coerce_uuid(value: str) -> Any:
     return _uuid.UUID(str(value))
 
 
-def _coerce_uuid_for_dialect(session: "Session", value: Any) -> Any:
+def _coerce_uuid_for_dialect(session: Session, value: Any) -> Any:
     """Return ``value`` as a hex-string on SQLite (where prodigi tables use
     TEXT for UUID columns) and as a :class:`uuid.UUID` on Postgres.
 
