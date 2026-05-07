@@ -1,0 +1,23 @@
+{# Minimal base for the Phase 2 preview pages.
+
+   We deliberately do NOT extend the global base.html here because:
+   1. base.html hard-codes ``url_for('console')`` etc., which couples
+      every preview page to the legacy admin app's routes.
+   2. Phase 4 will polish the consumer-facing /preview/* visual
+      language separately from the admin's /console + /browse pages.
+   3. Keeps unit tests for the preview blueprint self-contained.
+#}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}fishingposter.com{% endblock %}</title>
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <main class="preview-main">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

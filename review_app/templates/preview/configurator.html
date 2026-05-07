@@ -1,0 +1,101 @@
+{% extends "preview/_base.html" %}
+
+{% block title %}Choose your frame &middot; fishingposter.com{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/preview/configurator.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div
+  id="configurator-root"
+  class="configurator"
+  data-poster-preview-url="{{ poster_preview_url }}"
+  data-default-size="{{ default_size }}"
+  data-default-finish="{{ default_finish }}"
+  data-frame-data-url="{{ frame_data_url }}"
+>
+  <section class="configurator__preview" aria-label="Frame preview">
+    <canvas
+      id="preview-canvas"
+      width="600"
+      height="800"
+      role="img"
+      aria-label="Poster preview in selected frame"
+    ></canvas>
+    <p class="configurator__watermark-note">
+      Preview includes a watermark; print is delivered watermark-free after checkout.
+    </p>
+  </section>
+
+  <form class="configurator__controls" method="post" action="#" id="configurator-form">
+    <input type="hidden" name="internal_sku" id="selected-internal-sku" value="">
+
+    <div class="control-group">
+      <label for="size-select" class="control-label">Size</label>
+      <select id="size-select" name="size" class="control-select" aria-label="Frame size">
+        {% for size in sizes %}
+          <option value="{{ size }}" {% if size == default_size %}selected{% endif %}>{{ size_labels[size] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="control-group">
+      <span class="control-label" id="finish-label">Finish</span>
+      <div
+        class="finish-picker"
+        role="radiogroup"
+        aria-labelledby="finish-label"
+      >
+        {% for finish in finishes %}
+          <button
+            type="button"
+            class="finish-swatch {% if finish.finish_id == default_finish %}is-active{% endif %}"
+            data-finish-id="{{ finish.finish_id }}"
+            {% for size in sizes %}
+              data-price-cents-{{ size|upper|replace('X', 'X') }}="{{ finish.prices_by_size.get(size, '') }}"
+            {% endfor %}
+            role="radio"
+            aria-checked="{{ 'true' if finish.finish_id == default_finish else 'false' }}"
+            aria-pressed="{{ 'true' if finish.finish_id == default_finish else 'false' }}"
+            aria-label="{{ finish.finish_display }} finish"
+            tabindex="{{ '0' if finish.finish_id == default_finish else '-1' }}"
+          >
+            <img
+              class="swatch-thumb"
+              src="{{ finish.swatch_asset }}"
+              alt=""
+              loading="lazy"
+              width="48"
+              height="48"
+            >
+            <span class="swatch-name">{{ finish.finish_display }}</span>
+            <span class="swatch-price">—</span>
+          </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="control-group price-summary">
+      <span class="price-summary__label">Price</span>
+      <span class="price-summary__amount" id="headline-price" aria-live="polite">—</span>
+    </div>
+
+    <div class="control-group">
+      <button
+        type="button"
+        class="btn-primary btn-cart"
+        disabled
+        aria-disabled="true"
+        title="Coming soon — Phase 3 wires checkout"
+      >
+        Add to Cart
+        <small>(Coming soon — Phase 3 wires checkout)</small>
+      </button>
+    </div>
+  </form>
+</div>
+
+<script type="module" src="{{ url_for('static', filename='js/preview/configurator.js') }}"></script>
+{% endblock %}

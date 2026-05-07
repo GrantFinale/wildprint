@@ -1,0 +1,231 @@
+/* configurator.css — Phase 2 frame preview.
+ * Mobile-first; works at 375 px viewport. Phase 4 will polish the brand.
+ */
+
+.configurator {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+@media (min-width: 760px) {
+  .configurator {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 40px;
+    padding: 32px;
+  }
+}
+
+/* ----- Preview canvas column ----- */
+
+.configurator__preview {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#preview-canvas {
+  width: 95vw;
+  max-width: 600px;
+  height: auto;
+  display: block;
+  background: #f5f5f5;
+  border-radius: 4px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+@media (min-width: 760px) {
+  #preview-canvas {
+    width: 100%;
+  }
+}
+
+.configurator__watermark-note {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #6b7280;
+  text-align: center;
+  max-width: 420px;
+  line-height: 1.4;
+}
+
+/* ----- Controls column ----- */
+
+.configurator__controls {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (min-width: 760px) {
+  .configurator__controls {
+    width: 320px;
+  }
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #4b5563;
+}
+
+.control-select {
+  appearance: none;
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%236b7280' d='M6 8L0 0h12z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.control-select:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* ----- Finish picker ----- */
+
+.finish-picker {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 4px 2px 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 760px) {
+  .finish-picker {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
+.finish-swatch {
+  flex: 0 0 88px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+  min-height: 44px;
+  transition: border-color 120ms ease, transform 80ms ease;
+}
+
+.finish-swatch:hover {
+  border-color: #d1d5db;
+}
+
+.finish-swatch:focus-visible {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.finish-swatch.is-active {
+  border-color: #111827;
+}
+
+.swatch-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #e5e7eb;
+}
+
+.swatch-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.swatch-price {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* ----- Price + cart ----- */
+
+.price-summary {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.price-summary__label {
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.price-summary__amount {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.btn-primary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background: #111827;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 48px;
+  transition: background 120ms ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #1f2937;
+}
+
+.btn-primary:disabled,
+.btn-primary[aria-disabled="true"] {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.btn-primary small {
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.85;
+}
