@@ -66,10 +66,14 @@ def main() -> int:
     scheduler = get_scheduler()
 
     registered = setup_cron_jobs(scheduler)
+    job_names = sorted(registered.keys())
+    n = len(job_names)
     if _structlog_available:
-        log.info("scheduler.start", jobs=list(registered.keys()))
+        log.info("scheduler.registered", count=n, jobs=job_names)
+        log.info("scheduler.start", count=n, jobs=job_names)
     else:
-        log.info("scheduler start, jobs=%s", list(registered.keys()))
+        log.info("scheduler registered %d jobs: %s", n, ", ".join(job_names))
+        log.info("scheduler start, jobs=%s", job_names)
 
     # Warm shutdown — same pattern as the RQ worker.
     def _on_signal(signum: int, _frame: FrameType | None) -> None:
