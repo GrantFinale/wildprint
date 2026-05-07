@@ -1,0 +1,49 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}Operations — wildprint admin{% endblock %}
+
+{% block content %}
+
+  <p style="color:var(--fp-muted);">
+    Fulfillment SLA — measured from order creation through shipment.
+    The "time to production" metric is approximated until Phase 5 adds an
+    explicit ``in_production_at`` column to the orders table.
+  </p>
+
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-bottom:1rem;">
+    <div class="panel">
+      <h2>Avg time to production</h2>
+      <div style="font-size:1.5rem;font-weight:600;">
+        {{ '%.1f'|format(metrics.avg_time_to_production_seconds / 3600) }} hr
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Avg time to ship</h2>
+      <div style="font-size:1.5rem;font-weight:600;">
+        {{ '%.1f'|format(metrics.avg_time_to_ship_seconds / 3600) }} hr
+      </div>
+      <p style="color:var(--fp-muted);font-size:0.8rem;margin:0.25rem 0 0;">
+        sample n={{ metrics.shipped_sample_size }}
+      </p>
+    </div>
+    <div class="panel">
+      <h2>Error rate</h2>
+      <div style="font-size:1.5rem;font-weight:600;">
+        {{ '%.1f'|format(metrics.error_rate * 100) }}%
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Reprint rate</h2>
+      <div style="font-size:1.5rem;font-weight:600;">
+        {{ '%.1f'|format(metrics.reprint_rate * 100) }}%
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p style="color:var(--fp-muted);">
+      Total orders considered: {{ metrics.total_orders }}
+    </p>
+  </div>
+
+{% endblock %}

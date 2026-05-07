@@ -1,0 +1,87 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}Sales — wildprint admin{% endblock %}
+
+{% block page_actions %}
+  <a class="btn"
+     href="{{ url_for('admin.analytics_sales') }}?from={{ date_from.strftime('%Y-%m-%d') }}&to={{ date_to.strftime('%Y-%m-%d') }}&format=csv">
+    Export CSV
+  </a>
+{% endblock %}
+
+{% block content %}
+
+  <form class="filter-bar" method="get" action="{{ url_for('admin.analytics_sales') }}">
+    <input type="date" name="from" value="{{ date_from.strftime('%Y-%m-%d') }}">
+    <input type="date" name="to" value="{{ date_to.strftime('%Y-%m-%d') }}">
+    <button class="btn" type="submit">Apply</button>
+  </form>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1rem;">
+    <div class="panel">
+      <h2>Revenue</h2>
+      <div style="font-size:1.5rem;font-weight:600;">
+        ${{ '%.2f'|format(totals.revenue_cents / 100) }}
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Orders</h2>
+      <div style="font-size:1.5rem;font-weight:600;">{{ totals.order_count }}</div>
+    </div>
+    <div class="panel">
+      <h2>AOV</h2>
+      <div style="font-size:1.5rem;font-weight:600;">
+        ${{ '%.2f'|format(totals.aov_cents / 100) }}
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Refund rate</h2>
+      <div style="font-size:1.5rem;font-weight:600;">
+        {{ '%.1f'|format(totals.refund_rate * 100) }}%
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Daily revenue</h2>
+    {% if daily %}
+      {% set max_cents = (daily|map(attribute=1)|max) or 1 %}
+      <div style="display:flex;align-items:flex-end;gap:2px;height:120px;">
+        {% for d, cents in daily %}
+          {% set h = (cents / max_cents * 100)|round(0, 'floor') %}
+          <div title="{{ d }}: ${{ '%.2f'|format(cents / 100) }}"
+               style="flex:1;background:var(--fp-accent);height:{{ h }}%;min-height:1px;"></div>
+        {% endfor %}
+      </div>
+      <div style="display:flex;justify-content:space-between;color:var(--fp-muted);font-size:0.75rem;margin-top:0.25rem;">
+        <span>{{ daily[0][0] }}</span>
+        <span>{{ daily[-1][0] }}</span>
+      </div>
+    {% else %}
+      <em>No sales in this range.</em>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>Top SKUs</h2>
+    {% if top_skus %}
+      <table class="fp-table">
+        <thead>
+          <tr><th>SKU</th><th>Units</th><th>Revenue</th></tr>
+        </thead>
+        <tbody>
+          {% for sku, units, revenue in top_skus %}
+            <tr>
+              <td>{{ sku }}</td>
+              <td>{{ units }}</td>
+              <td>${{ '%.2f'|format(revenue / 100) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <em>No SKU data.</em>
+    {% endif %}
+  </div>
+
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}AI usage — wildprint admin{% endblock %}
+
+{% block content %}
+
+  <form class="filter-bar" method="get" action="{{ url_for('admin.analytics_ai_usage') }}">
+    <input type="date" name="from" value="{{ date_from.strftime('%Y-%m-%d') }}">
+    <input type="date" name="to" value="{{ date_to.strftime('%Y-%m-%d') }}">
+    <input type="text" name="provider" value="{{ provider_filter }}"
+           placeholder="provider (e.g. openai)">
+    <button class="btn" type="submit">Apply</button>
+  </form>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;">
+    <div class="panel">
+      <h2>Window total</h2>
+      <div style="font-size:1.5rem;font-weight:600;">
+        ${{ '%.2f'|format(total_cents / 100) }}
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Today</h2>
+      <div style="font-size:1.5rem;font-weight:600;">
+        ${{ '%.2f'|format(today_cents / 100) }}
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Yesterday</h2>
+      <div style="font-size:1.5rem;font-weight:600;">
+        ${{ '%.2f'|format(yesterday_cents / 100) }}
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>By provider</h2>
+    {% if by_provider %}
+      <table class="fp-table">
+        <thead>
+          <tr><th>Provider</th><th>Calls</th><th>Cost</th></tr>
+        </thead>
+        <tbody>
+          {% for provider, calls, cost in by_provider %}
+            <tr>
+              <td>{{ provider }}</td>
+              <td>{{ calls }}</td>
+              <td>${{ '%.2f'|format(cost / 100) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <em>No AI calls in this window.</em>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>Daily cost</h2>
+    {% if daily %}
+      <table class="fp-table">
+        <thead>
+          <tr><th>Date</th><th>Per provider</th><th>Total</th></tr>
+        </thead>
+        <tbody>
+          {% for day, providers in daily %}
+            {% set day_total = providers.values()|sum %}
+            <tr>
+              <td>{{ day }}</td>
+              <td>
+                {% for p, c in providers.items() %}
+                  <span class="badge badge--muted">{{ p }} ${{ '%.2f'|format(c / 100) }}</span>
+                {% endfor %}
+              </td>
+              <td>${{ '%.2f'|format(day_total / 100) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <em>No daily data.</em>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>Top render specs by cost</h2>
+    {% if top_specs %}
+      <table class="fp-table">
+        <thead><tr><th>Render spec</th><th>Cost</th></tr></thead>
+        <tbody>
+          {% for rsid, cost in top_specs %}
+            <tr>
+              <td><code>{{ rsid }}</code></td>
+              <td>${{ '%.2f'|format(cost / 100) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <em>No render-spec attribution available.</em>
+    {% endif %}
+  </div>
+
+{% endblock %}
