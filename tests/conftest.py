@@ -149,6 +149,13 @@ def db_engine() -> Iterator["Engine"]:
         import review_app.refunds.models  # noqa: F401
         # Phase 3b — Stripe webhook dedup table.
         import review_app.checkout.stripe_events  # noqa: F401
+        # Phase 5b — customer accounts, reprints, content, notes.
+        import review_app.account.models  # noqa: F401
+        import review_app.refunds.reprints_models  # noqa: F401
+        import review_app.content.models  # noqa: F401
+        import review_app.notes.models  # noqa: F401
+        # Phase 5a — audit_log table.
+        import review_app.audit.models  # noqa: F401
 
         Base.metadata.create_all(engine)
     except ImportError:

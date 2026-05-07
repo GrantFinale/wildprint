@@ -292,17 +292,97 @@ def settings_integrations() -> ResponseReturnValue:
 
 
 # ---------------------------------------------------------------------------
-# Audit log — Phase 5 stub
+# Audit log — Phase 5a: real viewer backed by audit_log table
 # ---------------------------------------------------------------------------
 @admin_bp.route("/settings/audit", methods=["GET"])
 @requires_role("admin")
 def settings_audit() -> ResponseReturnValue:
-    """Audit log viewer.
+    """Audit log viewer with filters + pagination.
 
-    The ``audit_log`` table doesn't exist in the schema yet; Phase 5 adds it
-    via a new Alembic migration. This page renders the eventual layout
-    (column headers + empty state) so the IA + role gating are in place.
+    Filters (all query-string, all optional):
+      * ``user`` — filter by user_id (UUID)
+      * ``action`` — filter by action name (exact match)
+      * ``target_type`` — filter by target_type (exact match)
+      * ``date_from`` / ``date_to`` — ISO date range (UTC)
+      * ``page`` — 1-indexed; 50 entries per page
     """
+    # Mark this view exempt from auto-capture so reading the audit log
+    # doesn't itself produce audit entries.
+    from datetime import datetime as _dt
+
+    from review_app.audit import skip as _audit_skip
+    from review_app.audit.models import AuditLogEntry
+
+    # Decorator can't reach this function dynamically; flag attribute
+    # directly for the after_request hook to read.
+    settings_audit._audit_skip = True  # type: ignore[attr-defined]
+    _ = _audit_skip  # silence "unused import" — kept for symmetry with other handlers
+
+    PAGE_SIZE = 50
+    try:
+        page = max(int(request.args.get("page", "1") or "1"), 1)
+    except ValueError:
+        page = 1
+    user_filter = (request.args.get("user") or "").strip()
+    action_filter = (request.args.get("action") or "").strip()
+    target_type_filter = (request.args.get("target_type") or "").strip()
+    date_from_raw = (request.args.get("date_from") or "").strip()
+    date_to_raw = (request.args.get("date_to") or "").strip()
+
+    rows: list[AuditLogEntry] = []
+    total: int = 0
+
+    try:
+        with get_session() as db_session:
+            stmt = select(AuditLogEntry).order_by(AuditLogEntry.created_at.desc())
+            from sqlalchemy import func as _sa_func
+
+            count_stmt = select(_sa_func.count()).select_from(AuditLogEntry)
+
+            if user_filter:
+                from review_app.audit import _to_uuid
+
+                uid = _to_uuid(user_filter)
+                if uid is not None:
+                    stmt = stmt.where(AuditLogEntry.user_id == uid)
+                    count_stmt = count_stmt.where(AuditLogEntry.user_id == uid)
+            if action_filter:
+                stmt = stmt.where(AuditLogEntry.action == action_filter)
+                count_stmt = count_stmt.where(AuditLogEntry.action == action_filter)
+            if target_type_filter:
+                stmt = stmt.where(AuditLogEntry.target_type == target_type_filter)
+                count_stmt = count_stmt.where(
+                    AuditLogEntry.target_type == target_type_filter
+                )
+            if date_from_raw:
+                try:
+                    df = _dt.fromisoformat(date_from_raw)
+                    stmt = stmt.where(AuditLogEntry.created_at >= df)
+                    count_stmt = count_stmt.where(AuditLogEntry.created_at >= df)
+                except ValueError:
+                    pass
+            if date_to_raw:
+                try:
+                    dt_to = _dt.fromisoformat(date_to_raw)
+                    stmt = stmt.where(AuditLogEntry.created_at <= dt_to)
+                    count_stmt = count_stmt.where(AuditLogEntry.created_at <= dt_to)
+                except ValueError:
+                    pass
+
+            offset = (page - 1) * PAGE_SIZE
+            stmt = stmt.offset(offset).limit(PAGE_SIZE)
+            try:
+                rows = list(db_session.execute(stmt).scalars().all())
+                total = int(db_session.execute(count_stmt).scalar_one() or 0)
+            except (OperationalError, ProgrammingError):
+                # audit_log table missing — fresh dev DB before alembic upgrade.
+                rows = []
+                total = 0
+    except ImportError:
+        rows = []
+
+    pages_total = max((total + PAGE_SIZE - 1) // PAGE_SIZE, 1)
+
     return render_template(
         "admin/settings/audit.html",
         page_title="Audit log",
@@ -311,6 +391,18 @@ def settings_audit() -> ResponseReturnValue:
             ("Settings", None),
             ("Audit log", None),
         ),
+        rows=rows,
+        total=total,
+        page=page,
+        pages_total=pages_total,
+        page_size=PAGE_SIZE,
+        filters={
+            "user": user_filter,
+            "action": action_filter,
+            "target_type": target_type_filter,
+            "date_from": date_from_raw,
+            "date_to": date_to_raw,
+        },
     )
 
 

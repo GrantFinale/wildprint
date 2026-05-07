@@ -3,21 +3,27 @@
 <header class="admin-page__header">
   <h1>Audit log</h1>
   <p class="admin-page__subtitle">
-    Compliance trail — who did what, when, and to which entity.
+    Compliance trail — who did what, when, and to which entity. Append-only;
+    auto-captures every POST/PATCH/DELETE under <code>/admin/*</code>.
   </p>
 </header>
 
-<section class="admin-card admin-card--alert">
-  <h2>Coming in Phase 5</h2>
-  <p>
-    The <code>audit_log</code> table doesn't exist in the schema yet. Phase 5 adds
-    it via a new Alembic migration plus middleware to write rows on every
-    state-changing admin action.
-  </p>
-  <p>The eventual column layout is shown below as a placeholder.</p>
+<section class="admin-card">
+  <form method="get" action="{{ url_for('admin.settings_audit') }}" class="admin-form admin-form--inline">
+    <label>User <input type="text" name="user" value="{{ filters.user }}" placeholder="user UUID"></label>
+    <label>Action <input type="text" name="action" value="{{ filters.action }}" placeholder="e.g. order.refund"></label>
+    <label>Target type <input type="text" name="target_type" value="{{ filters.target_type }}" placeholder="order"></label>
+    <label>From <input type="date" name="date_from" value="{{ filters.date_from }}"></label>
+    <label>To <input type="date" name="date_to" value="{{ filters.date_to }}"></label>
+    <button type="submit">Filter</button>
+    <a href="{{ url_for('admin.settings_audit') }}">Clear</a>
+  </form>
 </section>
 
 <section class="admin-card">
+  <p class="admin-card__meta">
+    Showing {{ rows|length }} of {{ total }} entries — page {{ page }} of {{ pages_total }}.
+  </p>
   <table class="admin-table">
     <thead>
       <tr>
@@ -30,10 +36,43 @@
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td colspan="6" class="admin-empty-cell">No audit events yet.</td>
-      </tr>
+      {% for r in rows %}
+        <tr>
+          <td title="{{ r.created_at.isoformat() }}">{{ r.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</td>
+          <td>{{ r.user_id or '—' }}</td>
+          <td><code>{{ r.action }}</code></td>
+          <td>
+            {% if r.target_type or r.target_id %}
+              <span>{{ r.target_type or '—' }}</span> / <code>{{ r.target_id or '—' }}</code>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if r.before or r.after %}
+              <details>
+                <summary>diff</summary>
+                <pre style="max-width:480px;overflow:auto;font-size:11px">before: {{ r.before|tojson }}
+after: {{ r.after|tojson }}</pre>
+              </details>
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ r.ip_address or '—' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="admin-empty-cell">No audit events match your filters.</td></tr>
+      {% endfor %}
     </tbody>
   </table>
+
+  {% if pages_total > 1 %}
+    <nav class="admin-pagination">
+      {% if page > 1 %}
+        <a href="?page={{ page - 1 }}{% if filters.user %}&user={{ filters.user }}{% endif %}{% if filters.action %}&action={{ filters.action }}{% endif %}{% if filters.target_type %}&target_type={{ filters.target_type }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}">&larr; prev</a>
+      {% endif %}
+      <span>page {{ page }} of {{ pages_total }}</span>
+      {% if page < pages_total %}
+        <a href="?page={{ page + 1 }}{% if filters.user %}&user={{ filters.user }}{% endif %}{% if filters.action %}&action={{ filters.action }}{% endif %}{% if filters.target_type %}&target_type={{ filters.target_type }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}">next &rarr;</a>
+      {% endif %}
+    </nav>
+  {% endif %}
 </section>
 {% endblock %}
