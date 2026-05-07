@@ -64,6 +64,13 @@ def _build_logger() -> Any:
 def main() -> int:
     log = _build_logger()
     scheduler = get_scheduler()
+    # rq-scheduler reads the loop interval off the Scheduler instance
+    # (Scheduler.run() takes no `interval` kwarg). The singleton is built
+    # without an interval, so set it here from the env-driven constant.
+    try:
+        scheduler._interval = DEFAULT_SCHEDULER_INTERVAL_SECONDS
+    except Exception:  # pragma: no cover - best-effort
+        pass
 
     registered = setup_cron_jobs(scheduler)
     job_names = sorted(registered.keys())
@@ -86,8 +93,10 @@ def main() -> int:
     signal.signal(signal.SIGTERM, _on_signal)
     signal.signal(signal.SIGINT, _on_signal)
 
-    # Block forever — rq-scheduler's ``run()`` enters its own loop.
-    scheduler.run(interval=DEFAULT_SCHEDULER_INTERVAL_SECONDS)
+    # Block forever — rq-scheduler's ``run()`` enters its own loop. The
+    # interval was set on the Scheduler instance above (rq-scheduler doesn't
+    # accept `interval=` as a kwarg here in any released version we run on).
+    scheduler.run()
     return 0
 
 
