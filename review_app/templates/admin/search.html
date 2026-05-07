@@ -1,0 +1,22 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>Search{% if q %} — &ldquo;{{ q }}&rdquo;{% endif %}</h1>
+</header>
+
+<section class="admin-card">
+  <h2>Coming in Phase 5</h2>
+  <p>
+    Global search will hit:
+  </p>
+  <ul>
+    <li><strong>Orders</strong> — by order #, customer email, or Prodigi <code>ord_*</code> id</li>
+    <li><strong>Customers</strong> — by email or name</li>
+    <li><strong>Species</strong> — by common or scientific name</li>
+    <li><strong>SKUs</strong> — by internal SKU or Prodigi SKU</li>
+  </ul>
+  <p class="admin-card__hint">
+    Press <kbd>⌘</kbd>+<kbd>K</kbd> from anywhere in admin to focus the search input.
+  </p>
+</section>
+{% endblock %}

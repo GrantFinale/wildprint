@@ -1,0 +1,86 @@
+{# admin/_base.html — Phase 4a admin shell base template.
+
+   Owned by the Phase 4a Catalog/Settings/Dashboard agent. The Phase 4b
+   parallel agent (Orders/Fulfillment/Customers/Content/Analytics) extends
+   this base via `{% extends "admin/_base.html" %}` and writes into the
+   `content` block.
+
+   Block contract (both 4a and 4b pages depend on these):
+     - `title`         — page title text inside `<title>`. Falls back to
+                         `page_title` template var or "Admin".
+     - `extra_head`    — additional <head> elements (per-page CSS, meta).
+     - `page_actions`  — right-aligned action buttons under the breadcrumbs.
+     - `content`       — main page body.
+     - `head_extra`    — alias for `extra_head` used by 4a routes.
+     - `scripts_extra` — bottom-of-body scripts.
+
+   Context (injected globally by the admin_bp context processor):
+     - `nav_categories` — list[NavCategory] visible to current_role
+     - `current_role`   — admin/staff/viewer or None (anon in shadow mode)
+     - `prodigi_env_pill` — {label, css_class}; SANDBOX (red) / PROD (green)
+     - `admin_notifications` — int; bell badge count
+     - `build_id`       — short git SHA from SENTRY_RELEASE/GIT_SHA env
+#}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Admin · {{ page_title|default('Admin') }} · fishingposter.com{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/admin.css') }}">
+  {% block extra_head %}{% endblock %}
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="admin-shell">
+  <a class="skip-link" href="#admin-main">Skip to main content</a>
+
+  {% include 'admin/_topbar.html' %}
+
+  <div class="admin-layout">
+    {% include 'admin/_sidebar.html' %}
+
+    <main id="admin-main" class="admin-main" tabindex="-1">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="admin-flashes" role="status">
+            {% for category, message in messages %}
+              <div class="admin-flash admin-flash--{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% if breadcrumbs %}
+        <nav class="admin-breadcrumbs" aria-label="Breadcrumb">
+          <ol>
+            {% for crumb in breadcrumbs %}
+              <li>
+                {% if crumb.url and not loop.last %}
+                  <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+                {% else %}
+                  <span aria-current="{{ 'page' if loop.last else 'false' }}">{{ crumb.label }}</span>
+                {% endif %}
+                {% if not loop.last %}<span class="admin-breadcrumbs__sep" aria-hidden="true">/</span>{% endif %}
+              </li>
+            {% endfor %}
+          </ol>
+        </nav>
+      {% endif %}
+
+      {% block page_actions %}{% endblock %}
+
+      <div class="admin-page">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <footer class="admin-footer">
+    <span>fishingposter.com admin</span>
+    {% if build_id %}<span class="admin-footer__build" title="Release SHA">build {{ build_id }}</span>{% endif %}
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/admin/admin.js') }}" defer></script>
+  {% block scripts_extra %}{% endblock %}
+</body>
+</html>

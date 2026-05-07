@@ -1,0 +1,20 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>{{ label }}</h1>
+  <p class="admin-page__subtitle">Part of <strong>{{ category }}</strong>.</p>
+</header>
+
+<section class="admin-card">
+  <h2>Coming in this branch</h2>
+  <p>
+    This page is being built by a parallel agent on the same branch.
+    Phase 4a delivered the shell + Catalog + Settings + Dashboard; the
+    remaining {{ category }} pages land alongside.
+  </p>
+  <p class="admin-card__hint">
+    If you're seeing this in production, the parallel agent's work hasn't
+    deployed yet — check back after the next release.
+  </p>
+</section>
+{% endblock %}

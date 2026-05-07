@@ -90,6 +90,7 @@ app.secret_key = (
 # ---------------------------------------------------------------------------
 from review_app import cli as _cli
 from review_app.addresses import init_app as _init_addresses
+from review_app.admin import init_app as _init_admin
 from review_app.ai import init_app as _init_ai
 from review_app.auth import init_app as _init_auth
 from review_app.auth.routes import auth_bp as _auth_bp
@@ -122,6 +123,9 @@ _init_cart(app)
 _init_checkout(app)
 _init_orders(app)
 _init_refunds(app)
+# Phase 4a — admin shell. Must register AFTER auth so url_for('auth.login')
+# inside the @requires_role decorator resolves.
+_init_admin(app)
 _cli.register(app)
 
 # ---------------------------------------------------------------------------
@@ -2482,11 +2486,14 @@ def api_render_custom():
 # ---------------------------------------------------------------------------
 
 
-@app.route("/admin")
-@admin_required
-def admin():
-    """Render the admin dashboard for species catalog management."""
-    return render_template("admin.html")
+# Phase 4a: the canonical /admin route now lives on the admin blueprint at
+# review_app.admin (see _init_admin(app) above). The new shell renders
+# Catalog/Species/Backgrounds/Sizing/etc. with role gating + sidebar.
+#
+# We keep the legacy JSON endpoints (/admin/data, /admin/species/<slug>/scale,
+# /admin/settings/global_size_variance) in this file because the migrated
+# species.html / sizing.html templates still call them. They're identical to
+# what the legacy /admin page used.
 
 
 @app.route("/admin/data")

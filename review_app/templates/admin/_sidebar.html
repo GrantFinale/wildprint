@@ -1,0 +1,34 @@
+{#
+  Admin sidebar — driven by the role-filtered NAV_TREE injected via the
+  admin_bp context processor. Each category renders only if at least one
+  child is visible to the current role; child items the role can't access
+  are omitted entirely (hidden, not greyed — per IA decision).
+#}
+<aside class="admin-sidebar" data-sidebar aria-label="Admin navigation">
+  <nav class="admin-sidebar__nav">
+    <ul class="admin-sidebar__list">
+      {% for category in nav_categories %}
+        {% set kids = category.visible_children(current_role) %}
+        {% if kids %}
+          {% set first_endpoint = category.first_endpoint(current_role) %}
+          {% set category_active = request.endpoint and (request.endpoint in (kids|map(attribute='endpoint')|list)) %}
+          <li class="admin-sidebar__category {% if category_active %}is-active{% endif %}">
+            <a class="admin-sidebar__category-link" href="{{ url_for(first_endpoint) if first_endpoint else '#' }}">
+              <span class="admin-sidebar__icon" aria-hidden="true">{{ category.icon }}</span>
+              <span class="admin-sidebar__label">{{ category.label }}</span>
+            </a>
+            {% if kids|length > 1 or category_active %}
+              <ul class="admin-sidebar__sublist">
+                {% for child in kids %}
+                  <li class="admin-sidebar__item {% if request.endpoint == child.endpoint %}is-current{% endif %}">
+                    <a href="{{ url_for(child.endpoint) }}">{{ child.label }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </nav>
+</aside>
