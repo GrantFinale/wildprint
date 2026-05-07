@@ -868,6 +868,156 @@ body.admin-shell {
 }
 
 /* ==========================================================================
+   Phase 4b Orders/Fulfillment/Customers patterns (.panel/.fp-table/etc.)
+   ========================================================================== */
+
+body.admin-shell {
+  --fp-muted:    var(--wp-charcoal-soft);
+  --fp-danger:   var(--wp-status-err);
+  --fp-ok:       var(--wp-hunter);
+  --fp-warn:     var(--wp-charcoal);
+  --fp-border:   var(--wp-rule);
+  --fp-surface:  var(--wp-white);
+  --fp-bg:       var(--wp-bone);
+}
+
+.panel {
+  background: var(--wp-white);
+  border: 1px solid var(--wp-rule);
+  border-radius: var(--wp-radius);
+  padding: var(--wp-space-5);
+  margin-bottom: var(--wp-space-4);
+}
+.panel h2 {
+  margin: 0 0 var(--wp-space-3);
+  font-size: var(--wp-text-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.panel > h2:first-child + * { margin-top: 0; }
+.panel dl,
+.panel dt,
+.panel dd {
+  font-size: var(--wp-text-sm);
+}
+
+.fp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--wp-text-sm);
+  margin-top: var(--wp-space-2);
+}
+.fp-table thead th {
+  text-align: left;
+  font-size: var(--wp-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--wp-charcoal-soft);
+  padding: var(--wp-space-3) var(--wp-space-4);
+  background: var(--wp-bone);
+  border-bottom: 1px solid var(--wp-rule-strong);
+}
+.fp-table tbody td {
+  padding: var(--wp-space-3) var(--wp-space-4);
+  border-bottom: 1px solid var(--wp-rule);
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+.fp-table tbody tr:nth-child(even) td { background: var(--wp-bone); }
+.fp-table tbody tr:hover td { background: var(--wp-bone-deep); }
+.fp-table tbody tr:last-child td { border-bottom: 0; }
+.fp-table code {
+  font-family: var(--wp-font-mono);
+  font-size: var(--wp-text-xs);
+  color: var(--wp-charcoal);
+}
+
+/* Wrap fp-tables on mobile via .admin-table-wrap or inline overflow */
+.panel .fp-table { display: table; }
+@media (max-width: 768px) {
+  .panel { padding: var(--wp-space-4); overflow-x: auto; }
+}
+
+/* Badges in this convention. */
+.badge--ok    { border-color: var(--wp-hunter); color: var(--wp-hunter); background: rgba(63,90,61,0.06); }
+.badge--warn  { border-color: var(--wp-charcoal); color: var(--wp-charcoal); background: var(--wp-bone-deep); }
+.badge--err   { border-color: var(--wp-status-err); color: var(--wp-status-err); background: rgba(179,58,58,0.06); }
+.badge--muted { border-color: var(--wp-rule-strong); color: var(--wp-charcoal-mute); background: var(--wp-bone); }
+
+/* Empty state used by Phase 4b templates */
+.empty-state {
+  text-align: center;
+  padding: var(--wp-space-10) var(--wp-space-6);
+  border: 1px dashed var(--wp-rule-strong);
+  border-radius: var(--wp-radius);
+  background: var(--wp-white);
+  color: var(--wp-charcoal-soft);
+  font-size: var(--wp-text-sm);
+}
+.empty-state strong {
+  display: block;
+  font-size: var(--wp-text-md);
+  font-weight: 600;
+  color: var(--wp-charcoal);
+  margin-bottom: var(--wp-space-2);
+}
+
+/* Filter bar pattern (orders_list, customers_list, webhooks_list etc.) */
+.filter-bar {
+  display: flex;
+  gap: var(--wp-space-2);
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: var(--wp-space-4);
+  padding: var(--wp-space-3) var(--wp-space-4);
+  background: var(--wp-bone);
+  border: 1px solid var(--wp-rule);
+  border-radius: var(--wp-radius);
+}
+.filter-bar input[type="text"],
+.filter-bar input[type="search"],
+.filter-bar input[type="date"],
+.filter-bar select {
+  padding: 6px var(--wp-space-3);
+  border: 1px solid var(--wp-rule-strong);
+  border-radius: var(--wp-radius);
+  font-size: var(--wp-text-sm);
+  background: var(--wp-white);
+  color: var(--wp-charcoal);
+  min-height: 32px;
+  font-family: inherit;
+}
+.filter-bar input:focus,
+.filter-bar select:focus {
+  outline: none;
+  border-color: var(--wp-charcoal);
+  box-shadow: 0 0 0 1px var(--wp-charcoal);
+}
+
+/* btn--primary / btn--danger variants used in 4b templates */
+.btn--primary {
+  background: var(--wp-hunter);
+  color: var(--wp-white);
+  border-color: var(--wp-hunter);
+  font-weight: 600;
+}
+.btn--primary:hover {
+  background: var(--wp-hunter-deep);
+  border-color: var(--wp-hunter-deep);
+  color: var(--wp-white);
+}
+.btn--danger {
+  background: var(--wp-white);
+  color: var(--wp-status-err);
+  border-color: var(--wp-status-err);
+}
+.btn--danger:hover {
+  background: var(--wp-status-err);
+  color: var(--wp-white);
+}
+
+/* ==========================================================================
    Footer
    ========================================================================== */
 

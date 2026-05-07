@@ -3,6 +3,7 @@
 {% block title %}Customers — wildprint admin{% endblock %}
 
 {% block content %}
+<header class="admin-page__header"><span class="wp-eyebrow">Customers</span></header>
 
   <form class="filter-bar" method="get" action="{{ url_for('admin.customers_list') }}">
     <input type="search" name="q" value="{{ filters.q }}"
