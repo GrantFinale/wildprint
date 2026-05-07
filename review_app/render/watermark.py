@@ -5,8 +5,8 @@ Pure function — no DB, no network, no storage. Tested independently in
 
 Spec (from integration plan, decision #11):
 
-* Text: ``fishingposter.com``
-* Opacity: ~10% (low enough to be unobtrusive, high enough that flattening
+* Text: ``www.fishingposter.com``
+* Opacity: ~6% (low enough to be unobtrusive, high enough that flattening
   the JPEG via screenshot still picks it up)
 * Angle: -30 degrees (diagonal across the image)
 * Tile spacing: ~600 px both axes (so a 2400 px preview gets ~16 tiles)
@@ -67,16 +67,16 @@ def _load_font(size_px: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
 
 def apply_watermark(
     image: Image.Image,
-    text: str = "fishingposter.com",
-    opacity: float = 0.10,
+    text: str = "www.fishingposter.com",
+    opacity: float = 0.06,
     angle: int = -30,
 ) -> Image.Image:
     """Apply a diagonal repeating watermark to ``image``.
 
     Args:
         image: source image. RGB or RGBA. Not mutated; a new image is returned.
-        text: watermark string. Default is ``fishingposter.com``.
-        opacity: alpha multiplier in [0, 1]. Default 0.10 (~10%).
+        text: watermark string. Default is ``www.fishingposter.com``.
+        opacity: alpha multiplier in [0, 1]. Default 0.06 (~6%).
         angle: rotation in degrees. Default -30 (down-right diagonal).
 
     Returns:

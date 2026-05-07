@@ -1,6 +1,8 @@
 """Tests for the diagonal watermark function."""
 from __future__ import annotations
 
+import inspect
+
 import numpy as np
 from PIL import Image
 
@@ -36,15 +38,15 @@ def test_apply_watermark_preserves_input_mode_rgba() -> None:
 def test_apply_watermark_changes_pixels() -> None:
     """The watermark must touch a non-trivial number of pixels.
 
-    At 10% opacity the actual touched-pixel area is the text glyphs only
-    (~0.5-3% of the image). We assert >= 0.5% as a sanity floor — anything
-    less means the watermark function didn't actually draw anything.
+    At the default 6% opacity the actual touched-pixel area is the text
+    glyphs only (~0.1-2% of the image — many anti-aliased edge pixels
+    round to no-change at low opacity). We assert >= 0.05% as a sanity
+    floor — anything less means the watermark function didn't actually
+    draw anything.
 
     For a stronger semantic check, we ALSO render the watermark at high
-    opacity (50%) and assert the high-opacity render touches at least 3x
-    more pixels than the low-opacity one — proving opacity actually scales
-    the effect. (Sparse text => most "diff" pixels are anti-aliased edges
-    where opacity gates whether they cross the rounding threshold.)
+    opacity (50%) and assert the high-opacity render touches more pixels
+    than the low-opacity one — proving opacity actually scales the effect.
     """
     src = _solid(800, 1200)
     out = apply_watermark(src)
@@ -55,7 +57,7 @@ def test_apply_watermark_changes_pixels() -> None:
     # A pixel "differs" if any channel differs.
     diff_mask = np.any(src_arr != out_arr, axis=-1)
     differ_pct = float(diff_mask.sum()) / float(diff_mask.size)
-    assert differ_pct >= 0.005, f"watermark only changed {differ_pct:.2%} of pixels"
+    assert differ_pct >= 0.0005, f"watermark only changed {differ_pct:.2%} of pixels"
 
     # Higher opacity => more pixels visibly differ.
     out_high = apply_watermark(src, opacity=0.50)
@@ -107,3 +109,17 @@ def test_apply_watermark_low_opacity_changes_fewer_pixels_than_high() -> None:
     low_delta = float(np.mean(np.abs(low_arr.astype(int) - src_arr.astype(int))))
     high_delta = float(np.mean(np.abs(high_arr.astype(int) - src_arr.astype(int))))
     assert high_delta > low_delta
+
+
+def test_watermark_uses_www_prefix_by_default() -> None:
+    """Default text must be the www-prefixed brand string."""
+    sig = inspect.signature(apply_watermark)
+    default_text = sig.parameters["text"].default
+    assert default_text == "www.fishingposter.com"
+
+
+def test_watermark_default_opacity_is_0_06() -> None:
+    """Default opacity must be 0.06 (6%) — more transparent than the old 10%."""
+    sig = inspect.signature(apply_watermark)
+    default_opacity = sig.parameters["opacity"].default
+    assert default_opacity == 0.06
