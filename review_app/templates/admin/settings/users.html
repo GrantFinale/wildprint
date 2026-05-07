@@ -34,6 +34,7 @@
 <section class="admin-card">
   <h2>Active users</h2>
   {% if rows %}
+    <div class="admin-table-wrap">
     <table class="admin-table">
       <thead>
         <tr><th>Email</th><th>Role</th><th>Last login</th><th>Status</th></tr>
@@ -49,6 +50,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
   {% else %}
     <p class="admin-empty">
       No users yet. Bootstrap the first admin via:

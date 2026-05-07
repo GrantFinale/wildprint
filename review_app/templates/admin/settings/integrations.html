@@ -10,6 +10,7 @@
 </header>
 
 <section class="admin-card">
+  <div class="admin-table-wrap">
   <table class="admin-table">
     <thead>
       <tr><th>Service</th><th>Status</th><th>Note</th><th>Latency</th></tr>
@@ -31,6 +32,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 </section>
 
 {% if tax_status is defined %}

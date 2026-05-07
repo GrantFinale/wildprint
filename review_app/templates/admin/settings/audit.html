@@ -24,6 +24,7 @@
   <p class="admin-card__meta">
     Showing {{ rows|length }} of {{ total }} entries — page {{ page }} of {{ pages_total }}.
   </p>
+  <div class="admin-table-wrap">
   <table class="admin-table">
     <thead>
       <tr>
@@ -62,6 +63,7 @@ after: {{ r.after|tojson }}</pre>
       {% endfor %}
     </tbody>
   </table>
+  </div>
 
   {% if pages_total > 1 %}
     <nav class="admin-pagination">

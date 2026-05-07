@@ -1,6 +1,7 @@
 {% extends "admin/_base.html" %}
 {% block content %}
 <header class="admin-page__header">
+  <span class="wp-eyebrow">Catalog</span>
   <h1>Sizing</h1>
   <p class="admin-page__subtitle">
     Global size variance + per-species scale overrides.
@@ -30,12 +31,14 @@
     large 1.2, medium 1.0, small 0.8, tiny 0.7. Tweak per-species below; defaults
     come from the species catalog.
   </p>
+  <div class="admin-table-wrap">
   <table class="admin-table" id="sizing-table">
     <thead>
       <tr><th>Common name</th><th>Scientific</th><th>Category</th><th>Scale</th></tr>
     </thead>
     <tbody id="sizing-tbody"></tbody>
   </table>
+  </div>
 </section>
 
 {% block scripts_extra %}

@@ -1,15 +1,17 @@
 {% extends "admin/_base.html" %}
 {% block content %}
 <header class="admin-page__header">
+  <span class="wp-eyebrow">Operations</span>
   <h1>Dashboard</h1>
   <p class="admin-page__subtitle">Operational health at a glance.</p>
 
-  <form method="get" action="{{ url_for('admin.dashboard') }}" class="admin-range-filter">
-    <span class="admin-range-filter__label">Range:</span>
+  <form method="get" action="{{ url_for('admin.dashboard') }}" class="admin-range-filter" role="group" aria-label="Date range">
+    <span class="admin-range-filter__label">Range</span>
     {% for token, label in [('today','Today'),('7d','7 days'),('30d','30 days'),('mtd','MTD')] %}
       <a
         href="{{ url_for('admin.dashboard', range=token) }}"
         class="admin-range-filter__option {% if range_token == token %}is-active{% endif %}"
+        {% if range_token == token %}aria-current="page"{% endif %}
       >{{ label }}</a>
     {% endfor %}
   </form>
@@ -45,22 +47,28 @@
 <section class="admin-card">
   <h2>Top SKUs (last 7 days)</h2>
   {% if top_skus %}
-    <table class="admin-table">
-      <thead>
-        <tr><th>Internal SKU</th><th>Units</th><th>Revenue</th></tr>
-      </thead>
-      <tbody>
-        {% for row in top_skus %}
-          <tr>
-            <td><code>{{ row.internal_sku }}</code></td>
-            <td>{{ row.units }}</td>
-            <td>{{ row.revenue_dollars() }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="admin-table-wrap">
+      <table class="admin-table" aria-label="Top SKUs by units">
+        <thead>
+          <tr><th scope="col">Internal SKU</th><th scope="col">Units</th><th scope="col">Revenue</th></tr>
+        </thead>
+        <tbody>
+          {% for row in top_skus %}
+            <tr>
+              <td><code>{{ row.internal_sku }}</code></td>
+              <td class="wp-tnum">{{ row.units }}</td>
+              <td class="wp-tnum">{{ row.revenue_dollars() }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   {% else %}
-    <p class="admin-empty">No order data yet — top SKU table will populate once orders flow.</p>
+    <div class="wp-empty">
+      <div class="wp-empty__icon" aria-hidden="true">&#9646;</div>
+      <p class="wp-empty__title">No order data yet</p>
+      <p class="wp-empty__body">The top SKU table populates once orders begin flowing.</p>
+    </div>
   {% endif %}
 </section>
 {% endblock %}

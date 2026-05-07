@@ -1,22 +1,48 @@
 {% extends "admin/_base.html" %}
 {% block content %}
+{# TODO Phase 6 polish: design pass — search results layout #}
 <header class="admin-page__header">
-  <h1>Search{% if q %} — &ldquo;{{ q }}&rdquo;{% endif %}</h1>
+  <h1>Search{% if q %} &mdash; &ldquo;{{ q }}&rdquo;{% endif %}</h1>
+  <p class="admin-page__subtitle">
+    Press <kbd>&#8984;</kbd>+<kbd>K</kbd> (or <kbd>Ctrl</kbd>+<kbd>K</kbd>) to focus the search.
+  </p>
 </header>
 
+{% if not q %}
 <section class="admin-card">
   <h2>Coming in Phase 5</h2>
-  <p>
-    Global search will hit:
-  </p>
+  <p>Type a query in the topbar search box and press Enter.</p>
   <ul>
-    <li><strong>Orders</strong> — by order #, customer email, or Prodigi <code>ord_*</code> id</li>
-    <li><strong>Customers</strong> — by email or name</li>
-    <li><strong>Species</strong> — by common or scientific name</li>
-    <li><strong>SKUs</strong> — by internal SKU or Prodigi SKU</li>
+    <li><strong>Orders</strong> &mdash; by ID, status, or Stripe payment intent.</li>
+    <li><strong>Customers</strong> &mdash; by email or name.</li>
+    <li><strong>SKUs</strong> &mdash; by internal SKU, finish, or size.</li>
+    <li><strong>Species</strong> &mdash; by common or scientific name.</li>
+    <li><strong>Prodigi orders</strong> &mdash; by Prodigi <code>ord_*</code> id.</li>
+    <li><strong>Audit log</strong> &mdash; by action, target type, or target id.</li>
   </ul>
-  <p class="admin-card__hint">
-    Press <kbd>⌘</kbd>+<kbd>K</kbd> from anywhere in admin to focus the search input.
-  </p>
 </section>
+{% elif not groups %}
+<section class="admin-card">
+  <h2>No results</h2>
+  <p>No matches for &ldquo;{{ q }}&rdquo;.</p>
+</section>
+{% else %}
+  {% for group in groups %}
+  <section class="admin-card">
+    <h2>{{ group.name }} <span class="admin-status">{{ group.hits|length }}</span></h2>
+    <ul class="admin-search-results">
+      {% for hit in group.hits %}
+      <li>
+        <a href="{{ hit.href }}" class="admin-search-results__link">
+          <span class="admin-search-results__label">{{ hit.label }}</span>
+          {% if hit.sublabel %}
+            <span class="admin-search-results__sublabel">{{ hit.sublabel }}</span>
+          {% endif %}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+{% endif %}
 {% endblock %}

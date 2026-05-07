@@ -571,6 +571,39 @@ body.admin-shell {
   accent-color: var(--wp-charcoal);
 }
 
+/* Form grid (used by render_presets and similar settings forms). */
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--wp-space-3);
+  margin-bottom: var(--wp-space-3);
+}
+.admin-form-grid label,
+.admin-form-stack label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--wp-text-sm);
+  font-weight: 500;
+  color: var(--wp-charcoal);
+}
+
+.admin-fieldset {
+  border: 1px solid var(--wp-rule);
+  border-radius: var(--wp-radius);
+  padding: var(--wp-space-4) var(--wp-space-5);
+  margin: var(--wp-space-4) 0;
+  background: var(--wp-bone);
+}
+.admin-fieldset legend {
+  font-size: var(--wp-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--wp-charcoal-soft);
+  padding: 0 var(--wp-space-2);
+}
+
 .admin-filters {
   display: flex;
   gap: var(--wp-space-2);

@@ -1,6 +1,7 @@
 {% extends "admin/_base.html" %}
 {% block content %}
 <header class="admin-page__header">
+  <span class="wp-eyebrow">Catalog</span>
   <h1>Species catalog</h1>
   <p class="admin-page__subtitle">
     Manage the species catalog, track master image coverage, and generate missing assets.
@@ -36,6 +37,7 @@
     </label>
   </div>
 
+  <div class="admin-table-wrap">
   <table class="admin-table" id="species-table">
     <thead>
       <tr>
@@ -52,6 +54,7 @@
     </thead>
     <tbody id="species-tbody"></tbody>
   </table>
+  </div>
 </section>
 
 {# Reuse the legacy script — same JSON endpoints, same DOM contract. #}

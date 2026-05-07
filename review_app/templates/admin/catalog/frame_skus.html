@@ -1,6 +1,7 @@
 {% extends "admin/_base.html" %}
 {% block content %}
 <header class="admin-page__header">
+  <span class="wp-eyebrow">Catalog</span>
   <h1>Frame SKUs &amp; pricing</h1>
   <p class="admin-page__subtitle">
     Launch catalog from <code>prodigi_skus</code>. Wholesale refreshes nightly.
@@ -37,6 +38,7 @@
   </form>
 
   {% if rows %}
+    <div class="admin-table-wrap">
     <table class="admin-table">
       <thead>
         <tr>
@@ -70,6 +72,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
   {% else %}
     <p class="admin-empty">No SKUs match the current filters (or the <code>prodigi_skus</code> table is empty).</p>
   {% endif %}
