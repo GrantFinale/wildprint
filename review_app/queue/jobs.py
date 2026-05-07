@@ -26,15 +26,35 @@ def ping_job(echo: str = "pong") -> dict[str, str]:
     }
 
 
-def render_print_job(render_spec_id: str) -> dict[str, str]:
-    """Tier-3 high-res print render. Implemented in Phase 2/3.
+# Tier-3 print render — Phase 2 implementation. We re-export from
+# `review_app.render.jobs` so the worker can resolve this module path
+# (`review_app.queue.jobs.render_print_job`) for jobs enqueued under the
+# Phase 0/1 name, AND so `review_app.render.jobs.render_tier_job` is the
+# canonical resolution path for newly-enqueued tier-3 work.
+#
+# Late-import inside a thin wrapper to avoid pulling Pillow + the renderer
+# into processes that only enqueue (no need to drag the imaging stack into
+# the web app to call `enqueue(render_print_job, ...)`).
+def render_print_job(spec_dict: dict[str, Any], order_id: str) -> dict[str, Any]:
+    """Tier-3 high-res print render. Phase 2 implementation.
 
-    Stub raises so an accidental enqueue fails loudly during Phase 0/1
-    rather than silently no-oping.
+    Delegates to :func:`review_app.render.jobs.render_print_job`. Kept under
+    this module path for backward compatibility with any Phase 0/1 enqueues.
     """
-    raise NotImplementedError(
-        f"render_print_job({render_spec_id!r}): Phase 2/3 will implement this"
-    )
+    from review_app.render.jobs import render_print_job as _impl
+
+    return _impl(spec_dict, order_id)
+
+
+def render_tier_job(
+    spec_dict: dict[str, Any],
+    tier: int,
+    order_id: str | None = None,
+) -> dict[str, Any]:
+    """Generic tier render job — re-export of :func:`review_app.render.jobs.render_tier_job`."""
+    from review_app.render.jobs import render_tier_job as _impl
+
+    return _impl(spec_dict, tier, order_id=order_id)
 
 
 def drain_outbox_job(batch_size: int = 10) -> dict[str, Any]:
@@ -159,4 +179,4 @@ def drain_outbox_job(batch_size: int = 10) -> dict[str, Any]:
     }
 
 
-__all__ = ["drain_outbox_job", "ping_job", "render_print_job"]
+__all__ = ["drain_outbox_job", "ping_job", "render_print_job", "render_tier_job"]
