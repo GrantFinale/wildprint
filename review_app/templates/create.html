@@ -343,9 +343,9 @@
       </div>
       <!-- Free-tier framed preview: shown INSTEAD of the live editor for free
            users. Server-composited (frame + lock overlay + watermark) — see
-           /api/render-framed-preview. Hidden by default; the JS unhides it
-           after the first /api/render-framed-preview call returns. -->
-      <img id="cv3-framed-preview" alt="Framed preview" style="display:none;position:absolute;inset:0;margin:auto;max-width:100%;max-height:100%;object-fit:contain;background:#fff;border-radius:4px;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+           /api/render-framed-preview. Hidden by default; the JS swaps the
+           live editor for this image after the first server render returns. -->
+      <img id="cv3-framed-preview" alt="Framed preview" style="display:none;max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
     </div>
     <div class="cv3-canvas-status">
       <span id="cv3-status-msg" class="subtle">Drag animals to reposition. Click the title to edit it.</span>
