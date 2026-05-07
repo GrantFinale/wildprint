@@ -128,9 +128,28 @@ def db_engine() -> Iterator["Engine"]:
     engine = create_engine(url, future=True, connect_args=connect_args)
 
     # Create all tables registered against ``Base`` so model tests can run
-    # without booting Alembic.
+    # without booting Alembic. Importing each model module triggers its
+    # registration on ``Base.metadata`` (mirrors the import list in
+    # ``alembic/env.py``).
     try:
         from review_app.db import Base
+        # Side-effect imports — register every model module on Base.metadata.
+        # Order is significant only for relationship() string resolution at
+        # configure-mappers time; SQLA tolerates partial graphs at import.
+        import review_app.auth.models  # noqa: F401
+        import review_app.ai.models  # noqa: F401
+        import review_app.email.outbox  # noqa: F401
+        import review_app.prodigi.db_models  # noqa: F401
+        import review_app.render.db_models  # noqa: F401
+        # Phase 3a — checkout models.
+        import review_app.customers.models  # noqa: F401
+        import review_app.addresses.models  # noqa: F401
+        import review_app.cart.models  # noqa: F401
+        import review_app.orders.models  # noqa: F401
+        import review_app.refunds.models  # noqa: F401
+        # Phase 3b — Stripe webhook dedup table.
+        import review_app.checkout.stripe_events  # noqa: F401
+
         Base.metadata.create_all(engine)
     except ImportError:
         # The db scaffold is allowed to be absent in very early tests.

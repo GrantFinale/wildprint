@@ -30,6 +30,15 @@ from review_app.ai import models as _ai_models  # noqa: F401, E402
 from review_app.email import outbox as _email_outbox  # noqa: F401, E402
 from review_app.prodigi import db_models as _prodigi_models  # noqa: F401, E402
 from review_app.render import db_models as _render_models  # noqa: F401, E402
+# Phase 3a — checkout models. Import order matters: customers/addresses
+# define classes that orders/cart/refunds reference via relationship() strings.
+from review_app.customers import models as _customers_models  # noqa: F401, E402
+from review_app.addresses import models as _addresses_models  # noqa: F401, E402
+from review_app.cart import models as _cart_models  # noqa: F401, E402
+from review_app.orders import models as _orders_models  # noqa: F401, E402
+from review_app.refunds import models as _refunds_models  # noqa: F401, E402
+# Phase 3b — Stripe webhook dedup table.
+from review_app.checkout import stripe_events as _stripe_events  # noqa: F401, E402
 
 
 config = context.config
