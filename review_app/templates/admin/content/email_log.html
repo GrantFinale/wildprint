@@ -1,0 +1,64 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}Email send log — wildprint admin{% endblock %}
+
+{% block content %}
+
+  <form class="filter-bar" method="get" action="{{ url_for('admin.content_email_log') }}">
+    <select name="template">
+      <option value="">All templates</option>
+      {% for k in kinds %}
+        <option value="{{ k }}" {% if filters.template == k %}selected{% endif %}>{{ k }}</option>
+      {% endfor %}
+    </select>
+    <select name="status">
+      <option value="">All statuses</option>
+      {% for s in statuses %}
+        <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Apply</button>
+  </form>
+
+  {% if rows %}
+    <table class="fp-table">
+      <thead>
+        <tr>
+          <th>Sent</th><th>Recipient</th><th>Template</th>
+          <th>Status</th><th>Opened</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          {% set status_class =
+              'badge--ok'    if r.status == 'sent' else
+              'badge--warn'  if r.status in ('pending','sending') else
+              'badge--err'   if r.status in ('failed','dead') else
+              'badge--muted' %}
+          <tr>
+            <td>
+              {{ (r.sent_at or r.created_at).strftime('%Y-%m-%d %H:%M') }}
+            </td>
+            <td>{{ (r.payload or {}).get('to', '—') }}</td>
+            <td>{{ r.kind }}</td>
+            <td><span class="badge {{ status_class }}">{{ r.status }}</span></td>
+            <td><span style="color:var(--fp-muted);">N/A</span></td>
+            <td>
+              <form method="post"
+                    action="{{ url_for('admin.content_email_log') }}"
+                    style="display:inline;">
+                <input type="hidden" name="resend_id" value="{{ r.id }}">
+                <button class="btn" type="submit">Resend</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      <strong>No outbound emails recorded.</strong>
+    </div>
+  {% endif %}
+
+{% endblock %}
