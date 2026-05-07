@@ -1,6 +1,6 @@
 # fishingposter.com — Prodigi Integration & Admin Refactor Plan
 
-**Status:** Phase 0 code-complete (10 commits on `phase-0-foundation`, pushed to GitHub 2026-05-05). Staging + integration smoke deferred pending external accounts. See [docs/phase-0-done.md](phase-0-done.md) for status.
+**Status:** **All 6 phases shipped 2026-05-07.** ~87 commits across 6 branches, 339 tests passing, all CI green. See [docs/all-phases-shipped.md](all-phases-shipped.md) for the milestone summary, what's deployed where, and the deferred follow-on list.
 **Date:** 2026-05-05
 
 ---
