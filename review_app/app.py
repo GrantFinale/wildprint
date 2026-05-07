@@ -106,6 +106,10 @@ from review_app.prodigi import init_app as _init_prodigi
 from review_app.refunds import init_app as _init_refunds
 from review_app.render import init_app as _init_render
 from review_app.storage import init_app as _init_storage
+# Phase 5b additive imports — customer accounts, content blocks, notes.
+from review_app.account import init_app as _init_account
+from review_app.content import init_app as _init_content
+from review_app.notes import init_app as _init_notes
 
 _init_obs(app)
 _init_db(app)
@@ -126,6 +130,12 @@ _init_refunds(app)
 # Phase 4a — admin shell. Must register AFTER auth so url_for('auth.login')
 # inside the @requires_role decorator resolves.
 _init_admin(app)
+# Phase 5b — additive: customer-facing /account/*, DB-backed content blocks,
+# notes table. Registered after admin so blueprint registration order is
+# stable and easy to scan.
+_init_account(app)
+_init_content(app)
+_init_notes(app)
 _cli.register(app)
 
 # ---------------------------------------------------------------------------
@@ -2050,7 +2060,13 @@ def api_background_presets():
     return jsonify({"presets": list(PRESET_LANDSCAPES.keys())})
 
 
+# Phase 5a — Flask-Limiter renders. The legacy in-memory @rate_limit(20)
+# above stays as a per-process belt-and-braces guard; the Flask-Limiter
+# decorator below is the cross-replica enforced limit.
+from review_app.limits import render_limit as _phase5a_render_limit
+
 @app.route("/api/generate-poster", methods=["POST"])
+@_phase5a_render_limit()
 @rate_limit(20)
 def api_generate_poster():
     """Generate a poster from selected species and options."""

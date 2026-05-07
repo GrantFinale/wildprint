@@ -38,6 +38,7 @@ from flask import (
 
 from review_app.cart import service as cart_service
 from review_app.cart.models import Cart
+from review_app.limits import cart_limit as _cart_limit
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -176,6 +177,7 @@ def _parse_uuid_field(value: Any, field_name: str) -> uuid.UUID:
 # Routes
 # ---------------------------------------------------------------------------
 @cart_bp.route("/api/cart/add", methods=["POST"])
+@_cart_limit()
 def api_cart_add() -> Response:
     """Add an item to the current cart. Returns the updated cart DTO."""
     body: Any = request.get_json(silent=True) or {}
@@ -250,6 +252,7 @@ def api_cart_get() -> Response:
 
 
 @cart_bp.route("/api/cart/items/<item_id>/update", methods=["POST"])
+@_cart_limit()
 def api_cart_item_update(item_id: str) -> Response:
     """Update a line's quantity. body: ``{quantity: int}`` (0 deletes)."""
     body: Any = request.get_json(silent=True) or {}
@@ -282,6 +285,7 @@ def api_cart_item_update(item_id: str) -> Response:
 
 
 @cart_bp.route("/api/cart/items/<item_id>/remove", methods=["POST"])
+@_cart_limit()
 def api_cart_item_remove(item_id: str) -> Response:
     """Remove a single line from the current cart."""
     try:

@@ -14,6 +14,7 @@ from flask import Blueprint, Response, jsonify, make_response, request
 
 from review_app.cart import service as cart_service
 from review_app.checkout import stripe_client, tax as tax_module
+from review_app.limits import cart_limit as _cart_limit
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -68,6 +69,7 @@ def _absolute_url(path: str) -> str:
 # Routes
 # ---------------------------------------------------------------------------
 @checkout_bp.route("/api/checkout/start", methods=["POST"])
+@_cart_limit()
 def api_checkout_start() -> Response:
     """Begin a Stripe-hosted checkout for the current cart.
 
