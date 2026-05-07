@@ -1,31 +1,42 @@
 {% extends "account/_base.html" %}
 {% block title %}Orders · fishingposter.com{% endblock %}
 {% block content %}
-<h1>Your orders</h1>
+<header class="page-head">
+  <span class="wp-eyebrow">Account</span>
+  <h1>Your orders</h1>
+</header>
+
 {% if orders %}
-  <table class="orders">
-    <thead>
-      <tr>
-        <th>Order</th>
-        <th>Date</th>
-        <th>Status</th>
-        <th>Total</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for o in orders %}
+  <div class="wp-table-wrap">
+    <table class="orders" aria-label="Order history">
+      <thead>
         <tr>
-          <td>#{{ o.id.hex[:8] }}</td>
-          <td>{{ o.created_at.strftime('%Y-%m-%d') if o.created_at else '' }}</td>
-          <td><span class="badge badge--{{ o.status }}">{{ o.status }}</span></td>
-          <td>${{ '%.2f' | format(o.total_cents / 100.0) }}</td>
-          <td><a href="{{ url_for('account.orders_detail', order_id=o.id) }}">View detail</a></td>
+          <th scope="col">Order</th>
+          <th scope="col">Date</th>
+          <th scope="col">Status</th>
+          <th scope="col">Total</th>
+          <th scope="col"><span class="wp-sr-only">Actions</span></th>
         </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+          <tr>
+            <td><code class="wp-tnum">#{{ o.id.hex[:8] }}</code></td>
+            <td class="wp-tnum">{{ o.created_at.strftime('%Y-%m-%d') if o.created_at else '' }}</td>
+            <td><span class="badge badge--{{ o.status }}">{{ o.status|replace('_', ' ') }}</span></td>
+            <td class="wp-tnum">${{ '%.2f' | format(o.total_cents / 100.0) }}</td>
+            <td><a href="{{ url_for('account.orders_detail', order_id=o.id) }}" aria-label="View detail for order #{{ o.id.hex[:8] }}">View detail &rarr;</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% else %}
-  <p class="muted">No orders yet.</p>
+  <div class="wp-empty">
+    <div class="wp-empty__icon" aria-hidden="true">&#9744;</div>
+    <p class="wp-empty__title">No orders yet</p>
+    <p class="wp-empty__body">Once you place your first order it'll appear here with tracking info.</p>
+    <p class="wp-empty__action"><a href="/" class="wp-btn wp-btn--primary">Browse posters</a></p>
+  </div>
 {% endif %}
 {% endblock %}

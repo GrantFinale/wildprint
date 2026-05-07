@@ -1,48 +1,59 @@
 {% extends "account/_base.html" %}
 {% block title %}Addresses · fishingposter.com{% endblock %}
 {% block content %}
-<h1>Shipping addresses</h1>
+<header class="page-head">
+  <span class="wp-eyebrow">Account</span>
+  <h1>Shipping addresses</h1>
+</header>
 
 {% if addresses %}
-  <ul class="addresses">
+  <ul class="addresses" aria-label="Saved addresses">
     {% for a in addresses %}
       <li class="card">
         <address>
-          {% if a.name %}{{ a.name }}<br>{% endif %}
+          {% if a.name %}<strong>{{ a.name }}</strong><br>{% endif %}
           {{ a.line1 }}<br>
           {% if a.line2 %}{{ a.line2 }}<br>{% endif %}
-          {{ a.city }}, {{ a.state }} {{ a.zip }}
+          {{ a.city }}, {{ a.state }} <span class="wp-tnum">{{ a.zip }}</span>
         </address>
-        {% if a.is_default %}
-          <span class="badge">Default</span>
-        {% else %}
-          <form method="post" action="{{ url_for('account.addresses_set_default', address_id=a.id) }}" style="display:inline">
-            <button type="submit">Set as default</button>
+        <div class="wp-row" style="gap: var(--wp-space-2); margin-top: auto;">
+          {% if a.is_default %}
+            <span class="badge badge--ok">Default</span>
+          {% else %}
+            <form method="post" action="{{ url_for('account.addresses_set_default', address_id=a.id) }}" style="display:inline">
+              <button type="submit" class="wp-btn wp-btn--sm">Set as default</button>
+            </form>
+          {% endif %}
+          <form method="post" action="{{ url_for('account.addresses_delete', address_id=a.id) }}" style="display:inline">
+            <button type="submit" class="wp-btn wp-btn--sm wp-btn--danger danger">Remove</button>
           </form>
-        {% endif %}
-        <form method="post" action="{{ url_for('account.addresses_delete', address_id=a.id) }}" style="display:inline">
-          <button type="submit" class="danger">Remove</button>
-        </form>
+        </div>
       </li>
     {% endfor %}
   </ul>
 {% else %}
-  <p class="muted">No addresses on file.</p>
+  <div class="wp-empty">
+    <div class="wp-empty__icon" aria-hidden="true">&#9737;</div>
+    <p class="wp-empty__title">No addresses on file</p>
+    <p class="wp-empty__body">Add a shipping address to speed up checkout next time.</p>
+  </div>
 {% endif %}
 
 <section class="card">
   <h2>Add an address</h2>
   <form method="post" action="{{ url_for('account.addresses_create') }}">
-    <label>Name <input type="text" name="name"></label>
-    <label>Address line 1 <input type="text" name="line1" required></label>
-    <label>Address line 2 <input type="text" name="line2"></label>
-    <label>City <input type="text" name="city" required></label>
-    <label>State <input type="text" name="state" maxlength="2" required></label>
-    <label>ZIP <input type="text" name="zip" required></label>
-    <label>Country <input type="text" name="country" value="US" maxlength="2"></label>
-    <label>Phone <input type="tel" name="phone"></label>
-    <label><input type="checkbox" name="is_default" value="1"> Make this my default</label>
-    <button type="submit">Save address</button>
+    <label for="addr-name">Name <input id="addr-name" type="text" name="name" autocomplete="name"></label>
+    <label for="addr-line1">Address line 1 <input id="addr-line1" type="text" name="line1" required autocomplete="address-line1"></label>
+    <label for="addr-line2">Address line 2 <input id="addr-line2" type="text" name="line2" autocomplete="address-line2"></label>
+    <label for="addr-city">City <input id="addr-city" type="text" name="city" required autocomplete="address-level2"></label>
+    <label for="addr-state">State <input id="addr-state" type="text" name="state" maxlength="2" required autocomplete="address-level1" style="text-transform: uppercase;"></label>
+    <label for="addr-zip">ZIP <input id="addr-zip" type="text" name="zip" required autocomplete="postal-code" inputmode="numeric"></label>
+    <label for="addr-country">Country <input id="addr-country" type="text" name="country" value="US" maxlength="2" autocomplete="country"></label>
+    <label for="addr-phone">Phone <input id="addr-phone" type="tel" name="phone" autocomplete="tel"></label>
+    <label class="wp-checkbox-row" style="margin-top: var(--wp-space-3);">
+      <input type="checkbox" name="is_default" value="1"> Make this my default
+    </label>
+    <button type="submit" class="wp-btn wp-btn--primary">Save address</button>
   </form>
 </section>
 {% endblock %}

@@ -5,37 +5,47 @@
 {% block content %}
 <main class="cart-page" data-cart-id="{{ cart.id }}">
   <header class="cart-page__header">
-    <h1>Your cart</h1>
+    <div>
+      <span class="wp-eyebrow">Cart</span>
+      <h1>Your cart</h1>
+    </div>
     {% if cart.item_count == 0 %}
-      <p class="cart-page__empty">Your cart is empty.
-        <a href="/">Start with a poster</a>.
-      </p>
+      <p class="cart-page__count wp-soft">Empty</p>
     {% else %}
       <p class="cart-page__count">{{ cart.item_count }} item{% if cart.item_count != 1 %}s{% endif %}</p>
     {% endif %}
   </header>
 
+  {% if cart.item_count == 0 %}
+    <div class="wp-empty">
+      <div class="wp-empty__icon" aria-hidden="true">&#9744;</div>
+      <p class="wp-empty__title">Your cart is empty</p>
+      <p class="wp-empty__body">Start by configuring a frame from one of our species posters.</p>
+      <p class="wp-empty__action"><a href="/" class="wp-btn wp-btn--primary">Browse posters</a></p>
+    </div>
+  {% endif %}
+
   {% if cart.item_count > 0 %}
-  <table class="cart-page__items">
+  <table class="cart-page__items" aria-label="Cart line items">
     <thead>
       <tr>
-        <th>Item</th>
-        <th>Qty</th>
-        <th>Unit</th>
-        <th>Line total</th>
-        <th></th>
+        <th scope="col">Item</th>
+        <th scope="col">Qty</th>
+        <th scope="col">Unit</th>
+        <th scope="col">Line total</th>
+        <th scope="col"><span class="wp-sr-only">Actions</span></th>
       </tr>
     </thead>
     <tbody>
       {% for item in cart.items %}
       <tr data-cart-item-id="{{ item.id }}">
-        <td>
-          <code>{{ item.prodigi_sku_internal }}</code>
+        <td data-label="Item">
+          <code class="wp-tnum">{{ item.prodigi_sku_internal }}</code>
           {% if item.render_spec_id %}
-            <small>spec {{ item.render_spec_id }}</small>
+            <small>spec <span class="wp-tnum">{{ item.render_spec_id }}</span></small>
           {% endif %}
         </td>
-        <td>
+        <td data-label="Qty">
           <input
             type="number"
             min="0"
@@ -46,13 +56,14 @@
             aria-label="Quantity for {{ item.prodigi_sku_internal }}"
           >
         </td>
-        <td>${{ '%.2f' % (item.unit_price_cents / 100) }}</td>
-        <td>${{ '%.2f' % (item.line_total_cents / 100) }}</td>
-        <td>
+        <td data-label="Unit" class="wp-tnum">${{ '%.2f' % (item.unit_price_cents / 100) }}</td>
+        <td data-label="Line total" class="wp-tnum">${{ '%.2f' % (item.line_total_cents / 100) }}</td>
+        <td data-label="">
           <button
             type="button"
             class="cart-remove-btn"
             data-item-id="{{ item.id }}"
+            aria-label="Remove {{ item.prodigi_sku_internal }} from cart"
           >Remove</button>
         </td>
       </tr>
@@ -61,7 +72,7 @@
     <tfoot>
       <tr>
         <td colspan="3"><strong>Subtotal</strong></td>
-        <td colspan="2"><strong>${{ '%.2f' % (cart.subtotal_cents / 100) }}</strong></td>
+        <td colspan="2" class="wp-tnum"><strong>${{ '%.2f' % (cart.subtotal_cents / 100) }}</strong></td>
       </tr>
     </tfoot>
   </table>

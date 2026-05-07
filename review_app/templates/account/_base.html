@@ -4,18 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Your Account · fishingposter.com{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/storefront.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/account/account.css') }}">
+  {% block head_extra %}{% endblock %}
 </head>
 <body class="account">
-  <header class="account-header">
+  <a class="skip-link" href="#account-main">Skip to main content</a>
+
+  <header class="account-header" role="banner">
     <div class="container">
-      <a href="{{ url_for('account.overview') }}" class="brand">fishingposter.com</a>
-      <nav class="account-nav">
+      <a href="{{ url_for('account.overview') }}" class="brand" aria-label="fishingposter.com home">fishingposter<span class="brand-dot">.</span>com</a>
+      <nav class="account-nav" aria-label="Account">
         {% if g.current_customer %}
-          <a href="{{ url_for('account.overview') }}">Overview</a>
-          <a href="{{ url_for('account.orders_list') }}">Orders</a>
-          <a href="{{ url_for('account.addresses_list') }}">Addresses</a>
-          <a href="{{ url_for('account.profile') }}">Profile</a>
+          <a href="{{ url_for('account.overview') }}" {% if request.endpoint == 'account.overview' %}class="is-active" aria-current="page"{% endif %}>Overview</a>
+          <a href="{{ url_for('account.orders_list') }}" {% if request.endpoint and 'orders' in request.endpoint %}class="is-active" aria-current="page"{% endif %}>Orders</a>
+          <a href="{{ url_for('account.addresses_list') }}" {% if request.endpoint and 'addresses' in request.endpoint %}class="is-active" aria-current="page"{% endif %}>Addresses</a>
+          <a href="{{ url_for('account.profile') }}" {% if request.endpoint == 'account.profile' %}class="is-active" aria-current="page"{% endif %}>Profile</a>
           <a href="{{ url_for('account.logout') }}">Sign out</a>
         {% else %}
           <a href="{{ url_for('account.login') }}">Sign in</a>
@@ -24,10 +32,10 @@
     </div>
   </header>
 
-  <main class="container account-main">
+  <main class="container account-main" id="account-main" tabindex="-1">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <ul class="flashes">
+        <ul class="flashes" role="status">
           {% for cat, msg in messages %}
             <li class="flash flash--{{ cat }}">{{ msg }}</li>
           {% endfor %}
@@ -38,7 +46,7 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="account-footer">
+  <footer class="account-footer" role="contentinfo">
     <div class="container">
       <small>&copy; fishingposter.com</small>
     </div>

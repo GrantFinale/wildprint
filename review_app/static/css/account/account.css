@@ -1,145 +1,16 @@
-/* Minimal storefront styling — Phase 6 will polish this. */
-:root {
-  --fg: #1a1a1a;
-  --muted: #666;
-  --bg: #fafafa;
-  --card-bg: #fff;
-  --border: #e1e1e1;
-  --accent: #0a5;
-  --danger: #c33;
-  --warn: #f5a623;
-}
+/* account.css — page-specific overrides on top of foundation + storefront.
+ *
+ * Most account/* pages now use shared classes. This file holds only
+ * tiny page-specific tweaks. Imported AFTER storefront.css.
+ */
 
-* { box-sizing: border-box; }
-
-body.account {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: var(--fg);
-  background: var(--bg);
-  margin: 0;
-}
-
-.container { max-width: 960px; margin: 0 auto; padding: 0 1rem; }
-
-.account-header {
-  background: var(--card-bg);
-  border-bottom: 1px solid var(--border);
-  padding: 0.75rem 0;
-}
-.account-header .container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.account-header .brand {
-  font-weight: 600;
-  font-size: 1.1rem;
-  text-decoration: none;
-  color: var(--fg);
-}
-.account-nav a {
-  margin-left: 1rem;
-  text-decoration: none;
-  color: var(--fg);
-}
-
-.account-main { padding: 1.5rem 0 3rem; }
-
-.account-footer {
-  border-top: 1px solid var(--border);
-  padding: 1rem 0;
-  color: var(--muted);
-  margin-top: 3rem;
-}
-
-.card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 1.25rem;
-  margin: 1rem 0;
-}
-
-h1 { margin-top: 0; }
-h2 { margin-top: 0; }
-
-.muted { color: var(--muted); }
-.success { color: var(--accent); }
-.error { color: var(--danger); }
-
-.flashes { list-style: none; padding: 0; }
-.flash { padding: 0.6rem 0.8rem; border-radius: 4px; margin: 0.4rem 0; }
-.flash--success { background: #e7f7ee; color: #0a5; }
-.flash--error { background: #fdecec; color: var(--danger); }
-.flash--info { background: #eef4ff; }
-
-.badge {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  border-radius: 12px;
-  background: #eee;
-  font-size: 0.8rem;
-}
-.badge--paid, .badge--in_production { background: #ddebff; color: #036; }
-.badge--shipped, .badge--delivered { background: #e7f7ee; color: #0a5; }
-.badge--refunded, .badge--cancelled { background: #f4f4f4; color: var(--muted); }
-.badge--problem { background: #fdecec; color: var(--danger); }
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 0.5rem;
-}
-th, td {
-  text-align: left;
-  padding: 0.5rem 0.6rem;
-  border-bottom: 1px solid var(--border);
-}
+.totals { line-height: var(--wp-lh-loose); font-variant-numeric: tabular-nums; }
 
 .order-list { list-style: none; padding: 0; }
-.order-list li { padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
-
-.timeline { list-style: none; padding: 0; }
-.timeline li {
-  padding: 0.3rem 0 0.3rem 1.5rem;
-  position: relative;
-  color: var(--muted);
-}
-.timeline li::before {
-  content: "○";
-  position: absolute;
-  left: 0;
-}
-.timeline li.done {
-  color: var(--fg);
-}
-.timeline li.done::before {
-  content: "●";
-  color: var(--accent);
+.order-list li {
+  padding: var(--wp-space-3) 0;
+  border-bottom: 1px solid var(--wp-rule);
 }
 
-form label { display: block; margin: 0.5rem 0; }
-form input[type=text],
-form input[type=email],
-form input[type=tel],
-form textarea {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font: inherit;
-}
-form button {
-  margin-top: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--accent);
-  color: #fff;
-  border: 0;
-  border-radius: 4px;
-  cursor: pointer;
-}
-form button.danger { background: var(--danger); }
-
-.totals { line-height: 1.7; }
-
-.addresses { list-style: none; padding: 0; }
+/* Address card spacing */
+.addresses li.card .badge { align-self: flex-start; }

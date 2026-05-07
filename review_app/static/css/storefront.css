@@ -1,0 +1,1045 @@
+/* storefront.css — customer-facing layer on top of foundation.css
+ *
+ * Covers: account/* pages, cart, preview/configurator, checkout success,
+ * marketing-style chrome (header/footer).
+ *
+ * Visual reference: variant-B Modern Outfitter mockup.
+ */
+
+/* ==========================================================================
+   Storefront chrome (header/footer)
+   ========================================================================== */
+
+body.account,
+body.storefront {
+  background: var(--wp-bone);
+  color: var(--wp-charcoal);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.storefront-header,
+.account-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(250, 250, 247, 0.94);
+  backdrop-filter: saturate(140%) blur(12px);
+  -webkit-backdrop-filter: saturate(140%) blur(12px);
+  border-bottom: 1px solid var(--wp-rule);
+}
+.storefront-header__inner,
+.account-header > .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--wp-space-4) var(--wp-space-6);
+  max-width: var(--wp-content-max);
+  margin: 0 auto;
+  gap: var(--wp-space-6);
+}
+
+.brand {
+  font-size: var(--wp-text-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--wp-charcoal);
+}
+.brand .dot,
+.brand .brand-dot { color: var(--wp-hunter); }
+
+.account-nav,
+.storefront-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--wp-space-6);
+  font-size: var(--wp-text-sm);
+  font-weight: 500;
+}
+.account-nav a,
+.storefront-nav a {
+  color: var(--wp-charcoal-soft);
+  margin: 0;
+  padding: var(--wp-space-1) 0;
+  border-bottom: 1px solid transparent;
+  transition: color var(--wp-dur-fast) var(--wp-ease),
+              border-color var(--wp-dur-fast) var(--wp-ease);
+}
+.account-nav a:hover,
+.storefront-nav a:hover {
+  color: var(--wp-charcoal);
+  border-bottom-color: var(--wp-charcoal);
+}
+.account-nav a.is-active,
+.storefront-nav a.is-active {
+  color: var(--wp-charcoal);
+  border-bottom-color: var(--wp-charcoal);
+}
+
+.account-main,
+.storefront-main {
+  flex: 1;
+  padding: var(--wp-space-10) var(--wp-space-6) var(--wp-space-16);
+  max-width: var(--wp-content-max);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.account-footer,
+.storefront-footer {
+  border-top: 1px solid var(--wp-rule);
+  padding: var(--wp-space-6);
+  font-size: var(--wp-text-xs);
+  color: var(--wp-charcoal-mute);
+  text-align: center;
+  background: var(--wp-bone);
+}
+.account-footer .container,
+.storefront-footer .container {
+  max-width: var(--wp-content-max);
+  margin: 0 auto;
+}
+
+/* Container parity with old `.container` selector */
+.container {
+  width: 100%;
+  max-width: var(--wp-content-max);
+  margin: 0 auto;
+  padding: 0 var(--wp-space-6);
+}
+
+/* ==========================================================================
+   Page headers (account/cart pages)
+   ========================================================================== */
+
+.page-head {
+  margin-bottom: var(--wp-space-8);
+}
+.page-head h1,
+h1 {
+  font-size: var(--wp-text-3xl);
+  letter-spacing: -0.025em;
+  font-weight: 600;
+  margin-bottom: var(--wp-space-2);
+}
+.page-head__subtitle {
+  color: var(--wp-charcoal-soft);
+  font-size: var(--wp-text-md);
+}
+
+/* ==========================================================================
+   Cards / panels — already defined in foundation as .wp-card, but
+   storefront uses bare ".card" selectors for backwards-compat.
+   ========================================================================== */
+
+.account .card,
+.storefront .card,
+.cart-page .card,
+.account-main .card {
+  background: var(--wp-white);
+  border: 1px solid var(--wp-rule);
+  border-radius: var(--wp-radius);
+  padding: var(--wp-space-6);
+  margin: var(--wp-space-4) 0;
+}
+.card h2 { margin-top: 0; margin-bottom: var(--wp-space-3); font-size: var(--wp-text-lg); }
+.card h3 { margin-top: var(--wp-space-4); margin-bottom: var(--wp-space-2); font-size: var(--wp-text-md); }
+
+/* ==========================================================================
+   Forms (storefront variant — full-width inputs, charcoal focus)
+   ========================================================================== */
+
+.account form label,
+.storefront form label,
+.cart-page form label {
+  display: block;
+  margin-bottom: var(--wp-space-3);
+  font-size: var(--wp-text-sm);
+  font-weight: 500;
+  color: var(--wp-charcoal);
+}
+
+.account form input[type="text"],
+.account form input[type="email"],
+.account form input[type="tel"],
+.account form input[type="number"],
+.account form textarea,
+.account form select,
+.storefront form input[type="text"],
+.storefront form input[type="email"],
+.storefront form input[type="tel"],
+.storefront form input[type="number"],
+.storefront form textarea,
+.storefront form select,
+.cart-page form input,
+.cart-page form textarea {
+  width: 100%;
+  margin-top: var(--wp-space-1);
+  padding: 10px var(--wp-space-3);
+  border: 1px solid var(--wp-rule-strong);
+  border-radius: var(--wp-radius);
+  background: var(--wp-white);
+  font: inherit;
+  font-size: var(--wp-text-sm);
+  color: var(--wp-charcoal);
+  min-height: 38px;
+  transition: border-color var(--wp-dur-fast) var(--wp-ease);
+}
+.account form input:focus,
+.account form textarea:focus,
+.account form select:focus,
+.storefront form input:focus,
+.storefront form textarea:focus,
+.storefront form select:focus,
+.cart-page form input:focus {
+  outline: none;
+  border-color: var(--wp-charcoal);
+  box-shadow: 0 0 0 1px var(--wp-charcoal);
+}
+
+.account form button,
+.storefront form button,
+.cart-page form button {
+  margin-top: var(--wp-space-3);
+  padding: 10px var(--wp-space-5);
+  border: 1px solid var(--wp-hunter);
+  border-radius: var(--wp-radius);
+  background: var(--wp-hunter);
+  color: var(--wp-white);
+  font-weight: 600;
+  font-size: var(--wp-text-sm);
+  cursor: pointer;
+  transition: background var(--wp-dur-fast) var(--wp-ease);
+  min-height: 40px;
+}
+.account form button:hover,
+.storefront form button:hover,
+.cart-page form button:hover {
+  background: var(--wp-hunter-deep);
+}
+.account form button.danger,
+.storefront form button.danger,
+.cart-page form button.danger,
+.account form button.btn-danger {
+  background: var(--wp-white);
+  color: var(--wp-status-err);
+  border-color: var(--wp-status-err);
+}
+.account form button.danger:hover {
+  background: var(--wp-status-err);
+  color: var(--wp-white);
+}
+
+/* Inline secondary form buttons (e.g. "Set as default") get charcoal-on-bone */
+.account form[style*="display:inline"] button,
+.account form[style*="display: inline"] button {
+  background: var(--wp-white);
+  color: var(--wp-charcoal);
+  border: 1px solid var(--wp-rule-strong);
+}
+.account form[style*="display:inline"] button:hover {
+  background: var(--wp-bone-deep);
+  border-color: var(--wp-charcoal-soft);
+}
+
+.account form small.muted,
+.storefront form small.muted {
+  display: block;
+  margin-top: var(--wp-space-1);
+  font-size: var(--wp-text-xs);
+  color: var(--wp-charcoal-soft);
+}
+
+/* ==========================================================================
+   Flash messages (account-style)
+   ========================================================================== */
+
+.flashes {
+  list-style: none;
+  margin: 0 0 var(--wp-space-6);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wp-space-2);
+}
+.flash {
+  padding: var(--wp-space-3) var(--wp-space-4);
+  border: 1px solid var(--wp-rule);
+  border-left-width: 3px;
+  border-radius: var(--wp-radius);
+  font-size: var(--wp-text-sm);
+  background: var(--wp-white);
+}
+.flash--success { border-left-color: var(--wp-hunter); background: rgba(63, 90, 61, 0.04); }
+.flash--error,
+.flash--danger  { border-left-color: var(--wp-status-err); background: rgba(179, 58, 58, 0.04); }
+.flash--warning { border-left-color: var(--wp-charcoal); background: var(--wp-bone-deep); }
+.flash--info    { border-left-color: var(--wp-charcoal-soft); }
+
+.muted   { color: var(--wp-muted); }
+.success { color: var(--wp-hunter); font-weight: 500; }
+.error   { color: var(--wp-status-err); }
+
+/* ==========================================================================
+   Badges (storefront)
+   ========================================================================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px var(--wp-space-2);
+  border: 1px solid var(--wp-rule-strong);
+  border-radius: var(--wp-radius);
+  background: var(--wp-bone);
+  color: var(--wp-charcoal-soft);
+  font-size: var(--wp-text-xs);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.badge--paid,
+.badge--in_production,
+.badge--processing {
+  border-color: var(--wp-charcoal-soft);
+  color: var(--wp-charcoal);
+  background: var(--wp-bone-deep);
+}
+.badge--shipped,
+.badge--delivered,
+.badge--fulfilled,
+.badge--ok {
+  border-color: var(--wp-hunter);
+  color: var(--wp-hunter);
+  background: rgba(63, 90, 61, 0.06);
+}
+.badge--refunded,
+.badge--cancelled {
+  border-color: var(--wp-rule-strong);
+  color: var(--wp-charcoal-mute);
+  background: var(--wp-bone);
+}
+.badge--problem,
+.badge--error,
+.badge--failed {
+  border-color: var(--wp-status-err);
+  color: var(--wp-status-err);
+  background: rgba(179, 58, 58, 0.06);
+}
+
+/* ==========================================================================
+   Tables (storefront)
+   ========================================================================== */
+
+table.orders,
+.account-main table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--wp-text-sm);
+  margin-top: var(--wp-space-4);
+}
+table.orders thead th,
+.account-main table thead th {
+  text-align: left;
+  font-size: var(--wp-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--wp-charcoal-soft);
+  padding: var(--wp-space-3) var(--wp-space-4);
+  border-bottom: 1px solid var(--wp-rule-strong);
+  background: var(--wp-bone);
+}
+table.orders tbody td,
+.account-main table tbody td {
+  padding: var(--wp-space-3) var(--wp-space-4);
+  border-bottom: 1px solid var(--wp-rule);
+  font-variant-numeric: tabular-nums;
+}
+table.orders tbody tr:hover td,
+.account-main table tbody tr:hover td {
+  background: var(--wp-bone-deep);
+}
+table.orders tbody tr:last-child td,
+.account-main table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* ==========================================================================
+   Order timeline (account/order_detail)
+   ========================================================================== */
+
+.timeline {
+  list-style: none;
+  margin: var(--wp-space-4) 0 0;
+  padding: 0;
+  border-left: 1px solid var(--wp-rule);
+  padding-left: var(--wp-space-5);
+}
+.timeline li {
+  position: relative;
+  padding: var(--wp-space-2) 0 var(--wp-space-2) var(--wp-space-4);
+  font-size: var(--wp-text-sm);
+  color: var(--wp-charcoal-soft);
+}
+.timeline li::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--wp-space-5) - 5px);
+  top: 14px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--wp-bone);
+  border: 2px solid var(--wp-rule-strong);
+}
+.timeline li.done {
+  color: var(--wp-charcoal);
+}
+.timeline li.done::before {
+  background: var(--wp-hunter);
+  border-color: var(--wp-hunter);
+}
+
+/* ==========================================================================
+   Address list
+   ========================================================================== */
+
+.addresses {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--wp-space-4);
+}
+.addresses li.card {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wp-space-3);
+}
+.addresses address {
+  font-style: normal;
+  line-height: var(--wp-lh-base);
+  color: var(--wp-charcoal);
+}
+
+/* ==========================================================================
+   Account overview tiles
+   ========================================================================== */
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--wp-space-4);
+  margin-top: var(--wp-space-4);
+}
+.overview-tile {
+  background: var(--wp-white);
+  border: 1px solid var(--wp-rule);
+  border-radius: var(--wp-radius);
+  padding: var(--wp-space-5);
+}
+.overview-tile h2 {
+  margin: 0 0 var(--wp-space-1);
+  font-size: var(--wp-text-md);
+  font-weight: 600;
+}
+.overview-tile p {
+  margin: 0;
+  color: var(--wp-charcoal-soft);
+  font-size: var(--wp-text-sm);
+  line-height: var(--wp-lh-base);
+}
+.overview-tile a {
+  display: inline-block;
+  margin-top: var(--wp-space-3);
+  color: var(--wp-hunter);
+  font-weight: 500;
+  font-size: var(--wp-text-sm);
+}
+.overview-tile a:hover { color: var(--wp-hunter-deep); }
+
+/* ==========================================================================
+   Cart page
+   ========================================================================== */
+
+.cart-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--wp-space-8) var(--wp-space-6) var(--wp-space-16);
+}
+.cart-page__header {
+  margin-bottom: var(--wp-space-6);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--wp-space-4);
+  flex-wrap: wrap;
+}
+.cart-page__count {
+  color: var(--wp-charcoal-soft);
+  font-size: var(--wp-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+.cart-page__empty {
+  padding: var(--wp-space-12) 0;
+  color: var(--wp-charcoal-soft);
+  font-size: var(--wp-text-md);
+}
+.cart-page__empty a {
+  color: var(--wp-hunter);
+  font-weight: 500;
+  border-bottom: 1px solid currentColor;
+}
+
+.cart-page__items {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--wp-space-6);
+  font-size: var(--wp-text-sm);
+  background: var(--wp-white);
+  border: 1px solid var(--wp-rule);
+  border-radius: var(--wp-radius);
+  overflow: hidden;
+}
+.cart-page__items thead th {
+  text-align: left;
+  font-size: var(--wp-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--wp-charcoal-soft);
+  padding: var(--wp-space-3) var(--wp-space-4);
+  border-bottom: 1px solid var(--wp-rule-strong);
+  background: var(--wp-bone);
+}
+.cart-page__items tbody td {
+  padding: var(--wp-space-4);
+  border-bottom: 1px solid var(--wp-rule);
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+.cart-page__items tbody tr:last-child td { border-bottom: 0; }
+.cart-page__items tfoot td {
+  padding: var(--wp-space-4);
+  border-top: 2px solid var(--wp-rule-strong);
+  background: var(--wp-bone);
+  font-size: var(--wp-text-md);
+  font-variant-numeric: tabular-nums;
+}
+.cart-page__items code {
+  font-size: var(--wp-text-sm);
+  color: var(--wp-charcoal);
+}
+.cart-page__items small {
+  display: block;
+  font-size: var(--wp-text-xs);
+  color: var(--wp-charcoal-soft);
+  margin-top: var(--wp-space-1);
+}
+.cart-qty-input {
+  width: 72px;
+  padding: 6px var(--wp-space-2);
+  border: 1px solid var(--wp-rule-strong);
+  border-radius: var(--wp-radius);
+  font: inherit;
+  font-size: var(--wp-text-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.cart-remove-btn {
+  background: transparent;
+  border: 1px solid var(--wp-rule-strong);
+  border-radius: var(--wp-radius);
+  padding: 4px var(--wp-space-3);
+  font-size: var(--wp-text-xs);
+  color: var(--wp-charcoal-soft);
+  cursor: pointer;
+  transition: color var(--wp-dur-fast) var(--wp-ease),
+              border-color var(--wp-dur-fast) var(--wp-ease);
+}
+.cart-remove-btn:hover {
+  color: var(--wp-status-err);
+  border-color: var(--wp-status-err);
+}
+.cart-page__checkout {
+  display: flex;
+  justify-content: flex-end;
+}
+.cart-page__checkout button.btn-primary {
+  padding: 14px var(--wp-space-8);
+  background: var(--wp-hunter);
+  color: var(--wp-white);
+  border: 1px solid var(--wp-hunter);
+  border-radius: var(--wp-radius);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: var(--wp-text-base);
+  min-height: 48px;
+}
+.cart-page__checkout button.btn-primary:hover {
+  background: var(--wp-hunter-deep);
+}
+
+@media (max-width: 600px) {
+  .cart-page__items thead { display: none; }
+  .cart-page__items tbody td {
+    display: block;
+    border-bottom: 0;
+    padding: var(--wp-space-2) var(--wp-space-4);
+  }
+  .cart-page__items tbody tr {
+    display: block;
+    border-bottom: 1px solid var(--wp-rule);
+    padding: var(--wp-space-3) 0;
+  }
+  .cart-page__items tbody tr:last-child { border-bottom: 0; }
+  .cart-page__items tbody td::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 90px;
+    font-size: var(--wp-text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--wp-charcoal-soft);
+    margin-right: var(--wp-space-3);
+  }
+  .cart-page__items tfoot td { display: table-cell; }
+  .cart-page__checkout { justify-content: stretch; }
+  .cart-page__checkout button { width: 100%; }
+}
+
+/* ==========================================================================
+   Configurator (preview/configurator) — Modern Outfitter 60/40 split
+   ========================================================================== */
+
+body.preview {
+  background: var(--wp-bone);
+  color: var(--wp-charcoal);
+  margin: 0;
+}
+
+.preview-main {
+  display: block;
+  min-height: 100vh;
+}
+
+.configurator {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(380px, 0.95fr);
+  min-height: calc(100vh - 60px);
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+
+.configurator__preview {
+  background: var(--wp-bone-deep);
+  padding: var(--wp-space-12) var(--wp-space-12) var(--wp-space-16);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  border-right: 1px solid var(--wp-rule);
+  position: relative;
+}
+
+.configurator__stage-meta {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--wp-text-xs);
+  color: var(--wp-charcoal-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 500;
+  margin-bottom: var(--wp-space-8);
+}
+
+#preview-canvas {
+  width: 100%;
+  max-width: 620px;
+  height: auto;
+  display: block;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.configurator__watermark-note {
+  margin-top: var(--wp-space-6);
+  font-size: var(--wp-text-sm);
+  color: var(--wp-charcoal-soft);
+  text-align: center;
+  max-width: 420px;
+  line-height: var(--wp-lh-base);
+}
+
+.configurator__controls {
+  background: var(--wp-bone);
+  padding: var(--wp-space-12) var(--wp-space-10);
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-width: 540px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wp-space-6);
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+/* Eyebrow + title (added by configurator template) */
+.configurator__eyebrow {
+  font-size: var(--wp-text-xs);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--wp-hunter);
+  margin-bottom: var(--wp-space-2);
+}
+.configurator__title {
+  font-size: var(--wp-text-3xl);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  margin-bottom: var(--wp-space-1);
+}
+.configurator__subline {
+  color: var(--wp-charcoal-soft);
+  font-size: var(--wp-text-md);
+  margin-bottom: var(--wp-space-4);
+}
+
+/* Price row at the top */
+.configurator__price-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--wp-space-3);
+  padding-bottom: var(--wp-space-5);
+  border-bottom: 1px solid var(--wp-rule);
+  margin-bottom: var(--wp-space-5);
+}
+.configurator__price-now {
+  font-size: var(--wp-text-2xl);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+  color: var(--wp-charcoal);
+}
+.configurator__price-from {
+  font-size: var(--wp-text-sm);
+  color: var(--wp-charcoal-soft);
+}
+
+/* Control group */
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wp-space-3);
+  margin: 0;
+}
+.control-label {
+  font-size: var(--wp-text-sm);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--wp-charcoal);
+}
+.control-group__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.control-group__value {
+  font-size: var(--wp-text-sm);
+  color: var(--wp-charcoal-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Size: pill-cards (replaces dropdown) */
+.size-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--wp-space-2);
+}
+.size-pill {
+  border: 1px solid var(--wp-rule-strong);
+  background: var(--wp-white);
+  padding: 14px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  border-radius: var(--wp-radius);
+  transition: border-color var(--wp-dur-fast) var(--wp-ease),
+              background var(--wp-dur-fast) var(--wp-ease);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.size-pill:hover { border-color: var(--wp-charcoal-soft); }
+.size-pill[aria-pressed="true"] {
+  border-color: var(--wp-charcoal);
+  border-width: 2px;
+  padding: 13px;
+  background: var(--wp-bone-deep);
+}
+.size-pill:focus-visible {
+  outline: 2px solid var(--wp-hunter);
+  outline-offset: 2px;
+}
+.size-pill .sz {
+  font-size: var(--wp-text-base);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.size-pill .sz-hint {
+  font-size: var(--wp-text-xs);
+  color: var(--wp-charcoal-soft);
+}
+
+/* Hide legacy dropdown if present (graceful fallback) */
+.control-select {
+  width: 100%;
+  padding: 10px var(--wp-space-3);
+  border: 1px solid var(--wp-rule-strong);
+  border-radius: var(--wp-radius);
+  background: var(--wp-white);
+  font: inherit;
+  font-size: var(--wp-text-sm);
+  cursor: pointer;
+  min-height: 38px;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%232A2A2D' d='M5 6 0 0h10z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+/* Finish picker — swatch row */
+.finish-picker {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--wp-space-2);
+  padding: 0;
+  overflow-x: visible;
+}
+.finish-swatch {
+  flex: 0 0 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--wp-space-2);
+  border: 1px solid var(--wp-rule-strong);
+  border-radius: var(--wp-radius);
+  background: var(--wp-white);
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+  min-height: 44px;
+  transition: border-color var(--wp-dur-fast) var(--wp-ease);
+}
+.finish-swatch:hover { border-color: var(--wp-charcoal-soft); }
+.finish-swatch:focus-visible {
+  outline: 2px solid var(--wp-hunter);
+  outline-offset: 2px;
+}
+.finish-swatch.is-active,
+.finish-swatch[aria-pressed="true"] {
+  border-color: var(--wp-charcoal);
+  border-width: 2px;
+  padding: calc(var(--wp-space-2) - 1px);
+}
+.swatch-thumb {
+  width: 48px; height: 48px;
+  object-fit: cover;
+  border-radius: 0;
+  background: var(--wp-bone-deep);
+}
+.swatch-name {
+  font-size: var(--wp-text-xs);
+  font-weight: 500;
+  color: var(--wp-charcoal);
+  line-height: 1.2;
+}
+.swatch-price {
+  font-size: 11px;
+  color: var(--wp-charcoal-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Headline price summary (legacy) — keeps API stable for tests */
+.price-summary {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--wp-space-3) var(--wp-space-4);
+  background: var(--wp-bone-deep);
+  border: 1px solid var(--wp-rule);
+  border-radius: var(--wp-radius);
+}
+.price-summary__label {
+  font-size: var(--wp-text-sm);
+  color: var(--wp-charcoal-soft);
+}
+.price-summary__amount {
+  font-size: var(--wp-text-xl);
+  font-weight: 700;
+  color: var(--wp-charcoal);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Add-to-cart */
+.btn-cart,
+#add-to-cart-btn.btn-primary {
+  width: 100%;
+  padding: 16px var(--wp-space-6);
+  background: var(--wp-hunter);
+  color: var(--wp-white);
+  border: 1px solid var(--wp-hunter);
+  border-radius: var(--wp-radius);
+  font-size: var(--wp-text-base);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  min-height: 52px;
+  transition: background var(--wp-dur-fast) var(--wp-ease);
+}
+.btn-cart:hover,
+#add-to-cart-btn.btn-primary:hover {
+  background: var(--wp-hunter-deep);
+}
+.btn-cart:focus-visible {
+  outline: 2px solid var(--wp-hunter);
+  outline-offset: 2px;
+}
+.btn-cart[aria-busy="true"] {
+  opacity: 0.7;
+  cursor: progress;
+}
+.cart-add-feedback {
+  margin-top: var(--wp-space-2);
+  font-size: var(--wp-text-sm);
+  color: var(--wp-charcoal-soft);
+  min-height: 18px;
+}
+.cart-add-feedback--error { color: var(--wp-status-err); }
+.cart-add-feedback--success { color: var(--wp-hunter); }
+
+/* Ship note */
+.ship-note {
+  margin-top: var(--wp-space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--wp-space-2);
+  font-size: var(--wp-text-sm);
+  color: var(--wp-charcoal-soft);
+}
+
+/* Mobile / tablet */
+@media (max-width: 1080px) {
+  .configurator {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+  .configurator__preview {
+    border-right: none;
+    border-bottom: 1px solid var(--wp-rule);
+    padding: var(--wp-space-8) var(--wp-space-6) var(--wp-space-12);
+  }
+  .configurator__controls {
+    position: static;
+    padding: var(--wp-space-8) var(--wp-space-6);
+    max-width: none;
+    max-height: none;
+    overflow-y: visible;
+  }
+  .configurator__title { font-size: var(--wp-text-2xl); }
+}
+@media (max-width: 480px) {
+  .configurator__preview { padding: var(--wp-space-6) var(--wp-space-4) var(--wp-space-10); }
+  .configurator__controls { padding: var(--wp-space-6) var(--wp-space-4); }
+  .size-grid { grid-template-columns: 1fr; }
+  .finish-swatch { flex: 0 0 calc(25% - 6px); }
+}
+
+/* ==========================================================================
+   Magic-link login form
+   ========================================================================== */
+
+.magic-link-form {
+  max-width: 420px;
+  margin: 0 auto;
+}
+.magic-link-form .card {
+  text-align: center;
+  padding: var(--wp-space-8) var(--wp-space-6);
+}
+.magic-link-form h1 {
+  font-size: var(--wp-text-2xl);
+  margin-bottom: var(--wp-space-3);
+}
+.magic-link-form p {
+  color: var(--wp-charcoal-soft);
+  margin-bottom: var(--wp-space-5);
+  line-height: var(--wp-lh-base);
+}
+.magic-link-form form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wp-space-3);
+  text-align: left;
+}
+.magic-link-form button {
+  width: 100%;
+  margin-top: 0;
+}
+
+/* ==========================================================================
+   Account page actions row
+   ========================================================================== */
+
+.page-actions {
+  display: flex;
+  gap: var(--wp-space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--wp-space-4);
+}
+
+/* ==========================================================================
+   Mobile breakpoints (account/cart)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .account-header > .container,
+  .storefront-header__inner {
+    padding: var(--wp-space-3) var(--wp-space-4);
+    gap: var(--wp-space-3);
+  }
+  .account-nav,
+  .storefront-nav {
+    gap: var(--wp-space-3);
+    font-size: var(--wp-text-xs);
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .account-main,
+  .storefront-main {
+    padding: var(--wp-space-6) var(--wp-space-4) var(--wp-space-12);
+  }
+  .addresses { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .brand { font-size: var(--wp-text-base); }
+  .account-nav a,
+  .storefront-nav a { font-size: var(--wp-text-xs); }
+  h1 { font-size: var(--wp-text-2xl); }
+}

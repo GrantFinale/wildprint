@@ -1,10 +1,10 @@
-{# Minimal base for the Phase 2 preview pages.
+{# Minimal base for the consumer preview/configurator pages.
 
    We deliberately do NOT extend the global base.html here because:
-   1. base.html hard-codes ``url_for('console')`` etc., which couples
-      every preview page to the legacy admin app's routes.
-   2. Phase 4 will polish the consumer-facing /preview/* visual
-      language separately from the admin's /console + /browse pages.
+   1. base.html hard-codes ``url_for('console')`` etc., coupling every
+      preview page to the legacy admin app's routes.
+   2. Phase 6 polishes the consumer-facing /preview/* visual language
+      independently of the legacy admin's /console + /browse pages.
    3. Keeps unit tests for the preview blueprint self-contained.
 #}
 <!doctype html>
@@ -13,10 +13,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}fishingposter.com{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/storefront.css') }}">
   {% block head_extra %}{% endblock %}
 </head>
-<body>
-  <main class="preview-main">
+<body class="preview">
+  <a class="skip-link" href="#preview-main">Skip to main content</a>
+  <main class="preview-main" id="preview-main" tabindex="-1">
     {% block content %}{% endblock %}
   </main>
 </body>
