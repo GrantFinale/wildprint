@@ -49,9 +49,10 @@ def _load_species_catalog() -> dict[str, dict[str, Any]]:
     Imported lazily so the render module can be imported in environments
     without the full poster_layout dependency tree (test fixtures).
     """
+    import json
+
     from config.settings import SPECIES_JSON
 
-    import json
     try:
         with open(SPECIES_JSON, encoding="utf-8") as fh:
             data = json.load(fh)
