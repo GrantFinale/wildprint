@@ -158,7 +158,43 @@ function wireUi(root) {
   if (sizeSelect) {
     sizeSelect.addEventListener("change", () => {
       STATE.size = sizeSelect.value;
+      updateActiveSizePill(root);
       onSelectionChange(root);
+    });
+  }
+
+  // Size pill-cards (Phase 6 — Modern Outfitter UX upgrade replacing dropdown).
+  const sizePills = /** @type {NodeListOf<HTMLButtonElement>} */ (
+    root.querySelectorAll(".size-pill")
+  );
+  sizePills.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const sz = btn.dataset.size;
+      if (sz) {
+        STATE.size = sz;
+        // Keep hidden <select> in sync so backend / tests can still read it.
+        if (sizeSelect) sizeSelect.value = sz;
+        updateActiveSizePill(root);
+        onSelectionChange(root);
+      }
+    });
+  });
+
+  // Keyboard nav for size pill grid (arrow keys).
+  const sizeGrid = root.querySelector(".size-grid");
+  if (sizeGrid) {
+    sizeGrid.addEventListener("keydown", (ev) => {
+      const e = /** @type {KeyboardEvent} */ (ev);
+      const pills = Array.from(root.querySelectorAll(".size-pill"));
+      const focused = document.activeElement;
+      const idx = pills.indexOf(/** @type {Element} */ (focused));
+      if (idx < 0) return;
+      let next = idx;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (idx + 1) % pills.length;
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (idx - 1 + pills.length) % pills.length;
+      else return;
+      e.preventDefault();
+      /** @type {HTMLElement} */ (pills[next]).focus();
     });
   }
 
@@ -211,8 +247,22 @@ function wireUi(root) {
 function onSelectionChange(root) {
   syncHiddenInput(root);
   updateActiveSwatch(root);
+  updateActiveSizePill(root);
   updatePriceDisplay(root);
   render();
+}
+
+/**
+ * @param {HTMLElement} root
+ */
+function updateActiveSizePill(root) {
+  root.querySelectorAll(".size-pill").forEach((el) => {
+    const btn = /** @type {HTMLButtonElement} */ (el);
+    const isActive = btn.dataset.size === STATE.size;
+    btn.setAttribute("aria-pressed", String(isActive));
+    btn.setAttribute("tabindex", isActive ? "0" : "-1");
+    btn.classList.toggle("is-active", isActive);
+  });
 }
 
 /**

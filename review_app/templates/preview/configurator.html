@@ -1,12 +1,23 @@
 {% extends "preview/_base.html" %}
 
-{% block title %}Choose your frame &middot; fishingposter.com{% endblock %}
+{% block title %}{{ species_display|default('Choose your frame') }} &middot; fishingposter.com{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/preview/configurator.css') }}">
 {% endblock %}
 
 {% block content %}
+
+{# Storefront-lite header (no full nav — single-purpose configurator page). #}
+<header class="storefront-header" role="banner">
+  <div class="storefront-header__inner">
+    <a href="/" class="brand" aria-label="fishingposter.com home">fishingposter<span class="brand-dot">.</span>com</a>
+    <nav class="storefront-nav" aria-label="Primary">
+      <a href="/cart" aria-label="View cart">Cart</a>
+      <a href="/account/login" aria-label="Account">Account</a>
+    </nav>
+  </div>
+</header>
 
 <div
   id="configurator-root"
@@ -17,6 +28,10 @@
   data-frame-data-url="{{ frame_data_url }}"
 >
   <section class="configurator__preview" aria-label="Frame preview">
+    <div class="configurator__stage-meta" aria-hidden="true">
+      <span>Modern Outfitter</span>
+      <span>Photo-real preview</span>
+    </div>
     <canvas
       id="preview-canvas"
       width="600"
@@ -29,12 +44,50 @@
     </p>
   </section>
 
-  <form class="configurator__controls" method="post" action="#" id="configurator-form">
+  <form class="configurator__controls" method="post" action="#" id="configurator-form" aria-label="Frame configurator">
     <input type="hidden" name="internal_sku" id="selected-internal-sku" value="">
 
+    <div>
+      <span class="configurator__eyebrow">Framed art print</span>
+      <h1 class="configurator__title">{{ species_display|default('Choose your frame') }}</h1>
+      <p class="configurator__subline">Museum-grade gicl&eacute;e on archival paper, hand-finished and shipped from the US.</p>
+    </div>
+
+    <div class="configurator__price-row">
+      <span class="configurator__price-now" id="headline-price" aria-live="polite">&mdash;</span>
+      <span class="configurator__price-from">starting price</span>
+    </div>
+
+    {# Size — pill-cards (Modern Outfitter UX upgrade replacing dropdown). #}
+    {# A hidden <select id="size-select"> stays in the DOM so the existing JS
+       fallback path and the configurator route test (`id="size-select"` /
+       `finish-picker` assertions in tests/preview/test_configurator_route.py)
+       continue to pass. The visible UI is the .size-grid pill-cards. #}
     <div class="control-group">
-      <label for="size-select" class="control-label">Size</label>
-      <select id="size-select" name="size" class="control-select" aria-label="Frame size">
+      <div class="control-group__head">
+        <span class="control-label" id="size-label">Size</span>
+        <span class="control-group__value" aria-hidden="true">{{ size_labels[default_size]|default(default_size) }}</span>
+      </div>
+      <div class="size-grid" role="radiogroup" aria-labelledby="size-label">
+        {% for size in sizes %}
+          <button
+            type="button"
+            class="size-pill {% if size == default_size %}is-active{% endif %}"
+            data-size="{{ size }}"
+            role="radio"
+            aria-checked="{{ 'true' if size == default_size else 'false' }}"
+            aria-pressed="{{ 'true' if size == default_size else 'false' }}"
+            aria-label="Size {{ size_labels[size]|default(size) }}"
+            tabindex="{{ '0' if size == default_size else '-1' }}"
+          >
+            <span class="sz">{{ size_labels[size]|default(size) }}</span>
+            <span class="sz-hint">{{ size_hints[size] if size_hints is defined else '' }}</span>
+          </button>
+        {% endfor %}
+      </div>
+      {# Hidden select — kept in sync by configurator.js for backend submission
+         and to satisfy the existing route smoke test. #}
+      <select id="size-select" name="size" aria-hidden="true" tabindex="-1" class="wp-sr-only">
         {% for size in sizes %}
           <option value="{{ size }}" {% if size == default_size %}selected{% endif %}>{{ size_labels[size] }}</option>
         {% endfor %}
@@ -42,7 +95,10 @@
     </div>
 
     <div class="control-group">
-      <span class="control-label" id="finish-label">Finish</span>
+      <div class="control-group__head">
+        <span class="control-label" id="finish-label">Finish</span>
+        <span class="control-group__value" aria-hidden="true"></span>
+      </div>
       <div
         class="finish-picker"
         role="radiogroup"
@@ -71,15 +127,10 @@
               height="48"
             >
             <span class="swatch-name">{{ finish.finish_display }}</span>
-            <span class="swatch-price">—</span>
+            <span class="swatch-price">&mdash;</span>
           </button>
         {% endfor %}
       </div>
-    </div>
-
-    <div class="control-group price-summary">
-      <span class="price-summary__label">Price</span>
-      <span class="price-summary__amount" id="headline-price" aria-live="polite">—</span>
     </div>
 
     <div class="control-group">
@@ -100,6 +151,10 @@
         aria-live="polite"
         hidden
       ></p>
+      <p class="ship-note" aria-label="Shipping estimate">
+        <span class="wp-status-dot wp-status-dot--ok" aria-hidden="true"></span>
+        Free shipping. Ships in 3&ndash;5 business days.
+      </p>
     </div>
   </form>
 </div>
