@@ -87,11 +87,18 @@ def create_checkout_session_for_cart(
     cancel_url: str,
     metadata: dict[str, str] | None = None,
     shipping_address_id: str | None = None,
+    automatic_tax: bool = False,
 ) -> dict[str, Any]:
     """Create a Stripe Checkout Session for a multi-line physical cart.
 
     Returns the raw stripe Session object (cast to ``dict``) so callers can
     serialize it to JSON for the front-end without coupling to ``stripe.api_resources``.
+
+    When ``automatic_tax`` is True, passes ``automatic_tax={'enabled': True}``
+    to Stripe — Stripe handles tax registration + calculation server-side.
+    The opt-in is gated by Phase 5a's ``STRIPE_TAX_ENABLED`` env flag at the
+    caller (route layer); this function takes a plain boolean so the
+    stripe_client module stays env-flag agnostic + easy to mock.
     """
     _ensure_api_key()
     import stripe
@@ -132,23 +139,34 @@ def create_checkout_session_for_cart(
     if metadata:
         full_metadata.update(metadata)
 
-    session = stripe.checkout.Session.create(
-        mode="payment",
+    session_kwargs: dict[str, Any] = {
+        "mode": "payment",
         # cast: typeshed expects a TypedDict per line item, but the SDK
         # accepts plain dicts at runtime. The fields are right (price_data
         # nested with currency/unit_amount/product_data) — just not the
         # name that mypy expects.
-        line_items=cast(Any, line_items),
-        customer_email=customer_email,
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata=full_metadata,
-        payment_intent_data={"metadata": full_metadata},
+        "line_items": cast(Any, line_items),
+        "customer_email": customer_email,
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "metadata": full_metadata,
+        "payment_intent_data": {"metadata": full_metadata},
         # Bundle digital free with physical (decision #3 in integration-plan.md):
         # we don't add a separate $49 line — the digital download ships with
         # the printed poster, conceptually "in the box".
-        allow_promotion_codes=True,
-    )
+        "allow_promotion_codes": True,
+    }
+    if automatic_tax:
+        # Phase 5a: defer tax registration / reporting to Stripe Tax.
+        # The line item ``price_data`` above does NOT have ``tax_behavior``
+        # set, so Stripe treats unit_amount as exclusive — its default for
+        # automatic_tax. Also collect the billing address so Stripe can
+        # determine the customer's tax jurisdiction even if the shipping
+        # address is supplied separately.
+        session_kwargs["automatic_tax"] = {"enabled": True}
+        session_kwargs["billing_address_collection"] = "required"
+
+    session = stripe.checkout.Session.create(**session_kwargs)
     return _to_dict(session)
 
 

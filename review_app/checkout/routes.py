@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 from flask import Blueprint, Response, jsonify, make_response, request
 
 from review_app.cart import service as cart_service
-from review_app.checkout import stripe_client
+from review_app.checkout import stripe_client, tax as tax_module
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -141,6 +141,30 @@ def api_checkout_start() -> Response:
         success_url = _absolute_url("/checkout/success/v2") + "?session_id={CHECKOUT_SESSION_ID}"
         cancel_url = _absolute_url("/cart")
 
+        # Phase 5a — Stripe Tax integration. OPT-IN via STRIPE_TAX_ENABLED.
+        # When enabled we compute tax once for telemetry / order persistence,
+        # AND pass automatic_tax={enabled:True} to Stripe so the hosted
+        # checkout page recomputes from the customer's billing address. This
+        # double-call is intentional — the local quote feeds the order row
+        # we create at checkout-start time; Stripe's recompute is the source
+        # of truth at session-completion time.
+        tax_metadata: dict[str, str] = {}
+        tax_enabled = tax_module.is_enabled()
+        if tax_enabled:
+            try:
+                tax_result = tax_module.compute_tax_for_session(
+                    line_items=tax_module.line_items_from_cart(cart_dto),
+                    shipping_address=tax_module.address_from_db(address),
+                )
+                tax_metadata["wildprint_tax_quote_cents"] = str(tax_result.tax_amount_cents)
+                if tax_result.calculation_id:
+                    tax_metadata["wildprint_tax_calc_id"] = tax_result.calculation_id
+            except tax_module.TaxComputationError as exc:
+                # Don't fail checkout on a tax-quote error — Stripe Tax will
+                # recompute server-side. Just log + surface in metadata so
+                # the admin dashboard can see we hit a soft failure.
+                tax_metadata["wildprint_tax_quote_error"] = str(exc)[:480]
+
         try:
             session_obj = stripe_client.create_checkout_session_for_cart(
                 cart=cart_dto,
@@ -151,7 +175,9 @@ def api_checkout_start() -> Response:
                 metadata={
                     "marketing_opt_in": "1" if marketing_opt_in else "0",
                     "customer_email_lower": email,
+                    **tax_metadata,
                 },
+                automatic_tax=tax_enabled,
             )
         except stripe_client.StripeNotConfiguredError as exc:
             return make_response(jsonify({"error": str(exc)}), 503)
