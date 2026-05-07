@@ -54,3 +54,6 @@ markdown>=3.5
 # web + worker.
 flask-limiter>=3.5
 rq-scheduler>=0.13
+
+# Phase 6 polish — TOTP-based 2FA on admin accounts.
+pyotp>=2.9

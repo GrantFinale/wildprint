@@ -61,6 +61,16 @@ class User(Base, UUIDPKMixin, TimestampMixin, UserMixin):  # type: ignore[misc] 
         DateTime(timezone=True), nullable=True
     )
 
+    # Phase 6 polish — TOTP 2FA columns.
+    totp_secret: Mapped[str | None] = mapped_column(Text, nullable=True)
+    totp_enrolled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # JSON-encoded list of SHA-256 hex digests for one-time recovery codes.
+    totp_recovery_codes_hashed: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )
+
     __table_args__ = (
         CheckConstraint(
             "role IN ('admin', 'staff', 'viewer')",

@@ -158,6 +158,8 @@ def db_engine() -> Iterator["Engine"]:
         import review_app.audit.models  # noqa: F401
         # Phase 6 polish — DB-backed render presets.
         import review_app.render.presets_model  # noqa: F401
+        # Phase 6 polish — per-user API tokens.
+        import review_app.auth.api_token_models  # noqa: F401
 
         Base.metadata.create_all(engine)
     except ImportError:

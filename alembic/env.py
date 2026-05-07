@@ -48,6 +48,8 @@ from review_app.notes import models as _notes_models  # noqa: F401, E402
 from review_app.audit import models as _audit_models  # noqa: F401, E402
 # Phase 6 polish — DB-backed render presets table.
 from review_app.render import presets_model as _render_presets_model  # noqa: F401, E402
+# Phase 6 polish — per-user API tokens.
+from review_app.auth import api_token_models as _api_token_models  # noqa: F401, E402
 
 
 config = context.config

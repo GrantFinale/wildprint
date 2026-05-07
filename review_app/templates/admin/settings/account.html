@@ -1,12 +1,21 @@
 {% extends "admin/_base.html" %}
 {% block content %}
+{# TODO Phase 6 polish: design pass — 2FA + API tokens UI #}
 <header class="admin-page__header">
   <span class="wp-eyebrow">Settings</span>
   <h1>My account</h1>
   <p class="admin-page__subtitle">
-    Self-service password change, 2FA enrollment, API token generation.
+    Self-service password change, 2FA enrollment, and API token management.
   </p>
 </header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="admin-flash admin-flash--{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
 
 <section class="admin-card">
   <h2>Profile</h2>
@@ -35,19 +44,89 @@
 
 <section class="admin-card">
   <h2>Two-factor authentication</h2>
-  <p>2FA enrollment is a Phase 5 feature.</p>
-  <form method="post" class="admin-form-row">
-    <input type="hidden" name="action" value="enable_2fa">
-    <button type="submit" class="btn" disabled title="Coming in Phase 5">Enable 2FA</button>
-  </form>
+
+  {% if newly_issued_secret %}
+    <div class="admin-flash admin-flash--success">
+      <p><strong>Save these recovery codes</strong> — they will not be shown again.</p>
+      <pre class="admin-code">{% for code in newly_issued_recovery %}{{ code }}
+{% endfor %}</pre>
+
+      <p>Scan the QR with an authenticator app, or enter the secret manually:</p>
+      {% if newly_issued_qr.startswith('data:image/') %}
+        <img src="{{ newly_issued_qr }}" alt="2FA enrollment QR code" class="admin-qr">
+      {% else %}
+        <p><code>{{ newly_issued_qr }}</code></p>
+      {% endif %}
+      <p><strong>Secret:</strong> <code>{{ newly_issued_secret }}</code></p>
+    </div>
+  {% endif %}
+
+  {% if totp_enrolled %}
+    <p>2FA is <strong>enabled</strong>.</p>
+    <form method="post" action="{{ url_for('admin.settings_account_2fa_verify') }}" class="admin-form-row">
+      <label>Test code
+        <input type="text" name="code" pattern="[0-9A-Z ]+" maxlength="20" class="admin-input">
+      </label>
+      <button type="submit" class="btn">Verify</button>
+    </form>
+    <form method="post" action="{{ url_for('admin.settings_account_2fa_disable') }}" class="admin-form-row">
+      <button type="submit" class="btn">Disable 2FA</button>
+    </form>
+  {% else %}
+    <p>2FA is <strong>not enabled</strong> for this account.</p>
+    <form method="post" action="{{ url_for('admin.settings_account_2fa_enroll') }}" class="admin-form-row">
+      <button type="submit" class="btn btn-primary">Enroll in 2FA</button>
+    </form>
+  {% endif %}
 </section>
 
 <section class="admin-card">
   <h2>API tokens</h2>
-  <p>Per-user API tokens for the wildprint API ship in Phase 5.</p>
-  <form method="post" class="admin-form-row">
-    <input type="hidden" name="action" value="generate_token">
-    <button type="submit" class="btn" disabled title="Coming in Phase 5">Generate token</button>
+
+  {% if newly_issued_token %}
+    <div class="admin-flash admin-flash--success">
+      <p><strong>Copy this token now</strong> — it will not be shown again.</p>
+      <pre class="admin-code">{{ newly_issued_token }}</pre>
+    </div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('admin.settings_account_api_tokens_create') }}" class="admin-form-stack">
+    <label>Name
+      <input type="text" name="name" required maxlength="200" class="admin-input"
+             placeholder="e.g. CI deployer">
+    </label>
+    <label>Scopes (comma-separated)
+      <input type="text" name="scopes" class="admin-input"
+             placeholder="orders.read,posters.write">
+    </label>
+    <button type="submit" class="btn btn-primary">Create token</button>
   </form>
+
+  {% if api_tokens %}
+    <table class="admin-table">
+      <thead>
+        <tr><th>Name</th><th>Created</th><th>Last used</th><th>Expires</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for tok in api_tokens %}
+          <tr>
+            <td>{{ tok.name }}</td>
+            <td>{{ tok.created_at }}</td>
+            <td>{{ tok.last_used_at }}</td>
+            <td>{{ tok.expires_at }}</td>
+            <td>
+              <form method="post"
+                    action="{{ url_for('admin.settings_account_api_tokens_revoke', token_id=tok.id) }}"
+                    style="display:inline;">
+                <button type="submit" class="btn">Revoke</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="admin-empty">No active tokens.</p>
+  {% endif %}
 </section>
 {% endblock %}

@@ -466,7 +466,6 @@ def settings_account() -> ResponseReturnValue:
             elif not current_user.verify_password(old):
                 flash("Old password is incorrect.", "error")
             else:
-                # Re-hash and persist.
                 with get_session() as session:
                     fresh = User.get_active_by_id(session, current_user.id)
                     if fresh is None:
@@ -475,12 +474,10 @@ def settings_account() -> ResponseReturnValue:
                         fresh.password_hash = User.hash_password(new)
                         session.add(fresh)
                         flash("Password updated.", "success")
-        elif action == "enable_2fa":
-            flash("2FA enrollment ships in Phase 5.", "info")
-        elif action == "generate_token":
-            flash("Per-user API tokens ship in Phase 5.", "info")
         return redirect(url_for("admin.settings_account"))
 
+    # Phase 6 polish — surface 2FA enrollment state + active API tokens.
+    extra_ctx = _account_page_context()
     return render_template(
         "admin/settings/account.html",
         page_title="My account",
@@ -490,7 +487,228 @@ def settings_account() -> ResponseReturnValue:
             ("My account", None),
         ),
         user_info=user_info,
+        **extra_ctx,
     )
+
+
+def _account_page_context() -> dict[str, Any]:
+    """Hydrate 2FA + API tokens info for the account page."""
+    if not getattr(current_user, "is_authenticated", False):
+        return {
+            "totp_enrolled": False,
+            "api_tokens": [],
+            "newly_issued_token": None,
+            "newly_issued_recovery": None,
+        }
+    from sqlalchemy import select as _select
+
+    from review_app.auth import totp as _totp
+    from review_app.auth.api_token_models import UserApiToken
+
+    api_tokens: list[dict[str, Any]] = []
+    enrolled = False
+    try:
+        with get_session() as session:
+            fresh = User.get_active_by_id(session, current_user.id)
+            if fresh is not None:
+                enrolled = _totp.is_enrolled(fresh)
+            rows = session.execute(
+                _select(UserApiToken)
+                .where(UserApiToken.user_id == str(current_user.id))
+                .where(UserApiToken.revoked_at.is_(None))
+                .order_by(UserApiToken.created_at.desc())
+            ).scalars().all()
+            for row in rows:
+                api_tokens.append(
+                    {
+                        "id": str(row.id),
+                        "name": row.name,
+                        "created_at": (
+                            row.created_at.strftime("%Y-%m-%d %H:%M UTC")
+                            if row.created_at else "—"
+                        ),
+                        "last_used_at": (
+                            row.last_used_at.strftime("%Y-%m-%d %H:%M UTC")
+                            if row.last_used_at else "never"
+                        ),
+                        "expires_at": (
+                            row.expires_at.strftime("%Y-%m-%d %H:%M UTC")
+                            if row.expires_at else "never"
+                        ),
+                    }
+                )
+    except (OperationalError, ProgrammingError):
+        pass
+
+    from flask import session as _flask_session
+
+    return {
+        "totp_enrolled": enrolled,
+        "api_tokens": api_tokens,
+        "newly_issued_token": _flask_session.pop("newly_issued_token", None),
+        "newly_issued_recovery": _flask_session.pop("newly_issued_recovery", None),
+        "newly_issued_secret": _flask_session.pop("newly_issued_secret", None),
+        "newly_issued_qr": _flask_session.pop("newly_issued_qr", None),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 polish — 2FA + API token endpoints.
+# ---------------------------------------------------------------------------
+@admin_bp.route("/settings/account/2fa/enroll", methods=["POST"])
+@requires_role("admin", "staff", "viewer")
+def settings_account_2fa_enroll() -> ResponseReturnValue:
+    """Generate a TOTP secret + recovery codes; show ONCE on the redirect."""
+    from flask import session as _flask_session
+
+    from review_app.auth import totp as _totp
+
+    if not getattr(current_user, "is_authenticated", False):
+        flash("Login first to enroll in 2FA.", "error")
+        return redirect(url_for("admin.settings_account"))
+
+    try:
+        with get_session() as session:
+            fresh = User.get_active_by_id(session, current_user.id)
+            if fresh is None:
+                flash("User not found.", "error")
+                return redirect(url_for("admin.settings_account"))
+            payload = _totp.enroll(fresh)
+            session.add(fresh)
+    except (OperationalError, ProgrammingError) as exc:
+        logger.warning("2FA enrollment DB error: %s", exc)
+        flash("Could not enroll in 2FA (DB error).", "error")
+        return redirect(url_for("admin.settings_account"))
+
+    _flask_session["newly_issued_secret"] = str(payload["secret"])
+    _flask_session["newly_issued_qr"] = str(payload["qr_data_url"])
+    _flask_session["newly_issued_recovery"] = list(payload["recovery_codes"])  # type: ignore[arg-type]
+    flash(
+        "2FA enrollment complete. Save your recovery codes — they are shown once.",
+        "success",
+    )
+    return redirect(url_for("admin.settings_account"))
+
+
+@admin_bp.route("/settings/account/2fa/verify", methods=["POST"])
+@requires_role("admin", "staff", "viewer")
+def settings_account_2fa_verify() -> ResponseReturnValue:
+    """Verify a 6-digit TOTP code or recovery code against the current user."""
+    from review_app.auth import totp as _totp
+
+    code = (request.form.get("code") or "").strip()
+    if not code:
+        flash("Code is required.", "error")
+        return redirect(url_for("admin.settings_account"))
+    if not getattr(current_user, "is_authenticated", False):
+        flash("Login first.", "error")
+        return redirect(url_for("admin.settings_account"))
+
+    try:
+        with get_session() as session:
+            fresh = User.get_active_by_id(session, current_user.id)
+            if fresh is None or not _totp.is_enrolled(fresh):
+                flash("2FA is not enrolled for this user.", "error")
+                return redirect(url_for("admin.settings_account"))
+            ok = _totp.verify(fresh, code)
+            if ok:
+                session.add(fresh)
+                flash("Code verified.", "success")
+            else:
+                flash("Invalid code.", "error")
+    except (OperationalError, ProgrammingError):
+        flash("DB error during verification.", "error")
+    return redirect(url_for("admin.settings_account"))
+
+
+@admin_bp.route("/settings/account/2fa/disable", methods=["POST"])
+@requires_role("admin", "staff", "viewer")
+def settings_account_2fa_disable() -> ResponseReturnValue:
+    """Clear all 2FA state on the current user."""
+    from review_app.auth import totp as _totp
+
+    if not getattr(current_user, "is_authenticated", False):
+        flash("Login first.", "error")
+        return redirect(url_for("admin.settings_account"))
+    try:
+        with get_session() as session:
+            fresh = User.get_active_by_id(session, current_user.id)
+            if fresh is not None:
+                _totp.disable(fresh)
+                session.add(fresh)
+                flash("2FA disabled.", "info")
+    except (OperationalError, ProgrammingError):
+        flash("DB error disabling 2FA.", "error")
+    return redirect(url_for("admin.settings_account"))
+
+
+@admin_bp.route("/settings/account/api-tokens", methods=["POST"])
+@requires_role("admin", "staff", "viewer")
+def settings_account_api_tokens_create() -> ResponseReturnValue:
+    """Issue a new API token; show plaintext ONCE on the redirect."""
+    from flask import session as _flask_session
+
+    from review_app.auth import api_tokens as _api_tokens
+
+    name = (request.form.get("name") or "").strip()
+    scopes_raw = (request.form.get("scopes") or "").strip()
+    scopes = [s.strip() for s in scopes_raw.split(",") if s.strip()]
+    if not name:
+        flash("Token name is required.", "error")
+        return redirect(url_for("admin.settings_account"))
+    if not getattr(current_user, "is_authenticated", False):
+        flash("Login first.", "error")
+        return redirect(url_for("admin.settings_account"))
+
+    try:
+        with get_session() as session:
+            fresh = User.get_active_by_id(session, current_user.id)
+            if fresh is None:
+                flash("User not found.", "error")
+                return redirect(url_for("admin.settings_account"))
+            payload = _api_tokens.create(
+                fresh,
+                name=name,
+                scopes=scopes,
+                session=session,
+            )
+    except (OperationalError, ProgrammingError) as exc:
+        logger.warning("API token create DB error: %s", exc)
+        flash("Could not create token (DB error).", "error")
+        return redirect(url_for("admin.settings_account"))
+
+    _flask_session["newly_issued_token"] = payload["plaintext"]
+    flash(
+        f"Token '{name}' created. Copy it now — it will not be shown again.",
+        "success",
+    )
+    return redirect(url_for("admin.settings_account"))
+
+
+@admin_bp.route("/settings/account/api-tokens/<token_id>/revoke", methods=["POST"])
+@requires_role("admin", "staff", "viewer")
+def settings_account_api_tokens_revoke(token_id: str) -> ResponseReturnValue:
+    """Revoke an API token owned by the current user."""
+    from review_app.auth import api_tokens as _api_tokens
+
+    if not getattr(current_user, "is_authenticated", False):
+        flash("Login first.", "error")
+        return redirect(url_for("admin.settings_account"))
+
+    try:
+        with get_session() as session:
+            fresh = User.get_active_by_id(session, current_user.id)
+            if fresh is None:
+                flash("User not found.", "error")
+                return redirect(url_for("admin.settings_account"))
+            ok = _api_tokens.revoke(token_id, fresh, session=session)
+            if ok:
+                flash("Token revoked.", "success")
+            else:
+                flash("Token not found or already revoked.", "error")
+    except (OperationalError, ProgrammingError):
+        flash("DB error revoking token.", "error")
+    return redirect(url_for("admin.settings_account"))
 
 
 __all__: list[str] = []
