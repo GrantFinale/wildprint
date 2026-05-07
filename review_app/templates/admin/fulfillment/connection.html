@@ -1,0 +1,60 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}Prodigi connection — wildprint admin{% endblock %}
+
+{% block content %}
+
+  <div class="panel">
+    <h2>Connection settings</h2>
+    <dl style="display:grid;grid-template-columns:max-content 1fr;gap:0.4rem 1rem;font-size:0.9rem;">
+      <dt style="color:var(--fp-muted);">Environment</dt>
+      <dd>
+        <span class="badge {{ 'badge--ok' if env == 'live' else 'badge--warn' }}">
+          {{ env|upper }}
+        </span>
+      </dd>
+      <dt style="color:var(--fp-muted);">API key</dt>
+      <dd><code>{{ api_key_masked or '— not configured —' }}</code></dd>
+      <dt style="color:var(--fp-muted);">Callback URL</dt>
+      <dd><code>{{ callback_url or '— not configured —' }}</code></dd>
+      <dt style="color:var(--fp-muted);">Last successful call</dt>
+      <dd>
+        {% if last_success_at %}
+          {{ last_success_at.strftime('%Y-%m-%d %H:%M %Z') }}
+        {% else %}
+          <em>never</em>
+        {% endif %}
+      </dd>
+    </dl>
+  </div>
+
+  <div class="panel">
+    <h2>Sandbox ping</h2>
+    <p style="color:var(--fp-muted);">
+      Calls <code>GET /Products/&lt;known SKU&gt;</code> against the active client
+      and reports the result.
+    </p>
+    <form method="post" action="{{ url_for('admin.fulfillment_connection') }}">
+      <input type="hidden" name="action" value="ping">
+      <button class="btn btn--primary" type="submit">Send ping</button>
+    </form>
+    {% if ping_result %}
+      <div style="margin-top:0.75rem;">
+        <span class="badge {{ 'badge--ok' if ping_result.ok else 'badge--err' }}">
+          {{ 'OK' if ping_result.ok else 'FAIL' }}
+        </span>
+        <code style="margin-left:0.5rem;">{{ ping_result.msg }}</code>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>Actions</h2>
+    <p>
+      <em>Switch env</em> and <em>rotate callback URL</em> are surfaced here
+      but managed via Coolify env vars + a redeploy. See
+      <code>docs/admin-pages.md</code>.
+    </p>
+  </div>
+
+{% endblock %}

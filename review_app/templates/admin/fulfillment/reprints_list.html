@@ -1,0 +1,62 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}Reprints — wildprint admin{% endblock %}
+
+{% block content %}
+
+  <div class="panel">
+    <h2>Create reprint</h2>
+    {% if error %}
+      <div style="color:var(--fp-danger);"><strong>{{ error }}</strong></div>
+    {% endif %}
+    <form method="post" action="{{ url_for('admin.fulfillment_reprints') }}">
+      <p>
+        <label>Original order ID<br>
+          <input type="text" name="original_order_id" value="{{ original_order_id }}"
+                 size="40" required>
+        </label>
+      </p>
+      <p>
+        <label>Reason<br>
+          <input type="text" name="reason" placeholder="e.g. damaged in shipping" required>
+        </label>
+      </p>
+      <p>
+        <label>Internal cost (cents)<br>
+          <input type="number" name="cost_cents" min="0" value="0">
+        </label>
+      </p>
+      <button class="btn btn--primary" type="submit">Create reprint</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h2>Reprint queue ({{ reprints|length }})</h2>
+    {% if reprints %}
+      <table class="fp-table">
+        <thead>
+          <tr>
+            <th>Order</th><th>Created</th><th>Internal cost</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in reprints %}
+            <tr>
+              <td>
+                <a href="{{ url_for('admin.orders_detail', order_id=o.id) }}">
+                  {{ o.id.hex[:8] }}
+                </a>
+              </td>
+              <td>{{ o.created_at.strftime('%Y-%m-%d %H:%M') if o.created_at else '—' }}</td>
+              <td>${{ '%.2f'|format(o.tax_cents / 100) }}</td>
+              <td><span class="badge badge--muted">{{ o.status }}</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <em>No reprints yet.</em>
+    {% endif %}
+  </div>
+
+{% endblock %}

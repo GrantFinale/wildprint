@@ -1,0 +1,76 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}Error queue — wildprint admin{% endblock %}
+
+{% block content %}
+
+  <div class="panel">
+    <h2>Problem orders ({{ problem_orders|length }})</h2>
+    {% if problem_orders %}
+      <table class="fp-table">
+        <thead>
+          <tr><th>Order</th><th>Created</th><th>Total</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for o in problem_orders %}
+            <tr>
+              <td>
+                <a href="{{ url_for('admin.orders_detail', order_id=o.id) }}">
+                  {{ o.id.hex[:8] }}
+                </a>
+              </td>
+              <td>{{ o.created_at.strftime('%Y-%m-%d %H:%M') if o.created_at else '—' }}</td>
+              <td>${{ '%.2f'|format(o.total_cents / 100) }}</td>
+              <td>
+                <a class="btn"
+                   href="{{ url_for('admin.fulfillment_reprints') }}?original_order_id={{ o.id }}">
+                  Reprint
+                </a>
+                <a class="btn btn--danger"
+                   href="{{ url_for('admin.orders_refunds') }}?order_id={{ o.id }}">
+                  Refund
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <em>No problem orders.</em>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>Failed callbacks ({{ failed_callbacks|length }})</h2>
+    {% if failed_callbacks %}
+      <table class="fp-table">
+        <thead>
+          <tr>
+            <th>Event ID</th><th>Type</th><th>Error class</th>
+            <th>Received</th><th>Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cb in failed_callbacks %}
+            <tr>
+              <td><code>{{ cb.event_id[:16] }}…</code></td>
+              <td>{{ cb.event_type }}</td>
+              <td><span class="badge badge--err">{{ classify(cb.error_message) }}</span></td>
+              <td>{{ cb.received_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+              <td>
+                {% if cb.error_message %}
+                  <code style="font-size:0.75rem;">{{ cb.error_message[:120] }}</code>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <em>No failed callbacks.</em>
+    {% endif %}
+  </div>
+
+{% endblock %}

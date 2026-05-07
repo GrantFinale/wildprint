@@ -1,0 +1,57 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}Webhook log — wildprint admin{% endblock %}
+
+{% block content %}
+
+  <form class="filter-bar" method="get" action="{{ url_for('admin.fulfillment_webhooks') }}">
+    <input type="text" name="event_type" value="{{ filters.event_type }}"
+           placeholder="event type">
+    <select name="status">
+      <option value="">All statuses</option>
+      {% for s in statuses %}
+        <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Apply</button>
+  </form>
+
+  {% if callbacks %}
+    <table class="fp-table">
+      <thead>
+        <tr>
+          <th>Event ID</th><th>Type</th><th>Prodigi order</th>
+          <th>Received</th><th>Status</th><th>Error</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cb in callbacks %}
+          {% set status_class =
+              'badge--ok'    if cb.processed_status == 'ok' else
+              'badge--warn'  if cb.processed_status in ('pending','retry') else
+              'badge--err'   if cb.processed_status == 'error' else
+              'badge--muted' %}
+          <tr>
+            <td><code>{{ cb.event_id[:16] }}…</code></td>
+            <td>{{ cb.event_type }}</td>
+            <td>{{ cb.prodigi_order_id or '—' }}</td>
+            <td>{{ cb.received_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td><span class="badge {{ status_class }}">{{ cb.processed_status }}</span></td>
+            <td>
+              {% if cb.error_message %}
+                <code style="font-size:0.75rem;">{{ cb.error_message[:80] }}</code>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      <strong>No webhook callbacks recorded.</strong>
+    </div>
+  {% endif %}
+
+{% endblock %}
