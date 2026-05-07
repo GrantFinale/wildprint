@@ -105,6 +105,9 @@ class Order(Base, TimestampMixin):
     paid_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    in_production_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     shipped_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -114,6 +117,11 @@ class Order(Base, TimestampMixin):
 
     source: Mapped[str] = mapped_column(
         Text, nullable=False, server_default=text("'web'"), default="web"
+    )
+
+    # Phase 5b: internal cost in cents (Prodigi cost on reprints, primarily).
+    internal_cost_cents: Mapped[int | None] = mapped_column(
+        BigInteger, nullable=True
     )
 
     customer: Mapped[Customer] = relationship(
