@@ -84,18 +84,24 @@ def set_block(
 
 
 def init_app(app: Flask) -> None:
-    """On first boot, seed defaults so /admin/content/* renders something."""
+    """On first boot, seed defaults so /admin/content/* renders something.
+
+    Tolerant of missing tables — if the migration hasn't run (e.g. in a
+    test that builds a partial schema), the first attempt logs and the
+    flag stays unset so the next request will retry. Once the table
+    exists, seeding succeeds and the flag flips to True.
+    """
     @app.before_request
     def _seed_once_guard() -> None:
-        # Cheap: keyed off an app attribute so we hit the DB at most once.
         if getattr(app, "_content_seeded", False):
             return
-        app._content_seeded = True  # type: ignore[attr-defined]
         try:
             seed_defaults()
+            app._content_seeded = True  # type: ignore[attr-defined]
         except Exception:
-            # Don't crash on first request — just log.
-            _log.exception("content.seed_defaults failed")
+            # Don't crash on first request — just log + leave the flag
+            # unset so we can retry once the migration runs.
+            _log.debug("content.seed_defaults skipped (table likely missing)")
 
 
 def seed_defaults() -> None:
