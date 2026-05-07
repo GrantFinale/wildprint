@@ -1,0 +1,31 @@
+{% extends "account/_base.html" %}
+{% block title %}Orders · fishingposter.com{% endblock %}
+{% block content %}
+<h1>Your orders</h1>
+{% if orders %}
+  <table class="orders">
+    <thead>
+      <tr>
+        <th>Order</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th>Total</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for o in orders %}
+        <tr>
+          <td>#{{ o.id.hex[:8] }}</td>
+          <td>{{ o.created_at.strftime('%Y-%m-%d') if o.created_at else '' }}</td>
+          <td><span class="badge badge--{{ o.status }}">{{ o.status }}</span></td>
+          <td>${{ '%.2f' | format(o.total_cents / 100.0) }}</td>
+          <td><a href="{{ url_for('account.orders_detail', order_id=o.id) }}">View detail</a></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="muted">No orders yet.</p>
+{% endif %}
+{% endblock %}

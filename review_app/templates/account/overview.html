@@ -1,0 +1,42 @@
+{% extends "account/_base.html" %}
+{% block title %}Account overview · fishingposter.com{% endblock %}
+{% block content %}
+<h1>Hi{% if customer.name %}, {{ customer.name }}{% endif %}!</h1>
+<p>Signed in as <strong>{{ customer.email }}</strong>.</p>
+
+<section class="card">
+  <h2>Recent orders</h2>
+  {% if recent_orders %}
+    <ul class="order-list">
+      {% for o in recent_orders %}
+        <li>
+          <a href="{{ url_for('account.orders_detail', order_id=o.id) }}">
+            Order #{{ o.id.hex[:8] }}
+          </a>
+          <span class="badge badge--{{ o.status }}">{{ o.status }}</span>
+          <span class="muted">${{ '%.2f' | format(o.total_cents / 100.0) }}</span>
+          <span class="muted">{{ o.created_at.strftime('%Y-%m-%d') if o.created_at else '' }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+    <p><a href="{{ url_for('account.orders_list') }}">See all orders</a></p>
+  {% else %}
+    <p class="muted">No orders yet.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Default shipping address</h2>
+  {% if default_address %}
+    <address>
+      {% if default_address.name %}{{ default_address.name }}<br>{% endif %}
+      {{ default_address.line1 }}<br>
+      {% if default_address.line2 %}{{ default_address.line2 }}<br>{% endif %}
+      {{ default_address.city }}, {{ default_address.state }} {{ default_address.zip }}
+    </address>
+  {% else %}
+    <p class="muted">No default address set.</p>
+  {% endif %}
+  <p><a href="{{ url_for('account.addresses_list') }}">Manage addresses</a></p>
+</section>
+{% endblock %}

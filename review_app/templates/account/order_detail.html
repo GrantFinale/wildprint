@@ -1,0 +1,84 @@
+{% extends "account/_base.html" %}
+{% block title %}Order detail · fishingposter.com{% endblock %}
+{% block content %}
+{% if not_found %}
+  <h1>Order not found</h1>
+  <p><a href="{{ url_for('account.orders_list') }}">Back to orders</a></p>
+{% else %}
+  <h1>Order #{{ order.id.hex[:8] }}</h1>
+  <p>
+    Status: <span class="badge badge--{{ order.status }}">{{ order.status }}</span>
+    &nbsp;Placed {{ order.created_at.strftime('%Y-%m-%d') if order.created_at else '' }}
+  </p>
+
+  <section class="card">
+    <h2>Status timeline</h2>
+    <ul class="timeline">
+      <li class="{{ 'done' if order.placed_at else '' }}">
+        Placed {% if order.placed_at %}— {{ order.placed_at.strftime('%Y-%m-%d %H:%M UTC') }}{% endif %}
+      </li>
+      <li class="{{ 'done' if order.paid_at else '' }}">
+        Paid {% if order.paid_at %}— {{ order.paid_at.strftime('%Y-%m-%d %H:%M UTC') }}{% endif %}
+      </li>
+      <li class="{{ 'done' if order.in_production_at else '' }}">
+        In production {% if order.in_production_at %}— {{ order.in_production_at.strftime('%Y-%m-%d %H:%M UTC') }}{% endif %}
+      </li>
+      <li class="{{ 'done' if order.shipped_at else '' }}">
+        Shipped {% if order.shipped_at %}— {{ order.shipped_at.strftime('%Y-%m-%d %H:%M UTC') }}{% endif %}
+      </li>
+      <li class="{{ 'done' if order.delivered_at else '' }}">
+        Delivered {% if order.delivered_at %}— {{ order.delivered_at.strftime('%Y-%m-%d %H:%M UTC') }}{% endif %}
+      </li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Line items</h2>
+    <table>
+      <thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead>
+      <tbody>
+        {% for it in items %}
+          <tr>
+            <td>{{ it.size_inches }} {{ it.finish_display }}</td>
+            <td>{{ it.quantity }}</td>
+            <td>${{ '%.2f' | format(it.line_total_cents / 100.0) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="totals">
+      Subtotal: ${{ '%.2f' | format(order.subtotal_cents / 100.0) }}<br>
+      Shipping: ${{ '%.2f' | format(order.shipping_cents / 100.0) }}<br>
+      Tax: ${{ '%.2f' | format(order.tax_cents / 100.0) }}<br>
+      <strong>Total: ${{ '%.2f' | format(order.total_cents / 100.0) }}</strong>
+    </p>
+  </section>
+
+  {% if shipping %}
+    <section class="card">
+      <h2>Shipping address</h2>
+      <address>
+        {% if shipping.name %}{{ shipping.name }}<br>{% endif %}
+        {{ shipping.line1 }}<br>
+        {% if shipping.line2 %}{{ shipping.line2 }}<br>{% endif %}
+        {{ shipping.city }}, {{ shipping.state }} {{ shipping.zip }}
+      </address>
+    </section>
+  {% endif %}
+
+  <section class="card">
+    <h2>Need help?</h2>
+    {% if can_request_reprint %}
+      <form method="post" action="{{ url_for('account.orders_reprint', order_id=order.id) }}">
+        <label>Reason (optional)
+          <textarea name="reason" rows="3" maxlength="500"></textarea>
+        </label>
+        <button type="submit">Request a reprint</button>
+        <p class="muted">Free reprint within 30 days of delivery.</p>
+      </form>
+    {% else %}
+      <p class="muted">Reprints are available within 30 days of delivery.</p>
+    {% endif %}
+  </section>
+{% endif %}
+{% endblock %}

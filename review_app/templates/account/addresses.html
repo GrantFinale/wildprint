@@ -1,0 +1,48 @@
+{% extends "account/_base.html" %}
+{% block title %}Addresses · fishingposter.com{% endblock %}
+{% block content %}
+<h1>Shipping addresses</h1>
+
+{% if addresses %}
+  <ul class="addresses">
+    {% for a in addresses %}
+      <li class="card">
+        <address>
+          {% if a.name %}{{ a.name }}<br>{% endif %}
+          {{ a.line1 }}<br>
+          {% if a.line2 %}{{ a.line2 }}<br>{% endif %}
+          {{ a.city }}, {{ a.state }} {{ a.zip }}
+        </address>
+        {% if a.is_default %}
+          <span class="badge">Default</span>
+        {% else %}
+          <form method="post" action="{{ url_for('account.addresses_set_default', address_id=a.id) }}" style="display:inline">
+            <button type="submit">Set as default</button>
+          </form>
+        {% endif %}
+        <form method="post" action="{{ url_for('account.addresses_delete', address_id=a.id) }}" style="display:inline">
+          <button type="submit" class="danger">Remove</button>
+        </form>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="muted">No addresses on file.</p>
+{% endif %}
+
+<section class="card">
+  <h2>Add an address</h2>
+  <form method="post" action="{{ url_for('account.addresses_create') }}">
+    <label>Name <input type="text" name="name"></label>
+    <label>Address line 1 <input type="text" name="line1" required></label>
+    <label>Address line 2 <input type="text" name="line2"></label>
+    <label>City <input type="text" name="city" required></label>
+    <label>State <input type="text" name="state" maxlength="2" required></label>
+    <label>ZIP <input type="text" name="zip" required></label>
+    <label>Country <input type="text" name="country" value="US" maxlength="2"></label>
+    <label>Phone <input type="tel" name="phone"></label>
+    <label><input type="checkbox" name="is_default" value="1"> Make this my default</label>
+    <button type="submit">Save address</button>
+  </form>
+</section>
+{% endblock %}

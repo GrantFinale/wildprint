@@ -1,0 +1,19 @@
+{% extends "account/_base.html" %}
+{% block title %}Profile · fishingposter.com{% endblock %}
+{% block content %}
+<h1>Profile</h1>
+<form method="post" action="{{ url_for('account.profile') }}">
+  <label>Name
+    <input type="text" name="name" value="{{ customer.name or '' }}">
+  </label>
+  <label>Email
+    <input type="email" name="email" value="{{ customer.email }}" required>
+    <small class="muted">Changing your email re-verifies via a magic link.</small>
+  </label>
+  <label>
+    <input type="checkbox" name="marketing_opt_in" value="1" {% if customer.marketing_opt_in %}checked{% endif %}>
+    Email me occasional updates
+  </label>
+  <button type="submit">Save changes</button>
+</form>
+{% endblock %}
