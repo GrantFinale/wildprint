@@ -71,7 +71,7 @@ def upgrade() -> None:
             "prodigi_cancel_attempted",
             sa.Boolean(),
             nullable=False,
-            server_default=sa.text("0"),
+            server_default=sa.text("false"),
         ),
         sa.Column("prodigi_cancel_succeeded", sa.Boolean(), nullable=True),
         sa.Column(

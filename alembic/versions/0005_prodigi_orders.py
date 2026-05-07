@@ -135,7 +135,7 @@ def upgrade() -> None:
         sa.Column("size_inches", sa.Text(), nullable=False),
         sa.Column("orientation", sa.Text(), nullable=False),
         sa.Column(
-            "active", sa.Boolean(), nullable=False, server_default=sa.text("1")
+            "active", sa.Boolean(), nullable=False, server_default=sa.text("true")
         ),
         sa.Column("retail_price_cents", sa.BigInteger(), nullable=True),
         sa.Column(
@@ -143,7 +143,7 @@ def upgrade() -> None:
         ),
         sa.Column("margin_cents", sa.BigInteger(), nullable=True),
         sa.Column(
-            "in_stock", sa.Boolean(), nullable=False, server_default=sa.text("1")
+            "in_stock", sa.Boolean(), nullable=False, server_default=sa.text("true")
         ),
         sa.Column(
             "last_refreshed_at", sa.DateTime(timezone=True), nullable=True

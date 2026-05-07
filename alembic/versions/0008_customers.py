@@ -67,7 +67,7 @@ def upgrade() -> None:
             "marketing_opt_in",
             sa.Boolean(),
             nullable=False,
-            server_default=sa.text("0"),
+            server_default=sa.text("false"),
         ),
         # Legacy fields preserved from metadata/leads.json (nullable for new
         # signups). See 0013_migrate_leads_json.py.

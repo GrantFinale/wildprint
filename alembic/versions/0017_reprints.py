@@ -43,7 +43,7 @@ def upgrade() -> None:
             "customer_paid",
             sa.Boolean(),
             nullable=False,
-            server_default=sa.text("0"),
+            server_default=sa.text("false"),
         ),
         sa.Column(
             "status",

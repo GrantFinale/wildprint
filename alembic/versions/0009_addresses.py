@@ -72,7 +72,7 @@ def upgrade() -> None:
             "is_default",
             sa.Boolean(),
             nullable=False,
-            server_default=sa.text("0"),
+            server_default=sa.text("false"),
         ),
         sa.Column("validated_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("validation_provider", sa.Text(), nullable=True),
