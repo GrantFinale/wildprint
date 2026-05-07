@@ -51,26 +51,26 @@ def upgrade() -> None:
         op.execute(
             f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS search_vector tsvector"
         )
-        # Build a comma-separated list of COALESCE(..., '') clauses for both
-        # the initial backfill UPDATE and the per-row trigger body. Using a
-        # single string variable keeps the f-strings free of nested quoting.
-        coalesce_clauses = [f"COALESCE({f}::text, '')" for f in fields]
-        coalesce_args = ", ".join(coalesce_clauses)
+        # Backfill UPDATE references the columns directly (table context).
+        update_clauses = [f"COALESCE({f}::text, '')" for f in fields]
+        update_args = ", ".join(update_clauses)
         update_sql = (
             f"UPDATE {table} SET search_vector = "
-            f"to_tsvector('simple', concat_ws(' ', {coalesce_args}))"
+            f"to_tsvector('simple', concat_ws(' ', {update_args}))"
         )
         op.execute(update_sql)
-        coalesce_exprs = ", ' ', ".join(coalesce_clauses)
         op.execute(
             f"CREATE INDEX IF NOT EXISTS ix_{table}_search_vector "
             f"ON {table} USING GIN (search_vector)"
         )
-        # Trigger function (idempotent per table).
+        # Per-row trigger body MUST qualify columns with NEW. — bare column
+        # names don't resolve inside a plpgsql BEFORE INSERT/UPDATE trigger.
+        trigger_clauses = [f"COALESCE(NEW.{f}::text, '')" for f in fields]
+        trigger_exprs = ", ' ', ".join(trigger_clauses)
         trig_fn = f"{table}_search_vector_update"
         body = (
             f"NEW.search_vector := to_tsvector('simple', "
-            f"concat_ws(' ', {coalesce_exprs}));\nRETURN NEW;"
+            f"concat_ws(' ', {trigger_exprs}));\nRETURN NEW;"
         )
         op.execute(
             f"""
