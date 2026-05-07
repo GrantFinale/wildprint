@@ -178,6 +178,14 @@ def _run(session: Session, order_id: str) -> dict[str, Any]:
 
     if order.status not in ("in_production", "shipped", "delivered"):
         order.status = "in_production"
+        # Phase 5b — capture the moment we hand off to Prodigi for real
+        # production. The operations analytics page (admin/analytics) reads
+        # this column to compute AVG(in_production_at - paid_at).
+        if getattr(order, "in_production_at", None) is None:
+            from datetime import UTC as _UTC
+            from datetime import datetime as _dt
+
+            order.in_production_at = _dt.now(_UTC)
 
     # Fan out the next email step.
     customer_email = _customer_email(session, order)

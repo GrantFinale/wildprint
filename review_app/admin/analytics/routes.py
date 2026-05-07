@@ -289,12 +289,29 @@ def _operations_metrics(session: Session) -> dict[str, Any]:
     ]
     avg_ttship = (sum(ttship_secs) / len(ttship_secs)) if ttship_secs else 0.0
 
-    # We don't track "in_production_at" on Order — proxy with the first
-    # ProdigiOrder.last_fetched_at where status_stage = 'InProgress' (best
-    # we can do without a dedicated column). For Phase 4b we approximate
-    # this as paid_at -> shipped_at minus a constant; surface it as the
-    # same series so the page stays honest about the limitation.
-    avg_ttprod = avg_ttship * 0.4 if ttship_secs else 0.0
+    # Phase 5b: real measurement now that orders.in_production_at exists
+    # (migration 0020). Compute avg(in_production_at - paid_at) over orders
+    # that have both. Fall back to the old approximation only if the column
+    # is empty (e.g. fresh DB before any production transitions).
+    in_prod_rows = list(
+        session.execute(
+            select(Order.paid_at, Order.in_production_at).where(
+                Order.in_production_at.is_not(None),
+                Order.paid_at.is_not(None),
+                Order.source != "admin_test",
+            )
+        ).all()
+    )
+    ttprod_secs = [
+        (row.in_production_at - row.paid_at).total_seconds()
+        for row in in_prod_rows
+    ]
+    if ttprod_secs:
+        avg_ttprod = sum(ttprod_secs) / len(ttprod_secs)
+    elif ttship_secs:
+        avg_ttprod = avg_ttship * 0.4
+    else:
+        avg_ttprod = 0.0
 
     total_orders = int(
         session.execute(
