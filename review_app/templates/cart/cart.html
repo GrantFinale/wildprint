@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Your cart &middot; fishingposter.com{% endblock %}
+
+{% block content %}
+<main class="cart-page" data-cart-id="{{ cart.id }}">
+  <header class="cart-page__header">
+    <h1>Your cart</h1>
+    {% if cart.item_count == 0 %}
+      <p class="cart-page__empty">Your cart is empty.
+        <a href="/">Start with a poster</a>.
+      </p>
+    {% else %}
+      <p class="cart-page__count">{{ cart.item_count }} item{% if cart.item_count != 1 %}s{% endif %}</p>
+    {% endif %}
+  </header>
+
+  {% if cart.item_count > 0 %}
+  <table class="cart-page__items">
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Qty</th>
+        <th>Unit</th>
+        <th>Line total</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in cart.items %}
+      <tr data-cart-item-id="{{ item.id }}">
+        <td>
+          <code>{{ item.prodigi_sku_internal }}</code>
+          {% if item.render_spec_id %}
+            <small>spec {{ item.render_spec_id }}</small>
+          {% endif %}
+        </td>
+        <td>
+          <input
+            type="number"
+            min="0"
+            max="99"
+            value="{{ item.quantity }}"
+            class="cart-qty-input"
+            data-item-id="{{ item.id }}"
+            aria-label="Quantity for {{ item.prodigi_sku_internal }}"
+          >
+        </td>
+        <td>${{ '%.2f' % (item.unit_price_cents / 100) }}</td>
+        <td>${{ '%.2f' % (item.line_total_cents / 100) }}</td>
+        <td>
+          <button
+            type="button"
+            class="cart-remove-btn"
+            data-item-id="{{ item.id }}"
+          >Remove</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3"><strong>Subtotal</strong></td>
+        <td colspan="2"><strong>${{ '%.2f' % (cart.subtotal_cents / 100) }}</strong></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <form method="post" action="/api/checkout/start" class="cart-page__checkout">
+    <input type="hidden" name="cart_id" value="{{ cart.id }}">
+    <button type="submit" class="btn-primary">Proceed to Checkout</button>
+  </form>
+  {% endif %}
+</main>
+
+<script>
+(function() {
+  function csrfHeaders() {
+    return { "Content-Type": "application/json" };
+  }
+
+  document.querySelectorAll(".cart-qty-input").forEach(function(input) {
+    input.addEventListener("change", function() {
+      var itemId = input.getAttribute("data-item-id");
+      var qty = parseInt(input.value, 10);
+      if (isNaN(qty) || qty < 0) { qty = 0; }
+      fetch("/api/cart/items/" + itemId + "/update", {
+        method: "POST",
+        headers: csrfHeaders(),
+        credentials: "same-origin",
+        body: JSON.stringify({ quantity: qty })
+      }).then(function(r) {
+        if (r.ok) { window.location.reload(); }
+      });
+    });
+  });
+
+  document.querySelectorAll(".cart-remove-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var itemId = btn.getAttribute("data-item-id");
+      fetch("/api/cart/items/" + itemId + "/remove", {
+        method: "POST",
+        headers: csrfHeaders(),
+        credentials: "same-origin"
+      }).then(function(r) {
+        if (r.ok) { window.location.reload(); }
+      });
+    });
+  });
+})();
+</script>
+{% endblock %}
