@@ -107,16 +107,18 @@ def test_topbar_renders_prodigi_env_pill(
     assert b"env-pill--prod" in resp.data
 
 
-def test_global_search_returns_phase5_placeholder(
+def test_global_search_returns_results_page(
     client: FlaskClient, role_setter: Callable[[str | None], None]
 ) -> None:
-    """The cmd+K search page is a Phase 5 stub but must respond 200."""
+    """Phase 6 polish: cmd+K search now hits the real cross-entity service."""
     role_setter("admin")
     resp = client.get("/admin/search?q=foo")
     assert resp.status_code == 200
     body = _html(resp.data)
-    assert "Phase 5" in body
+    # The query echoes back into the page header.
     assert "&ldquo;foo&rdquo;" in body
+    # Results page content (no-results card or grouped sections).
+    assert "No results" in body or "Customers" in body or "Orders" in body
 
 
 def test_direct_url_to_settings_returns_403_for_viewer(
