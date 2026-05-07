@@ -1,0 +1,48 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>Render presets</h1>
+  <p class="admin-page__subtitle">
+    Three-tier render configuration. Read-only in Phase 4a; Phase 5 wires editing.
+  </p>
+</header>
+
+<section class="admin-card">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Tier</th>
+        <th>Long edge (px)</th>
+        <th>DPI</th>
+        <th>Format</th>
+        <th>Quality</th>
+        <th>Watermark</th>
+        <th>Public</th>
+        <th>Bucket</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td><strong>{{ r.tier_name }}</strong> <span class="admin-status">tier {{ r.tier }}</span></td>
+          <td>{{ r.long_edge_px }}</td>
+          <td>{{ r.dpi }}</td>
+          <td>{{ r.fmt }}</td>
+          <td>{% if r.fmt == 'JPEG' %}q{{ r.jpeg_quality }}{% else %}—{% endif %}</td>
+          <td>
+            {% if r.watermark %}
+              <span class="admin-badge admin-badge--ok">on</span>
+              <code>{{ r.watermark_text }}</code> @ {{ r.watermark_opacity }}
+            {% else %}
+              <span class="admin-badge">off</span>
+            {% endif %}
+          </td>
+          <td>{% if r.public %}public{% else %}private (signed)
+          {% endif %}</td>
+          <td><code>{{ r.bucket }}</code></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

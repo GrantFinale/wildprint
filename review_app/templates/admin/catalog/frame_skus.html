@@ -1,0 +1,77 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>Frame SKUs &amp; pricing</h1>
+  <p class="admin-page__subtitle">
+    Launch catalog from <code>prodigi_skus</code>. Wholesale refreshes nightly.
+  </p>
+</header>
+
+<section class="admin-card">
+  <form method="get" class="admin-filters" action="{{ url_for('admin.catalog_frame_skus') }}">
+    <select name="size" class="admin-input">
+      <option value="">All sizes</option>
+      {% for s in sizes %}
+        <option value="{{ s }}" {% if size_filter == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <select name="finish" class="admin-input">
+      <option value="">All finishes</option>
+      {% for f in finishes %}
+        <option value="{{ f }}" {% if finish_filter == f %}selected{% endif %}>{{ f }}</option>
+      {% endfor %}
+    </select>
+    <select name="active" class="admin-input">
+      <option value="">All statuses</option>
+      <option value="true" {% if active_filter == 'true' %}selected{% endif %}>Active</option>
+      <option value="false" {% if active_filter == 'false' %}selected{% endif %}>Inactive</option>
+    </select>
+    <label class="admin-checkbox">
+      <input type="checkbox" name="low_margin" value="1" {% if low_margin_only %}checked{% endif %}>
+      Low margin only (&lt; 60%)
+    </label>
+    <button type="submit" class="btn btn-primary">Apply</button>
+    <button type="button" class="btn" id="btn-refresh-quotes" disabled title="Refresh job stub — Phase 5 wires the worker">
+      Refresh all quotes
+    </button>
+  </form>
+
+  {% if rows %}
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Internal SKU</th>
+          <th>Prodigi SKU</th>
+          <th>Size</th>
+          <th>Finish</th>
+          <th>Wholesale</th>
+          <th>Retail</th>
+          <th>Margin %</th>
+          <th>Last quote</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          <tr {% if r.margin_pct is not none and r.margin_pct < 60 %}class="admin-row--alert"{% endif %}>
+            <td><code>{{ r.internal_sku }}</code></td>
+            <td><code class="admin-truncate">{{ r.prodigi_sku }}</code></td>
+            <td>{{ r.size_inches }}</td>
+            <td>{{ r.finish }}</td>
+            <td>{{ r.wholesale_dollars() }}</td>
+            <td>{{ r.retail_dollars() }}</td>
+            <td>{% if r.margin_pct is not none %}{{ "%.1f"|format(r.margin_pct) }}%{% else %}—{% endif %}</td>
+            <td>{{ r.last_refreshed_at }}</td>
+            <td>
+              {% if r.active %}<span class="admin-badge admin-badge--ok">active</span>{% else %}<span class="admin-badge">inactive</span>{% endif %}
+              {% if not r.in_stock %}<span class="admin-badge admin-badge--err">OOS</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="admin-empty">No SKUs match the current filters (or the <code>prodigi_skus</code> table is empty).</p>
+  {% endif %}
+</section>
+{% endblock %}

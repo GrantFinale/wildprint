@@ -1,0 +1,38 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>Lake dictionary</h1>
+  <p class="admin-page__subtitle">
+    Phase 4a stub. Phase 5 wires this to the GNIS dataset and lets you add /
+    merge / retire entries.
+  </p>
+</header>
+
+<section class="admin-card">
+  <form method="get" class="admin-filters" action="{{ url_for('admin.catalog_lakes') }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search by name…" class="admin-input">
+    <input type="text" name="state" value="{{ state }}" placeholder="State (e.g. CA)" class="admin-input admin-input--narrow">
+    <button type="submit" class="btn btn-primary">Search</button>
+  </form>
+
+  {% if rows %}
+    <table class="admin-table">
+      <thead>
+        <tr><th>Name</th><th>State</th><th>Aliases</th><th>Order count</th></tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          <tr>
+            <td><strong>{{ r.name }}</strong></td>
+            <td>{{ r.state }}</td>
+            <td>{{ r.aliases or '—' }}</td>
+            <td>{{ r.order_count }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="admin-empty">No lakes match.</p>
+  {% endif %}
+</section>
+{% endblock %}
