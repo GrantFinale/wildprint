@@ -222,6 +222,7 @@ for _rule, _endpoint, _label, _category, _roles in _STUB_REGISTRATIONS:
 # ---------------------------------------------------------------------------
 from review_app.admin import (  # noqa: E402
     catalog as _catalog,  # noqa: F401
+    notifications as _notifications,  # noqa: F401
     search as _search,  # noqa: F401
     settings as _settings,  # noqa: F401
 )
