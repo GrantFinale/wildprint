@@ -1,6 +1,10 @@
 """Refunds module — Stripe refund + Prodigi cancel records.
 
-Phase 3a scaffolding: model only. Refund orchestration lives in later phases.
+* Phase 3a (parallel agent): :class:`Refund` ORM model.
+* Phase 3b (this work): :func:`review_app.refunds.service.request_refund`
+  orchestrates the Prodigi-cancel-then-Stripe-refund-then-email flow.
+
+``init_app`` is a no-op for now; admin refund routes land in Phase 4.
 """
 from __future__ import annotations
 
