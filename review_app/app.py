@@ -2444,10 +2444,8 @@ def api_render_framed_preview():
     except Exception as exc:
         return jsonify({"error": f"Composite failed: {exc}"}), 500
     finally:
-        try:
+        with contextlib.suppress(OSError):
             raw_path.unlink(missing_ok=True)
-        except OSError:
-            pass
 
     poster_url = f"/image/output/posters/{poster_id}.jpg"
     return jsonify({
