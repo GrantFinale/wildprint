@@ -3,8 +3,8 @@
     <span></span><span></span><span></span>
   </button>
 
-  <a class="admin-topbar__brand" href="{{ url_for('admin.dashboard') }}">
-    fishingposter <span class="admin-topbar__brand-suffix">admin</span>
+  <a class="admin-topbar__brand" href="{{ url_for('admin.dashboard') }}" aria-label="fishingposter admin home">
+    fishingposter<span style="color: var(--wp-hunter);">.</span> <span class="admin-topbar__brand-suffix">admin</span>
   </a>
 
   <form class="admin-topbar__search" action="{{ url_for('admin.search') }}" method="get" role="search">
@@ -16,18 +16,40 @@
       placeholder="Search orders, customers, species, SKUs… (⌘K)"
       autocomplete="off"
       aria-label="Global search"
+      value="{{ request.args.get('q', '') }}"
     >
   </form>
+  {# Phase 6 polish: cmd+K / ctrl+K focuses the global search input. #}
+  <script>
+    (function() {
+      document.addEventListener("keydown", function(e) {
+        var key = (e.key || "").toLowerCase();
+        if (key === "k" && (e.metaKey || e.ctrlKey)) {
+          var input = document.getElementById("admin-global-search");
+          if (input) {
+            e.preventDefault();
+            input.focus();
+            input.select();
+          }
+        }
+      });
+    })();
+  </script>
 
   <div class="admin-topbar__right">
     <span class="{{ prodigi_env_pill.css_class }}" title="Active Prodigi environment">
       {{ prodigi_env_pill.label }}
     </span>
 
-    <button type="button" class="admin-topbar__bell" aria-label="Notifications" data-count="{{ admin_notifications }}">
-      <span aria-hidden="true">!</span>
+    <button
+      type="button"
+      class="admin-topbar__bell"
+      aria-label="Notifications{% if admin_notifications and admin_notifications > 0 %} ({{ admin_notifications }} unread){% endif %}"
+      data-count="{{ admin_notifications }}"
+    >
+      <span aria-hidden="true">&#9788;</span>
       {% if admin_notifications and admin_notifications > 0 %}
-        <span class="admin-topbar__bell-badge">{{ admin_notifications }}</span>
+        <span class="admin-topbar__bell-badge" aria-hidden="true">{{ admin_notifications }}</span>
       {% endif %}
     </button>
 

@@ -27,6 +27,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Admin · {{ page_title|default('Admin') }} · fishingposter.com{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/admin.css') }}">
   {% block extra_head %}{% endblock %}
   {% block head_extra %}{% endblock %}
