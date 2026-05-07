@@ -1,0 +1,62 @@
+# wildprint — cron scheduler image (Phase 5a)
+#
+# Boots ``scripts/run_scheduler.py`` which uses rq-scheduler to enqueue
+# the recurring jobs catalogued in ``review_app.scheduler.cron``. The
+# scheduler does NOT execute jobs itself — it pushes them onto the same
+# Redis queue the worker container drains.
+#
+# Coolify configuration notes:
+#   - Same env vars as the worker (REDIS_URL + DATABASE_URL + secrets).
+#   - Single replica only (rq-scheduler does NOT support multi-instance
+#     leader election — running 2 schedulers will register every cron
+#     job twice).
+#   - Set --stop-timeout=10 (we exit promptly on SIGTERM).
+#   - Rolling deploys are safe: a brief gap with no scheduler is fine
+#     because each recurring job's interval is >= 30s.
+
+FROM python:3.11-slim
+
+# Mirror the worker's system deps so jobs that need Pillow / boto3 etc.
+# work identically when the scheduler enqueues them locally for tests.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
+    curl \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir gunicorn numpy rembg onnxruntime replicate requests
+
+# Copy the app — same set as the worker so jobs that import from any
+# review_app.* module work end-to-end.
+COPY config/ ./config/
+COPY data/ ./data/
+COPY prompts/ ./prompts/
+COPY providers/ ./providers/
+COPY scripts/ ./scripts/
+COPY poster_layout/ ./poster_layout/
+COPY review_app/ ./review_app/
+COPY webapp/ ./webapp/
+COPY assets/ ./assets/
+COPY metadata/manifest_schema.json ./metadata/
+
+COPY alembic.ini ./
+COPY alembic/ ./alembic/
+COPY pyproject.toml ./
+
+RUN mkdir -p output/raw output/normalized output/posters output/uploads output/backgrounds metadata
+
+ENV PYTHONUNBUFFERED=1
+
+STOPSIGNAL SIGTERM
+
+# Lightweight liveness check: the scheduler process must be running.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
+    CMD pgrep -f "scripts.run_scheduler" >/dev/null || exit 1
+
+CMD ["python", "-m", "scripts.run_scheduler"]

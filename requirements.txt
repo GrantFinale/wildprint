@@ -43,3 +43,14 @@ pydantic>=2.6
 # from the runtime image if size becomes a concern (the test suite skips
 # the SSIM path automatically).
 scikit-image>=0.22
+
+# Phase 5b — customer magic-link auth + content block markdown rendering.
+pyjwt>=2.8
+markdown>=3.5
+
+# Phase 5a — Flask-Limiter (rate limits) + rq-scheduler (cron jobs).
+# rq-scheduler shares the existing Redis connection so no new infra is
+# required — the scheduler just runs as a third Coolify service alongside
+# web + worker.
+flask-limiter>=3.5
+rq-scheduler>=0.13

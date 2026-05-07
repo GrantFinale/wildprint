@@ -103,6 +103,48 @@ def deactivate_user(email: str) -> None:
     click.secho(f"deactivated {email_norm}", fg="yellow")
 
 
+# ---------------------------------------------------------------------------
+# Phase 5a — manual cron firing
+# ---------------------------------------------------------------------------
+@click.command("cron-fire")
+@click.argument("job_name")
+def cron_fire(job_name: str) -> None:
+    """Enqueue a single cron job for IMMEDIATE execution.
+
+    JOB_NAME must be one of the ids in
+    :data:`review_app.scheduler.cron.JOB_CATALOG` (e.g. ``drain_outbox``,
+    ``refresh_prodigi_quotes``, ``cleanup_render_outputs``,
+    ``monitor_failed_callbacks``, ``monitor_dead_outbox``).
+
+    Useful for: dogfooding a job after a deploy without waiting for its
+    natural cadence; debugging by running a job synchronously and reading
+    the result; admin "fire now" buttons (which shell out to this).
+    """
+    from review_app.scheduler import enqueue_now
+    from review_app.scheduler.cron import JOB_CATALOG
+
+    if job_name not in JOB_CATALOG:
+        raise click.UsageError(
+            f"Unknown job {job_name!r}. Valid: {sorted(JOB_CATALOG.keys())}"
+        )
+
+    func_lookup: dict[str, str] = {
+        "drain_outbox": "review_app.queue.jobs:drain_outbox_job",
+        "refresh_prodigi_quotes": "review_app.prodigi.quote_refresh:refresh_all_skus_job",
+        "cleanup_render_outputs": "review_app.scheduler.jobs:cleanup_old_render_outputs",
+        "monitor_failed_callbacks": "review_app.scheduler.jobs:monitor_failed_callbacks",
+        "monitor_dead_outbox": "review_app.scheduler.jobs:monitor_dead_outbox",
+    }
+    target = func_lookup[job_name]
+    module_name, _, func_name = target.partition(":")
+    import importlib
+
+    mod = importlib.import_module(module_name)
+    func = getattr(mod, func_name)
+    job = enqueue_now(func)
+    click.secho(f"enqueued {job_name} as job_id={job.id}", fg="green")
+
+
 def register(app: Flask) -> None:
     """Attach all CLI commands to the given Flask app's `cli` group.
 
@@ -112,6 +154,7 @@ def register(app: Flask) -> None:
     app.cli.add_command(create_admin)
     app.cli.add_command(set_role)
     app.cli.add_command(deactivate_user)
+    app.cli.add_command(cron_fire)
 
 
-__all__ = ["create_admin", "deactivate_user", "register", "set_role"]
+__all__ = ["create_admin", "cron_fire", "deactivate_user", "register", "set_role"]
