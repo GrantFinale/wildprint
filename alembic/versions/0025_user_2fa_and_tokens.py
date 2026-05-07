@@ -54,10 +54,10 @@ def upgrade() -> None:
     # New per-user API tokens table.
     op.create_table(
         "user_api_tokens",
-        sa.Column("id", sa.String(length=36), primary_key=True),
+        sa.Column("id", sa.Uuid(as_uuid=True), primary_key=True),
         sa.Column(
             "user_id",
-            sa.String(length=36),
+            sa.Uuid(as_uuid=True),
             sa.ForeignKey("users.id", ondelete="CASCADE"),
             nullable=False,
         ),

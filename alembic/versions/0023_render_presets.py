@@ -64,7 +64,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             "updated_by_user_id",
-            sa.String(length=36),
+            sa.Uuid(as_uuid=True),
             sa.ForeignKey("users.id", ondelete="SET NULL"),
             nullable=True,
         ),
