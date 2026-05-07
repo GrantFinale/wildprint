@@ -299,6 +299,14 @@ def orders_detail(order_id: uuid.UUID) -> Response:
 @account_bp.route("/orders/<uuid:order_id>/reprint", methods=["POST"])
 @requires_customer
 def orders_reprint(order_id: uuid.UUID) -> Response:
+    """Customer reprint request — Phase 6 polish: per-line-item selection.
+
+    Form fields:
+        order_item_ids: list[str]    — UUID(s) of OrderItem rows to reprint
+                                       (multi-checkbox in the modal). Required.
+        reason: str                  — short selector value (warped/damaged/etc).
+        comment: str                 — optional free text appended to reason.
+    """
     from review_app.orders.models import Order
     from review_app.refunds.reprints import (
         ReprintRequestError,
@@ -321,14 +329,41 @@ def orders_reprint(order_id: uuid.UUID) -> Response:
             redirect(url_for("account.orders_detail", order_id=str(order_id))),
         )
 
-    reason = (request.form.get("reason") or "").strip() or None
+    # Parse the selected line items. The form posts ``order_item_ids`` as
+    # a multi-valued field (one checkbox per line item).
+    raw_ids = request.form.getlist("order_item_ids") or []
+    valid_ids: list[uuid.UUID] = []
+    valid_set = {str(item.id) for item in (order.items or [])}
+    for raw in raw_ids:
+        try:
+            uid = uuid.UUID(str(raw).strip())
+        except (TypeError, ValueError):
+            continue
+        if str(uid) in valid_set:
+            valid_ids.append(uid)
+
+    if not valid_ids:
+        flash(
+            "Please select at least one item to reprint.",
+            "error",
+        )
+        return cast(
+            "Response",
+            redirect(url_for("account.orders_detail", order_id=str(order_id))),
+        )
+
+    reason_raw = (request.form.get("reason") or "").strip()
+    comment = (request.form.get("comment") or "").strip()
+    reason_parts = [p for p in (reason_raw, comment) if p]
+    reason = " — ".join(reason_parts) if reason_parts else None
+
     try:
         request_reprint(
             s,
             order_id=order.id,
             customer_id=customer.id,
             reason=reason,
-            line_item_ids=None,
+            line_item_ids=valid_ids,
             requested_by_role="customer",
         )
     except ReprintRequestError as exc:
@@ -338,7 +373,11 @@ def orders_reprint(order_id: uuid.UUID) -> Response:
             redirect(url_for("account.orders_detail", order_id=str(order_id))),
         )
 
-    flash("Reprint request submitted. We'll be in touch soon.", "success")
+    flash(
+        f"Reprint request submitted for {len(valid_ids)} item"
+        f"{'s' if len(valid_ids) != 1 else ''}. We'll be in touch soon.",
+        "success",
+    )
     return cast(
         "Response",
         redirect(url_for("account.orders_detail", order_id=str(order_id))),

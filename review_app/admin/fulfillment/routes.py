@@ -239,7 +239,8 @@ def register(admin_bp: Blueprint) -> None:
     )
     @requires_role("admin")
     def fulfillment_reprints() -> Response:
-        from review_app.orders.models import Order
+        from review_app.orders.models import Order, OrderItem
+        from review_app.refunds.reprints_models import ReprintRequest
 
         session = _admin_session.get_session()
         try:
@@ -268,6 +269,61 @@ def register(admin_bp: Blueprint) -> None:
                 .all()
             )
 
+            # Phase 6 polish — pending ReprintRequest queue with the
+            # selected line items resolved into displayable rows.
+            pending_rows = list(
+                session.execute(
+                    select(ReprintRequest)
+                    .where(ReprintRequest.status == "pending")
+                    .order_by(ReprintRequest.created_at.desc())
+                    .limit(50)
+                )
+                .scalars()
+                .all()
+            )
+            pending_requests: list[dict] = []
+            for rr in pending_rows:
+                # Decode the comma-joined uuid string and look up line-items.
+                raw = (rr.line_item_ids or "").strip()
+                ids: list[str] = [s for s in raw.split(",") if s]
+                items_meta: list[dict] = []
+                if ids:
+                    try:
+                        item_uuids = [uuid.UUID(s) for s in ids if s]
+                    except (TypeError, ValueError):
+                        item_uuids = []
+                    if item_uuids:
+                        oi_rows = list(
+                            session.execute(
+                                select(OrderItem).where(OrderItem.id.in_(item_uuids))
+                            )
+                            .scalars()
+                            .all()
+                        )
+                        items_meta = [
+                            {
+                                "id": str(it.id),
+                                "size_inches": it.size_inches,
+                                "finish_display": it.finish_display,
+                                "quantity": it.quantity,
+                            }
+                            for it in oi_rows
+                        ]
+                pending_requests.append(
+                    {
+                        "id": str(rr.id),
+                        "order_id": str(rr.order_id),
+                        "reason": rr.reason or "",
+                        "requested_by_role": rr.requested_by_role,
+                        "created_at": (
+                            rr.created_at.strftime("%Y-%m-%d %H:%M UTC")
+                            if rr.created_at else "—"
+                        ),
+                        "line_items": items_meta,
+                        "all_items": not ids,
+                    }
+                )
+
             original_id = (
                 request.args.get("original_order_id")
                 or (request.form.get("original_order_id") if request.form else None)
@@ -276,6 +332,7 @@ def register(admin_bp: Blueprint) -> None:
             html = render_template(
                 "admin/fulfillment/reprints_list.html",
                 reprints=reprints,
+                pending_requests=pending_requests,
                 original_order_id=original_id,
                 error=error,
             )

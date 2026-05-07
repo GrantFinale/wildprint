@@ -45,17 +45,28 @@
     </ul>
   </section>
 
+  {# TODO Phase 6 polish: design pass — per-item reprint UI #}
   <section class="card">
     <h2>Line items</h2>
     <div class="wp-table-wrap">
       <table aria-label="Order line items">
-        <thead><tr><th scope="col">Item</th><th scope="col">Qty</th><th scope="col">Price</th></tr></thead>
+        <thead><tr><th scope="col">Item</th><th scope="col">Qty</th><th scope="col">Price</th>{% if can_request_reprint %}<th scope="col">Reprint</th>{% endif %}</tr></thead>
         <tbody>
           {% for it in items %}
             <tr>
               <td>{{ it.size_inches }} <span class="wp-soft">{{ it.finish_display }}</span></td>
               <td class="wp-tnum">{{ it.quantity }}</td>
               <td class="wp-tnum">${{ '%.2f' | format(it.line_total_cents / 100.0) }}</td>
+              {% if can_request_reprint %}
+              <td>
+                <button
+                  type="button"
+                  class="wp-btn wp-btn--small wp-btn--secondary"
+                  data-action="open-reprint-modal"
+                  data-item-id="{{ it.id }}"
+                >Request reprint</button>
+              </td>
+              {% endif %}
             </tr>
           {% endfor %}
         </tbody>
@@ -84,13 +95,55 @@
   <section class="card">
     <h2>Need help?</h2>
     {% if can_request_reprint %}
-      <form method="post" action="{{ url_for('account.orders_reprint', order_id=order.id) }}">
-        <label for="reprint-reason">Reason (optional)
-          <textarea id="reprint-reason" name="reason" rows="3" maxlength="500"></textarea>
-        </label>
-        <button type="submit" class="wp-btn wp-btn--primary">Request a reprint</button>
-        <p class="muted" style="margin-top: var(--wp-space-2);">Free reprint within 30 days of delivery.</p>
-      </form>
+      <details class="reprint-modal" id="reprint-modal">
+        <summary class="wp-btn wp-btn--primary">Request a reprint</summary>
+        <form method="post" action="{{ url_for('account.orders_reprint', order_id=order.id) }}" class="reprint-form">
+          <fieldset>
+            <legend>Which items?</legend>
+            {% for it in items %}
+              <label class="reprint-form__item">
+                <input type="checkbox" name="order_item_ids" value="{{ it.id }}" data-line-item="{{ it.id }}">
+                <span>{{ it.size_inches }} <span class="wp-soft">{{ it.finish_display }}</span> (qty {{ it.quantity }})</span>
+              </label>
+            {% endfor %}
+          </fieldset>
+
+          <label for="reprint-reason">Reason
+            <select id="reprint-reason" name="reason" required>
+              <option value="">Choose…</option>
+              <option value="warped">Print arrived warped</option>
+              <option value="damaged">Print arrived damaged</option>
+              <option value="color">Color is off</option>
+              <option value="quality">Quality issue</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+
+          <label for="reprint-comment">Additional details (optional)
+            <textarea id="reprint-comment" name="comment" rows="3" maxlength="500"></textarea>
+          </label>
+
+          <button type="submit" class="wp-btn wp-btn--primary">Submit reprint request</button>
+          <p class="muted" style="margin-top: var(--wp-space-2);">Free reprint within 30 days of delivery.</p>
+        </form>
+      </details>
+      <script>
+        // Wire each per-item button to pre-check the matching checkbox in the modal.
+        (function () {
+          var modal = document.getElementById("reprint-modal");
+          if (!modal) return;
+          document.querySelectorAll('[data-action="open-reprint-modal"]').forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              modal.open = true;
+              var itemId = btn.getAttribute("data-item-id");
+              if (!itemId) return;
+              var box = modal.querySelector('input[data-line-item="' + itemId + '"]');
+              if (box) box.checked = true;
+              modal.scrollIntoView({ behavior: "smooth", block: "start" });
+            });
+          });
+        })();
+      </script>
     {% else %}
       <p class="muted">Reprints are available within 30 days of delivery.</p>
     {% endif %}

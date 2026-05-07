@@ -31,6 +31,59 @@
     </form>
   </div>
 
+  {# Phase 6 polish — pending reprint requests with selected line items. #}
+  {% if pending_requests %}
+  <div class="panel">
+    <h2>Pending reprint requests ({{ pending_requests|length }})</h2>
+    <table class="fp-table">
+      <thead>
+        <tr>
+          <th>Order</th><th>Requested by</th><th>Items</th>
+          <th>Reason</th><th>Created</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in pending_requests %}
+        <tr>
+          <td>
+            <a href="{{ url_for('admin.orders_detail', order_id=req.order_id) }}">
+              {{ req.order_id[:8] }}
+            </a>
+          </td>
+          <td>{{ req.requested_by_role }}</td>
+          <td>
+            {% if req.all_items %}
+              <em class="wp-soft">All items</em>
+            {% else %}
+              <ul class="reprint-line-items">
+                {% for it in req.line_items %}
+                  <li>{{ it.size_inches }} {{ it.finish_display }} (qty {{ it.quantity }})</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </td>
+          <td>{{ req.reason or '—' }}</td>
+          <td>{{ req.created_at }}</td>
+          <td>
+            <form method="post"
+                  action="{{ url_for('admin.fulfillment_reprint_approve', reprint_id=req.id) }}"
+                  style="display:inline;">
+              <button type="submit" class="btn btn--primary btn--small">Approve</button>
+            </form>
+            <form method="post"
+                  action="{{ url_for('admin.fulfillment_reprint_reject', reprint_id=req.id) }}"
+                  style="display:inline;">
+              <input type="hidden" name="reason" value="declined by admin">
+              <button type="submit" class="btn btn--small">Reject</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
   <div class="panel">
     <h2>Reprint queue ({{ reprints|length }})</h2>
     {% if reprints %}
