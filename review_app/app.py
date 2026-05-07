@@ -82,18 +82,28 @@ app.secret_key = (
 )
 
 # ---------------------------------------------------------------------------
-# Phase 0 wiring: observability, db, new admin auth, AI logging, CLI commands.
-# Each init_app() is a safe no-op when its env flag/credentials are absent,
-# so this block is safe in dev, staging, and prod even before every env var
-# is populated. See docs/phase-0-breakdown.md.
+# Phase 0 + 1 + 2 + 3 wiring: observability, db, auth, AI logging, storage,
+# email, render system, Prodigi client (webhook), preview blueprint, cart,
+# checkout, orders, refunds, address validation. Each init_app() is a safe
+# no-op when its env flag/credentials are absent, so this block is production
+# safe even before every env var is populated.
 # ---------------------------------------------------------------------------
 from review_app import cli as _cli
+from review_app.addresses import init_app as _init_addresses
 from review_app.ai import init_app as _init_ai
 from review_app.auth import init_app as _init_auth
 from review_app.auth.routes import auth_bp as _auth_bp
+from review_app.cart import init_app as _init_cart
+from review_app.checkout import init_app as _init_checkout
+from review_app.customers import init_app as _init_customers
 from review_app.db.session import init_app as _init_db
 from review_app.email import init_app as _init_email
 from review_app.observability import init_app as _init_obs
+from review_app.orders import init_app as _init_orders
+from review_app.preview import init_app as _init_preview
+from review_app.prodigi import init_app as _init_prodigi
+from review_app.refunds import init_app as _init_refunds
+from review_app.render import init_app as _init_render
 from review_app.storage import init_app as _init_storage
 
 _init_obs(app)
@@ -103,6 +113,15 @@ app.register_blueprint(_auth_bp)
 _init_ai(app)
 _init_storage(app)
 _init_email(app)
+_init_render(app)
+_init_prodigi(app)
+_init_preview(app)
+_init_customers(app)
+_init_addresses(app)
+_init_cart(app)
+_init_checkout(app)
+_init_orders(app)
+_init_refunds(app)
 _cli.register(app)
 
 # ---------------------------------------------------------------------------

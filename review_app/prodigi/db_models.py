@@ -64,6 +64,12 @@ class ProdigiOrder(Base, UUIDPKMixin, TimestampMixin):
     fishingposter_order_id: Mapped[uuid.UUID | None] = mapped_column(
         _uuid_col(), nullable=True, index=True
     )
+    # FK to orders(id) added in Phase 3 migration 0011_orders. Nullable so that
+    # legacy ProdigiOrder rows (created before Phase 3) and free-standing test
+    # orders without a parent can still exist.
+    order_id: Mapped[uuid.UUID | None] = mapped_column(
+        _uuid_col(), ForeignKey("orders.id", ondelete="RESTRICT"), nullable=True, index=True
+    )
     prodigi_order_id: Mapped[str | None] = mapped_column(Text, nullable=True)
     idempotency_key: Mapped[str] = mapped_column(Text, nullable=False)
     status_stage: Mapped[str | None] = mapped_column(Text, nullable=True)
