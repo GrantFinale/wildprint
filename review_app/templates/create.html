@@ -341,6 +341,11 @@
         </div>
         <img id="cv3-canvas-frame-overlay" class="cv3-canvas-frame-overlay" src="/static/frame_overlays/walnut.png" alt="">
       </div>
+      <!-- Free-tier framed preview: shown INSTEAD of the live editor for free
+           users. Server-composited (frame + lock overlay + watermark) — see
+           /api/render-framed-preview. Hidden by default; the JS unhides it
+           after the first /api/render-framed-preview call returns. -->
+      <img id="cv3-framed-preview" alt="Framed preview" style="display:none;position:absolute;inset:0;margin:auto;max-width:100%;max-height:100%;object-fit:contain;background:#fff;border-radius:4px;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
     </div>
     <div class="cv3-canvas-status">
       <span id="cv3-status-msg" class="subtle">Drag animals to reposition. Click the title to edit it.</span>
@@ -811,11 +816,57 @@
         });
         state.lastRenderTime = new Date();
         drawCanvas();
+        // Free tier: also fetch the server-composited framed+locked+watermarked
+        // preview and overlay it on top of the live editor. Paid users keep
+        // the editable canvas.
+        if (!state.unlocked) {
+          fetchFramedPreview();
+        } else {
+          hideFramedPreview();
+        }
       })
       .catch(function(err) {
         showOverlay(false);
         setStatus('Layout failed: ' + err.message);
       });
+  }
+
+  // ---- Free-tier framed preview ----
+  function hideFramedPreview() {
+    const el = $('cv3-framed-preview');
+    if (el) { el.style.display = 'none'; el.removeAttribute('src'); }
+  }
+  function fetchFramedPreview() {
+    if (!state.selectedSpecies || state.selectedSpecies.length === 0) {
+      hideFramedPreview();
+      return;
+    }
+    fetch('/api/render-framed-preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        species_slugs: state.selectedSpecies.map(function(s) { return s.slug; }),
+        style: state.style,
+        title: state.title || (state.waterName || 'this place'),
+        subtitle: state.subtitle,
+        background: state.bgColor,
+        orientation: state.orientation,
+        finish: 'brown',
+        free_count: 3,
+      }),
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data && data.poster_url) {
+          const el = $('cv3-framed-preview');
+          if (el) {
+            // Cache-bust each render so the browser doesn't show a stale frame.
+            el.src = data.poster_url + '?t=' + Date.now();
+            el.style.display = 'block';
+          }
+        }
+      })
+      .catch(function() { /* best-effort overlay; failure leaves the editor visible */ });
   }
 
   // ---------------- Canvas drawing (live editor) ----------------
@@ -1517,6 +1568,8 @@
       if (cta) cta.style.display = 'none';
       if (mc) mc.style.display = 'none';
       if (wm) wm.style.display = 'none';
+      // Paid users get the live drag-and-drop editor — drop the framed preview.
+      hideFramedPreview();
     } else {
       if (cta) cta.style.display = '';
       if (mc) mc.style.display = '';

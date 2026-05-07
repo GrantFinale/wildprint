@@ -2323,6 +2323,146 @@ def api_generate_poster():
     })
 
 
+@app.route("/api/render-framed-preview", methods=["POST"])
+@rate_limit(20)
+def api_render_framed_preview():
+    """Render a free-tier preview: poster + species locks + Prodigi frame + watermark.
+
+    Pipeline:
+        layout(spec) -> renderer.render -> apply_species_locks(free_count=3)
+        -> frame_wrap(finish='brown') -> apply_watermark -> JPEG on disk
+
+    Free tier always — paid users skip the locks but still get the frame.
+    The output URL is shaped like the bare-poster path so the /create page
+    can drop it in without any other plumbing changes.
+    """
+    from PIL import Image as _PILImage
+
+    from review_app.render.frame_compositor import DEFAULT_FINISH, frame_wrap
+    from review_app.render.lock_overlay import apply_species_locks
+    from review_app.render.watermark import apply_watermark
+
+    data = request.get_json(force=True) or {}
+    species_slugs = data.get("species_slugs") or []
+    style_slug = data.get("style", "scientific")
+    title = data.get("title", "Wildlife Poster")
+    subtitle = data.get("subtitle") or None
+    background = data.get("background", "#FFFFFF")
+    orientation = (data.get("orientation") or "portrait").lower()
+    if orientation not in ("portrait", "landscape"):
+        orientation = "portrait"
+    finish = (data.get("finish") or DEFAULT_FINISH).lower()
+    free_count = int(data.get("free_count", 3))
+    if free_count < 0:
+        free_count = 0
+
+    # Server is the source of truth for unlock state — same pattern as
+    # /api/render-custom.
+    session_email = session.get("email") or ""
+    is_unlocked = bool(session.get("unlocked")) or _is_paid(session_email)
+
+    if not species_slugs:
+        return jsonify({"error": "No species selected"}), 400
+
+    # Build SpeciesRef list (mirrors the body of /api/generate-poster).
+    all_species = load_species()
+    species_by_slug = {sp["slug"]: sp for sp in all_species}
+    species_refs = []
+    for slug in species_slugs:
+        rec = species_by_slug.get(slug)
+        if rec is None:
+            continue
+        species_refs.append(
+            SpeciesRef(
+                slug=rec["slug"],
+                common_name=rec["common_name"],
+                scientific_name=rec.get("scientific_name", ""),
+                category=rec.get("category", ""),
+                relative_scale_index=float(rec.get("relative_scale_index", 1.0) or 1.0),
+                habitat_tags=list(rec.get("habitat_tags", [])),
+            )
+        )
+    if not species_refs:
+        return jsonify({"error": "No valid species found"}), 400
+
+    if orientation == "portrait":
+        canvas_w_default, canvas_h_default = 3300, 5100
+    else:
+        canvas_w_default, canvas_h_default = 5100, 3300
+
+    loader = FileSystemMasterImageLoader(masters_dir=MASTER_DIR)
+    present_refs = [ref for ref in species_refs if loader.exists(ref.slug, style_slug)]
+    if not present_refs:
+        return jsonify({"error": "No master images found for the selected species and style"}), 400
+
+    spec = PosterSpec(
+        title=title,
+        subtitle=subtitle,
+        style_slug=style_slug,
+        species_slugs=[ref.slug for ref in present_refs],
+        layout_style="hero",
+        canvas_width=canvas_w_default,
+        canvas_height=canvas_h_default,
+        background_color=background,
+        show_labels=True,
+    )
+
+    engine = select_layout_engine(present_refs, spec)
+    result = engine.layout(spec, present_refs, loader)
+    if not result.placements:
+        return jsonify({"error": "Layout produced zero placements"}), 500
+
+    renderer = EditorialMultiRenderer()
+    poster_id = f"framed_{uuid.uuid4().hex}"
+    posters_dir = Path(PROJECT_ROOT) / "output" / "posters"
+    posters_dir.mkdir(parents=True, exist_ok=True)
+    raw_path = posters_dir / f"{poster_id}_raw.png"
+    out_path = posters_dir / f"{poster_id}.jpg"
+
+    try:
+        renderer.render(result, raw_path)
+    except Exception as exc:
+        return jsonify({"error": f"Render failed: {exc}"}), 500
+
+    try:
+        with _PILImage.open(raw_path) as raw_img:
+            poster = raw_img.convert("RGBA").copy()
+
+        # Free tier: lock species 4+. Paid tier: skip the lock overlay.
+        if not is_unlocked:
+            poster = apply_species_locks(poster, result, free_count=free_count)
+
+        framed = frame_wrap(poster, finish=finish)
+
+        # Free tier: watermark. Paid tier: clean preview.
+        if not is_unlocked:
+            framed = apply_watermark(framed)
+
+        framed.convert("RGB").save(out_path, "JPEG", quality=85)
+    except FileNotFoundError as exc:
+        return jsonify({"error": f"Frame asset missing: {exc}"}), 500
+    except Exception as exc:
+        return jsonify({"error": f"Composite failed: {exc}"}), 500
+    finally:
+        try:
+            raw_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    poster_url = f"/image/output/posters/{poster_id}.jpg"
+    return jsonify({
+        "poster_url": poster_url,
+        "filename": f"{poster_id}.jpg",
+        "is_unlocked": is_unlocked,
+        "free_count": 0 if is_unlocked else free_count,
+        "finish": finish,
+        "canvas_width": spec.canvas_width,
+        "canvas_height": spec.canvas_height,
+        "title": title,
+        "subtitle": subtitle or "",
+    })
+
+
 @app.route("/api/render-custom", methods=["POST"])
 @rate_limit(20)
 def api_render_custom():
