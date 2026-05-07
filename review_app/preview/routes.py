@@ -220,7 +220,7 @@ def _lookup_tier2_preview_url(spec_hash: str) -> str | None:
 # ---------------------------------------------------------------------------
 
 
-def _render_configurator(poster_preview_url: str) -> str:
+def _render_configurator(poster_preview_url: str, render_spec_id: str = "") -> str:
     return render_template(
         "preview/configurator.html",
         poster_preview_url=poster_preview_url,
@@ -230,7 +230,27 @@ def _render_configurator(poster_preview_url: str) -> str:
         default_size=DEFAULT_SIZE,
         default_finish=DEFAULT_FINISH,
         frame_data_url="/preview/data/frame_skus.json",
+        # Phase 3b — surfaced to the Add to Cart wiring (cart-add.js).
+        render_spec_id=render_spec_id,
     )
+
+
+def _lookup_render_spec_id(spec_hash: str) -> str:
+    """Return the UUID of the render_spec row for ``spec_hash``, or ''."""
+    try:
+        from sqlalchemy import select
+
+        from review_app.db import get_session
+        from review_app.render.db_models import RenderSpecRow
+
+        with get_session() as session:
+            stmt = select(RenderSpecRow.id).where(
+                RenderSpecRow.spec_hash == spec_hash
+            )
+            row_id = session.execute(stmt).scalar_one_or_none()
+            return str(row_id) if row_id is not None else ""
+    except Exception:
+        return ""
 
 
 @preview_bp.route("/_demo")
@@ -254,7 +274,8 @@ def configurator(spec_hash: str) -> Any:
     if url is None:
         abort(404)
 
-    return _render_configurator(url)
+    render_spec_id = _lookup_render_spec_id(spec_hash)
+    return _render_configurator(url, render_spec_id=render_spec_id)
 
 
 @preview_bp.route("/_health")

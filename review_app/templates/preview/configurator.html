@@ -85,17 +85,25 @@
     <div class="control-group">
       <button
         type="button"
+        id="add-to-cart-btn"
         class="btn-primary btn-cart"
-        disabled
-        aria-disabled="true"
-        title="Coming soon — Phase 3 wires checkout"
+        data-render-spec-id="{{ render_spec_id|default('') }}"
+        data-cart-add-url="/api/cart/add"
+        data-cart-page-url="/cart"
       >
         Add to Cart
-        <small>(Coming soon — Phase 3 wires checkout)</small>
       </button>
+      <p
+        id="add-to-cart-feedback"
+        class="cart-add-feedback"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></p>
     </div>
   </form>
 </div>
 
 <script type="module" src="{{ url_for('static', filename='js/preview/configurator.js') }}"></script>
+<script src="{{ url_for('static', filename='js/preview/cart-add.js') }}"></script>
 {% endblock %}
