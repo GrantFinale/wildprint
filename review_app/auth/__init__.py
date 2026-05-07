@@ -56,9 +56,40 @@ def init_app(app: Flask) -> None:
     blueprint — that's the wiring pass's responsibility (so it can choose the
     URL prefix). Does NOT enforce auth — `requires_role` honors the
     ADMIN_AUTH_ENABLED env flag and stays a passthrough until cutover.
+
+    CSRF policy: form-based admin/account flows ARE protected. The legacy
+    customer-facing JSON API at ``/api/*`` and the webhook receivers
+    (``/webhook/*``) are exempt — they're cross-origin or service-to-service
+    calls authenticated by other means (Stripe/Prodigi signature, session
+    cookie + same-origin policy, custom auth tokens). Walks the URL map and
+    calls ``csrf.exempt`` on each matching view function once it's been
+    registered.
     """
     login_manager.init_app(app)
     csrf.init_app(app)
+
+    # Defer the URL-map walk until the first request so all blueprints have
+    # registered their routes. Idempotent — once exempted, csrf.exempt is a
+    # no-op on the already-marked view function.
+    @app.before_request
+    def _exempt_api_and_webhooks_once() -> None:
+        if getattr(app, "_wp_csrf_exemptions_applied", False):
+            return
+        app._wp_csrf_exemptions_applied = True  # type: ignore[attr-defined]
+        seen: set[str] = set()
+        for rule in app.url_map.iter_rules():
+            path = str(rule)
+            if not (path.startswith("/api/") or path.startswith("/webhook/")):
+                continue
+            endpoint = rule.endpoint
+            if endpoint in seen:
+                continue
+            seen.add(endpoint)
+            view_func = app.view_functions.get(endpoint)
+            if view_func is not None:
+                csrf.exempt(view_func)
+        if seen:
+            app.logger.info("csrf: exempted %d /api+/webhook view functions", len(seen))
 
     if not _admin_auth_enabled():
         # Loud one-time warning so it's obvious in logs that protected
