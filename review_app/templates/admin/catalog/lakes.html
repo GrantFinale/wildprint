@@ -35,7 +35,11 @@
     </table>
     </div>
   {% else %}
-    <p class="admin-empty">No lakes match.</p>
+    <div class="wp-empty">
+      <div class="wp-empty__icon" aria-hidden="true">&#9737;</div>
+      <p class="wp-empty__title">No lakes match</p>
+      <p class="wp-empty__body">Try clearing the state filter or broadening your search.</p>
+    </div>
   {% endif %}
 </section>
 {% endblock %}

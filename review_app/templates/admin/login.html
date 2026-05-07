@@ -2,76 +2,113 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Admin Login — wildprint</title>
+    <title>Admin Login &mdash; fishingposter.com</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}">
     <style>
-        /* Minimal functional styling. Phase 4b owns the admin shell polish. */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: #f5f5f5;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            margin: 0;
-            color: #222;
+            background: var(--wp-bone);
+            color: var(--wp-charcoal);
+            padding: var(--wp-space-6);
         }
         .login-card {
-            background: #fff;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            background: var(--wp-white);
+            padding: var(--wp-space-8) var(--wp-space-8);
+            border: 1px solid var(--wp-rule);
+            border-radius: var(--wp-radius);
             width: 100%;
-            max-width: 360px;
+            max-width: 380px;
         }
-        h1 {
-            margin: 0 0 1.5rem;
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-        label {
+        .login-card .brand {
+            font-size: var(--wp-text-lg);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--wp-charcoal);
             display: block;
-            margin-bottom: 0.25rem;
-            font-size: 0.85rem;
-            color: #555;
+            margin-bottom: var(--wp-space-1);
         }
-        input[type="email"],
-        input[type="password"] {
+        .login-card .brand .dot { color: var(--wp-hunter); }
+        .login-card .eyebrow {
+            font-size: var(--wp-text-xs);
+            font-weight: 500;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--wp-hunter);
+            margin-bottom: var(--wp-space-5);
+            display: block;
+        }
+        .login-card h1 {
+            margin: 0 0 var(--wp-space-5);
+            font-size: var(--wp-text-xl);
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        .login-card label {
+            display: block;
+            margin-bottom: var(--wp-space-1);
+            font-size: var(--wp-text-sm);
+            font-weight: 500;
+            color: var(--wp-charcoal);
+        }
+        .login-card input[type="email"],
+        .login-card input[type="password"] {
             width: 100%;
-            padding: 0.5rem;
-            margin-bottom: 1rem;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            padding: 10px var(--wp-space-3);
+            margin-bottom: var(--wp-space-4);
+            border: 1px solid var(--wp-rule-strong);
+            border-radius: var(--wp-radius);
+            font: inherit;
+            font-size: var(--wp-text-sm);
+            color: var(--wp-charcoal);
+            background: var(--wp-white);
             box-sizing: border-box;
-            font-size: 1rem;
+            min-height: 40px;
         }
-        button {
+        .login-card input:focus {
+            outline: none;
+            border-color: var(--wp-charcoal);
+            box-shadow: 0 0 0 1px var(--wp-charcoal);
+        }
+        .login-card button {
             width: 100%;
-            padding: 0.6rem;
-            background: #2563eb;
-            color: #fff;
-            border: 0;
-            border-radius: 4px;
-            font-size: 1rem;
+            padding: 12px;
+            background: var(--wp-hunter);
+            color: var(--wp-white);
+            border: 1px solid var(--wp-hunter);
+            border-radius: var(--wp-radius);
+            font: inherit;
+            font-size: var(--wp-text-base);
+            font-weight: 600;
             cursor: pointer;
+            min-height: 44px;
         }
-        button:hover { background: #1d4ed8; }
-        .error {
-            color: #b91c1c;
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            padding: 0.5rem 0.75rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
+        .login-card button:hover { background: var(--wp-hunter-deep); }
+        .login-card .error {
+            color: var(--wp-status-err);
+            background: rgba(179, 58, 58, 0.05);
+            border: 1px solid var(--wp-status-err);
+            border-left-width: 3px;
+            padding: var(--wp-space-3) var(--wp-space-4);
+            border-radius: var(--wp-radius);
+            margin-bottom: var(--wp-space-4);
+            font-size: var(--wp-text-sm);
         }
     </style>
 </head>
 <body>
-    <form class="login-card" method="POST" action="{{ url_for('auth.login') }}">
-        <h1>Admin sign-in</h1>
+    <form class="login-card" method="POST" action="{{ url_for('auth.login') }}" aria-label="Admin sign-in">
+        <span class="brand">fishingposter<span class="dot">.</span>com</span>
+        <span class="eyebrow">Admin</span>
+        <h1>Sign in</h1>
         {% if error %}
-            <div class="error">{{ error }}</div>
+            <div class="error" role="alert">{{ error }}</div>
         {% endif %}
 
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -80,7 +117,7 @@
         {% endif %}
 
         <label for="email">Email</label>
-        <input type="email" id="email" name="email" required autofocus autocomplete="username">
+        <input type="email" id="email" name="email" required autofocus autocomplete="username" inputmode="email">
 
         <label for="password">Password</label>
         <input type="password" id="password" name="password" required autocomplete="current-password">
