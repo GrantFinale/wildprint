@@ -37,3 +37,9 @@ requests>=2.31
 # Phase 1 — Prodigi v4.0 print API client
 httpx>=0.27
 pydantic>=2.6
+
+# Phase 2 — three-tier render system. scikit-image is used by the regression
+# test (SSIM); it falls back to MAE if unavailable, so this can be removed
+# from the runtime image if size becomes a concern (the test suite skips
+# the SSIM path automatically).
+scikit-image>=0.22
