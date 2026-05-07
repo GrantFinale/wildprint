@@ -1,0 +1,100 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>Background gallery</h1>
+  <p class="admin-page__subtitle">
+    Generated landscape backgrounds for use in posters. Click "Generate" to create a new one via Flux Pro Ultra + Real-ESRGAN 4x.
+  </p>
+</header>
+
+<section class="admin-card">
+  <div class="admin-form-row">
+    <select id="bg-preset" class="admin-input">
+      <option value="">— pick a preset —</option>
+    </select>
+    <input type="text" id="bg-custom" placeholder="Or write a custom prompt…" class="admin-input admin-input--wide">
+    <select id="bg-aspect" class="admin-input">
+      <option value="3:2" selected>3:2 (landscape)</option>
+      <option value="2:3">2:3 (portrait)</option>
+      <option value="16:9">16:9 (wide)</option>
+      <option value="4:5">4:5 (tall)</option>
+    </select>
+    <button id="btn-generate-bg" class="btn btn-primary">Generate</button>
+  </div>
+  <div id="bg-status" class="admin-status"></div>
+  <div id="bg-gallery" class="admin-gallery"></div>
+</section>
+
+{% block scripts_extra %}
+{{ super() }}
+<script>
+async function loadBgPresets() {
+  try {
+    const resp = await fetch('/api/background-presets');
+    const data = await resp.json();
+    const sel = document.getElementById('bg-preset');
+    (data.presets || []).forEach(p => {
+      const o = document.createElement('option');
+      o.value = p; o.textContent = p.replace(/_/g, ' '); sel.appendChild(o);
+    });
+  } catch (e) { console.error(e); }
+}
+
+async function loadBgGallery() {
+  const el = document.getElementById('bg-gallery');
+  try {
+    const resp = await fetch('/api/list-backgrounds');
+    const data = await resp.json();
+    const items = data.backgrounds || [];
+    if (!items.length) {
+      el.innerHTML = '<div class="admin-empty">No backgrounds generated yet.</div>';
+      return;
+    }
+    el.innerHTML = items.map(it => `
+      <div class="admin-gallery__item">
+        <img src="${it.url}" loading="lazy">
+        <div class="admin-gallery__filename">${it.filename}</div>
+        <div class="admin-status">${it.size_mb} MB</div>
+        <button class="btn btn-sm" data-path="${it.path}" onclick="copyBgPath(this)">Copy path</button>
+      </div>`).join('');
+  } catch (e) { console.error(e); }
+}
+
+function copyBgPath(btn) {
+  const p = btn.getAttribute('data-path');
+  navigator.clipboard.writeText(p).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+
+async function generateBackground() {
+  const preset = document.getElementById('bg-preset').value;
+  const custom = document.getElementById('bg-custom').value.trim();
+  const aspect = document.getElementById('bg-aspect').value;
+  const status = document.getElementById('bg-status');
+  const btn = document.getElementById('btn-generate-bg');
+  if (!preset && !custom) { status.textContent = 'Pick a preset or enter a custom prompt.'; return; }
+  btn.disabled = true;
+  status.textContent = 'Generating… (1-3 min for Flux Pro Ultra + 4x upscale).';
+  const body = { aspect_ratio: aspect };
+  if (preset) body.preset = preset;
+  if (custom) body.prompt = custom;
+  try {
+    const resp = await fetch('/api/generate-background', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
+    });
+    const data = await resp.json();
+    if (!resp.ok) status.textContent = 'Error: ' + (data.error || resp.statusText);
+    else { status.textContent = 'Done: ' + data.filename; await loadBgGallery(); }
+  } catch (e) { status.textContent = 'Error: ' + e.message; }
+  finally { btn.disabled = false; }
+}
+
+document.getElementById('btn-generate-bg').addEventListener('click', generateBackground);
+loadBgPresets();
+loadBgGallery();
+</script>
+{% endblock %}
+{% endblock %}

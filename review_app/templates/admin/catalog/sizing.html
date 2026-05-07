@@ -1,0 +1,116 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>Sizing</h1>
+  <p class="admin-page__subtitle">
+    Global size variance + per-species scale overrides.
+  </p>
+</header>
+
+<section class="admin-card">
+  <h2>Global size variance</h2>
+  <p>
+    <strong>1.0</strong> = scales as authored.
+    <strong>0.0</strong> = uniform sizing (every species same size).
+    <strong>2.0</strong> = doubled spread (apex predators larger, small fish smaller).
+  </p>
+  <div class="admin-form-row">
+    <label for="global-variance-slider"><strong>Variance</strong></label>
+    <input type="range" id="global-variance-slider" min="0" max="2" step="0.05" value="1" class="admin-form-row__slider">
+    <input type="number" id="global-variance-num" min="0" max="2" step="0.05" value="1" class="admin-form-row__num">
+    <button type="button" id="btn-save-variance" class="btn btn-primary">Save</button>
+    <span id="variance-status" class="admin-status"></span>
+  </div>
+</section>
+
+<section class="admin-card">
+  <h2>Per-species scale</h2>
+  <p>
+    Each species has an absolute scale weight (range 0.7-1.5). Apex predators 1.5,
+    large 1.2, medium 1.0, small 0.8, tiny 0.7. Tweak per-species below; defaults
+    come from the species catalog.
+  </p>
+  <table class="admin-table" id="sizing-table">
+    <thead>
+      <tr><th>Common name</th><th>Scientific</th><th>Category</th><th>Scale</th></tr>
+    </thead>
+    <tbody id="sizing-tbody"></tbody>
+  </table>
+</section>
+
+{% block scripts_extra %}
+{{ super() }}
+<script>
+async function loadSizingData() {
+  const resp = await fetch('/admin/data');
+  const data = await resp.json();
+  const tbody = document.getElementById('sizing-tbody');
+  tbody.innerHTML = (data.species || []).map(sp => {
+    const sc = (typeof sp.species_scale === 'number') ? sp.species_scale : 1.0;
+    return `<tr>
+      <td><strong>${sp.common_name}</strong></td>
+      <td><em>${sp.scientific_name}</em></td>
+      <td><span class="admin-badge admin-badge--${sp.category}">${sp.category}</span></td>
+      <td>
+        <div class="species-scale-cell" data-slug="${sp.slug}">
+          <input type="number" step="0.05" min="0.7" max="1.5" value="${sc.toFixed(2)}" class="species-scale-input">
+          <button type="button" class="btn btn-sm species-scale-save">Save</button>
+          <span class="species-scale-status admin-status"></span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  const settings = (data && data.settings) || {};
+  const v = (typeof settings.global_size_variance === 'number') ? settings.global_size_variance : 1.0;
+  document.getElementById('global-variance-slider').value = String(v);
+  document.getElementById('global-variance-num').value = v.toFixed(2);
+}
+
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.species-scale-save');
+  if (!btn) return;
+  const cell = btn.closest('.species-scale-cell');
+  const slug = cell.dataset.slug;
+  const input = cell.querySelector('.species-scale-input');
+  const status = cell.querySelector('.species-scale-status');
+  const val = parseFloat(input.value);
+  if (!Number.isFinite(val) || val < 0.7 || val > 1.5) { status.textContent = 'Invalid (0.7-1.5)'; return; }
+  status.textContent = 'Saving…';
+  fetch('/admin/species/' + encodeURIComponent(slug) + '/scale', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({scale: val}),
+  }).then(r => r.json()).then(data => {
+    status.textContent = data.error ? 'Error: ' + data.error : 'Saved';
+    setTimeout(() => { status.textContent = ''; }, 1800);
+  }).catch(err => { status.textContent = 'Error: ' + err.message; });
+});
+
+(function bindGlobalVariance() {
+  const slider = document.getElementById('global-variance-slider');
+  const num = document.getElementById('global-variance-num');
+  const status = document.getElementById('variance-status');
+  const btn = document.getElementById('btn-save-variance');
+  function syncFrom(src) {
+    const v = parseFloat(src.value);
+    if (Number.isFinite(v)) { slider.value = String(v); num.value = v.toFixed(2); }
+  }
+  slider.addEventListener('input', () => syncFrom(slider));
+  num.addEventListener('input', () => syncFrom(num));
+  btn.addEventListener('click', () => {
+    const v = parseFloat(num.value);
+    if (!Number.isFinite(v) || v < 0 || v > 2) { status.textContent = 'Invalid (0-2)'; return; }
+    status.textContent = 'Saving…';
+    fetch('/admin/settings/global_size_variance', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({global_size_variance: v}),
+    }).then(r => r.json()).then(data => {
+      status.textContent = data.error ? 'Error: ' + data.error : 'Saved';
+      setTimeout(() => { status.textContent = ''; }, 1800);
+    }).catch(err => { status.textContent = 'Error: ' + err.message; });
+  });
+})();
+
+loadSizingData();
+</script>
+{% endblock %}
+{% endblock %}

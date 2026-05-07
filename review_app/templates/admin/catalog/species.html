@@ -1,0 +1,220 @@
+{% extends "admin/_base.html" %}
+{% block content %}
+<header class="admin-page__header">
+  <h1>Species catalog</h1>
+  <p class="admin-page__subtitle">
+    Manage the species catalog, track master image coverage, and generate missing assets.
+  </p>
+</header>
+
+<section class="admin-card" id="global-settings-section">
+  <h2>Global Sizing</h2>
+  <p>
+    <strong>Global size variance</strong> re-spreads every species' authored scale around 1.0.
+    <em>1.0</em> = scales as authored. <em>0.0</em> = uniform sizing.
+    <em>2.0</em> = doubled spread between apex predators and small fish.
+  </p>
+  <div class="admin-form-row">
+    <label for="global-variance-slider"><strong>Variance</strong></label>
+    <input type="range" id="global-variance-slider" min="0" max="2" step="0.05" value="1" class="admin-form-row__slider">
+    <input type="number" id="global-variance-num" min="0" max="2" step="0.05" value="1" class="admin-form-row__num">
+    <button type="button" id="btn-save-variance" class="btn btn-primary">Save</button>
+    <span id="variance-status" class="admin-status"></span>
+  </div>
+</section>
+
+<section class="admin-card">
+  <div class="admin-summary" id="admin-summary"></div>
+
+  <div class="admin-filters">
+    <input type="text" id="admin-search" placeholder="Search species…" class="admin-input">
+    <select id="admin-category" class="admin-input">
+      <option value="">All categories</option>
+    </select>
+    <label class="admin-checkbox">
+      <input type="checkbox" id="admin-missing-only"> Missing masters only
+    </label>
+  </div>
+
+  <table class="admin-table" id="species-table">
+    <thead>
+      <tr>
+        <th>Thumb</th>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Regions</th>
+        <th title="Absolute species scale (Task C): the size weight relative to a unit. Range 0.7-1.5.">Scale</th>
+        <th>Scientific</th>
+        <th>Watercolor</th>
+        <th>Engraving</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="species-tbody"></tbody>
+  </table>
+</section>
+
+{# Reuse the legacy script — same JSON endpoints, same DOM contract. #}
+{% block scripts_extra %}
+{{ super() }}
+<script>
+let allSpecies = [];
+let summary = {};
+
+async function loadAdminData() {
+  const resp = await fetch('/admin/data');
+  const data = await resp.json();
+  allSpecies = data.species;
+  summary = data.summary;
+  renderSummary();
+  populateCategoryFilter();
+  renderTable(allSpecies);
+  const settings = (data && data.settings) || {};
+  const v = (typeof settings.global_size_variance === 'number')
+    ? settings.global_size_variance : 1.0;
+  const slider = document.getElementById('global-variance-slider');
+  const num = document.getElementById('global-variance-num');
+  if (slider) slider.value = String(v);
+  if (num) num.value = v.toFixed(2);
+}
+
+function renderSummary() {
+  const el = document.getElementById('admin-summary');
+  const cats = summary.by_category || {};
+  const catCards = Object.entries(cats).map(([cat, count]) =>
+    `<div class="admin-stat-card"><div class="admin-stat-card__label">${cat}</div><div class="admin-stat-card__value">${count}</div></div>`
+  ).join('');
+  el.innerHTML = `
+    <div class="admin-stat-card"><div class="admin-stat-card__label">Total Species</div><div class="admin-stat-card__value">${summary.total}</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-card__label">All Masters</div><div class="admin-stat-card__value admin-ok">${summary.with_all_masters}</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-card__label">Some Masters</div><div class="admin-stat-card__value">${summary.with_some_masters}</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-card__label">Missing Masters</div><div class="admin-stat-card__value admin-bad">${summary.with_no_masters}</div></div>
+    ${catCards}
+  `;
+}
+
+function populateCategoryFilter() {
+  const sel = document.getElementById('admin-category');
+  const cats = summary.by_category || {};
+  for (const [cat, count] of Object.entries(cats)) {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1) + ' (' + count + ')';
+    sel.appendChild(opt);
+  }
+}
+
+function renderTable(species) {
+  const tbody = document.getElementById('species-tbody');
+  if (species.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="admin-empty-cell">No species match the current filters.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = species.map(sp => {
+    const hasSci = sp.has_master.scientific;
+    const hasWc = sp.has_master.watercolor;
+    const hasVe = sp.has_master.vintage_engraving;
+    const thumbSrc = hasSci ? `/thumb/scientific/${sp.slug}` : '';
+    const masterFullSrc = hasSci ? `/image/output/master/scientific/${sp.slug}.png` : '';
+    const thumbHtml = thumbSrc
+      ? `<div class="admin-thumb"><a href="${masterFullSrc}" target="_blank" title="View full resolution"><img src="${thumbSrc}" loading="lazy"></a></div>`
+      : '<div class="admin-thumb-placeholder"></div>';
+    const regions = (sp.geographic_range || []).map(r =>
+      `<span class="admin-badge">${r.replace(/_/g, ' ')}</span>`
+    ).join('');
+    const masterCell = (has) => has
+      ? '<span class="admin-ok">✓</span>'
+      : '<span class="admin-bad">✗</span>';
+    const spScale = (typeof sp.species_scale === 'number') ? sp.species_scale : 1.0;
+    const scaleCell = `
+      <div class="species-scale-cell" data-slug="${sp.slug}">
+        <input type="number" step="0.05" min="0.7" max="1.5" value="${spScale.toFixed(2)}" class="species-scale-input">
+        <button type="button" class="btn btn-sm species-scale-save">Save</button>
+        <span class="species-scale-status admin-status"></span>
+      </div>`;
+    return `<tr>
+      <td>${thumbHtml}</td>
+      <td><strong>${sp.common_name}</strong><br><em class="sci-name">${sp.scientific_name}</em></td>
+      <td><span class="admin-badge admin-badge--${sp.category}">${sp.category}</span></td>
+      <td>${regions}</td>
+      <td>${scaleCell}</td>
+      <td>${masterCell(hasSci)}</td>
+      <td>${masterCell(hasWc)}</td>
+      <td>${masterCell(hasVe)}</td>
+      <td><a href="/console?species=${sp.slug}" target="_blank" class="btn btn-sm">Generate</a></td>
+    </tr>`;
+  }).join('');
+}
+
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.species-scale-save');
+  if (!btn) return;
+  const cell = btn.closest('.species-scale-cell');
+  if (!cell) return;
+  const slug = cell.dataset.slug;
+  const input = cell.querySelector('.species-scale-input');
+  const status = cell.querySelector('.species-scale-status');
+  const val = parseFloat(input.value);
+  if (!Number.isFinite(val) || val < 0.7 || val > 1.5) {
+    status.textContent = 'Invalid (0.7-1.5)';
+    return;
+  }
+  status.textContent = 'Saving…';
+  fetch('/admin/species/' + encodeURIComponent(slug) + '/scale', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({scale: val}),
+  }).then(r => r.json()).then(data => {
+    status.textContent = data.error ? 'Error: ' + data.error : 'Saved';
+    setTimeout(() => { status.textContent = ''; }, 1800);
+  }).catch(err => { status.textContent = 'Error: ' + err.message; });
+});
+
+(function bindGlobalVariance() {
+  const slider = document.getElementById('global-variance-slider');
+  const num = document.getElementById('global-variance-num');
+  const status = document.getElementById('variance-status');
+  const btn = document.getElementById('btn-save-variance');
+  if (!slider || !num || !btn) return;
+  function syncFrom(src) {
+    const v = parseFloat(src.value);
+    if (Number.isFinite(v)) { slider.value = String(v); num.value = v.toFixed(2); }
+  }
+  slider.addEventListener('input', function() { syncFrom(slider); });
+  num.addEventListener('input', function() { syncFrom(num); });
+  btn.addEventListener('click', function() {
+    const v = parseFloat(num.value);
+    if (!Number.isFinite(v) || v < 0 || v > 2) { status.textContent = 'Invalid (0-2)'; return; }
+    status.textContent = 'Saving…';
+    fetch('/admin/settings/global_size_variance', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({global_size_variance: v}),
+    }).then(r => r.json()).then(data => {
+      status.textContent = data.error ? 'Error: ' + data.error : 'Saved';
+      setTimeout(() => { status.textContent = ''; }, 1800);
+    }).catch(err => { status.textContent = 'Error: ' + err.message; });
+  });
+})();
+
+function applyFilters() {
+  const search = (document.getElementById('admin-search').value || '').toLowerCase();
+  const category = document.getElementById('admin-category').value;
+  const missingOnly = document.getElementById('admin-missing-only').checked;
+  let filtered = allSpecies;
+  if (search) filtered = filtered.filter(sp =>
+    sp.common_name.toLowerCase().includes(search) ||
+    sp.scientific_name.toLowerCase().includes(search));
+  if (category) filtered = filtered.filter(sp => sp.category === category);
+  if (missingOnly) filtered = filtered.filter(sp =>
+    !sp.has_master.scientific || !sp.has_master.watercolor || !sp.has_master.vintage_engraving);
+  renderTable(filtered);
+}
+
+document.getElementById('admin-search').addEventListener('input', applyFilters);
+document.getElementById('admin-category').addEventListener('change', applyFilters);
+document.getElementById('admin-missing-only').addEventListener('change', applyFilters);
+
+loadAdminData();
+</script>
+{% endblock %}
+{% endblock %}
