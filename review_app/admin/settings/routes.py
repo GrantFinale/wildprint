@@ -268,17 +268,46 @@ _INTEGRATIONS: tuple[tuple[str, str], ...] = (
 @admin_bp.route("/settings/integrations", methods=["GET"])
 @requires_role("admin", "staff")
 def settings_integrations() -> ResponseReturnValue:
-    """Per-service health dashboard. Cached for 5 minutes."""
-    rows = [
-        # _cached_check labels by env_var so cache survives label changes
-        IntegrationStatus(
-            service=label,
-            healthy=_cached_check(label, env_var).healthy,
-            last_call=_cached_check(label, env_var).last_call,
-            note=_cached_check(label, env_var).note,
+    """Per-service health dashboard. Phase 5a: real upstream probes, cached 5 min."""
+    # Phase 5a — real probes via probes.probe_all(). Falls back to the
+    # Phase 4a env-var check for any service the probe layer doesn't cover.
+    from review_app.admin.settings import probes as _probes
+    from review_app.checkout import tax as _tax
+
+    probe_results = _probes.probe_all()
+
+    rows: list[IntegrationStatus] = []
+    for label, _env_var in _INTEGRATIONS:
+        # Map _INTEGRATIONS labels to the keys probe_all returns.
+        probe_key = {
+            "DO Spaces (thumbs)": "DO Spaces",
+        }.get(label, label)
+        result = probe_results.get(probe_key)
+        if result is None:
+            # Service not in probe layer (OpenAI / Recraft / Replicate) — fall
+            # back to env-var check so the row still renders something useful.
+            fallback = _cached_check(label, _env_var)
+            rows.append(fallback)
+            continue
+        latency_str = (
+            f"{result.latency_ms:.0f} ms" if result.latency_ms is not None else "—"
         )
-        for label, env_var in _INTEGRATIONS
-    ]
+        note = result.note or ("ok" if result.ok else (result.error or "error"))
+        rows.append(
+            IntegrationStatus(
+                service=label,
+                healthy=result.ok,
+                last_call=latency_str,
+                note=note,
+            )
+        )
+
+    # Stripe Tax block — Phase 5a addition.
+    tax_status = {
+        "enabled": _tax.is_enabled(),
+        "recent_errors": _tax.recent_errors(),
+    }
+
     return render_template(
         "admin/settings/integrations.html",
         page_title="Integrations",
@@ -288,6 +317,7 @@ def settings_integrations() -> ResponseReturnValue:
             ("Integrations", None),
         ),
         rows=rows,
+        tax_status=tax_status,
     )
 
 

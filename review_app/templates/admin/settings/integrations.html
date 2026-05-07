@@ -3,16 +3,16 @@
 <header class="admin-page__header">
   <h1>Integrations</h1>
   <p class="admin-page__subtitle">
-    Per-service configuration health. Real upstream pings are deferred to Phase 5
-    (background job writes to <code>health_checks</code> table). This page caches
-    results for 5 minutes.
+    Per-service health, probed live. Each row is the result of an actual outbound
+    call (Stripe Account.retrieve(), Resend /domains, Prodigi /Products, etc.).
+    Results cached in-process for 5 minutes.
   </p>
 </header>
 
 <section class="admin-card">
   <table class="admin-table">
     <thead>
-      <tr><th>Service</th><th>Status</th><th>Note</th><th>Last call</th></tr>
+      <tr><th>Service</th><th>Status</th><th>Note</th><th>Latency</th></tr>
     </thead>
     <tbody>
       {% for r in rows %}
@@ -22,7 +22,7 @@
             {% if r.healthy %}
               <span class="admin-status-dot admin-status-dot--ok" title="healthy"></span> healthy
             {% else %}
-              <span class="admin-status-dot admin-status-dot--err" title="unconfigured"></span> unconfigured
+              <span class="admin-status-dot admin-status-dot--err" title="unhealthy"></span> error
             {% endif %}
           </td>
           <td>{{ r.note }}</td>
@@ -32,4 +32,28 @@
     </tbody>
   </table>
 </section>
+
+{% if tax_status is defined %}
+<section class="admin-card">
+  <h2>Stripe Tax</h2>
+  <p>
+    Status:
+    {% if tax_status.enabled %}
+      <span class="admin-status-dot admin-status-dot--ok"></span> enabled
+    {% else %}
+      <span class="admin-status-dot admin-status-dot--err"></span> disabled (set <code>STRIPE_TAX_ENABLED=true</code>)
+    {% endif %}
+  </p>
+  {% if tax_status.recent_errors %}
+    <h3>Recent errors</h3>
+    <ul>
+      {% for e in tax_status.recent_errors %}
+        <li><code>{{ e.error }}</code></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="admin-card__meta">No recent tax-computation errors.</p>
+  {% endif %}
+</section>
+{% endif %}
 {% endblock %}
