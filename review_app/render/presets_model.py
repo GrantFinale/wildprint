@@ -23,15 +23,13 @@ from sqlalchemy import (
     Integer,
     Numeric,
     SmallInteger,
-    String,
     Text,
+    Uuid,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
 from review_app.db.base import Base
-
-from sqlalchemy import Uuid
 
 _UUID_FK = Uuid(as_uuid=True)
 

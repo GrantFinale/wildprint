@@ -78,9 +78,12 @@ def create(
         datetime.now(UTC) + expires_in if expires_in is not None else None
     )
 
+    # Native sa.Uuid columns expect uuid.UUID objects, not strings — bind processor
+    # calls .hex on the value for SQLite, and Postgres needs the proper type.
+    user_uuid = user.id if isinstance(user.id, uuid.UUID) else uuid.UUID(str(user.id))
     row = UserApiToken(
-        id=str(uuid.uuid4()),
-        user_id=str(user.id),
+        id=uuid.uuid4(),
+        user_id=user_uuid,
         name=name.strip()[:200],
         token_hash=token_hash,
         scopes=json.dumps(list(scopes or [])),
@@ -136,7 +139,8 @@ def revoke(token_id: str, user: User, *, session: Any = None) -> bool:
     The user must own the token; cross-user revocations silently fail.
     """
     def _do(s: Any) -> bool:
-        row = s.get(UserApiToken, str(token_id))
+        token_uuid = token_id if isinstance(token_id, uuid.UUID) else uuid.UUID(str(token_id))
+        row = s.get(UserApiToken, token_uuid)
         if row is None or str(row.user_id) != str(user.id):
             return False
         if row.revoked_at is not None:
