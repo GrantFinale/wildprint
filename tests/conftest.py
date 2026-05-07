@@ -156,6 +156,8 @@ def db_engine() -> Iterator["Engine"]:
         import review_app.notes.models  # noqa: F401
         # Phase 5a — audit_log table.
         import review_app.audit.models  # noqa: F401
+        # Phase 6 polish — DB-backed render presets.
+        import review_app.render.presets_model  # noqa: F401
 
         Base.metadata.create_all(engine)
     except ImportError:

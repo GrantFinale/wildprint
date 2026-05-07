@@ -1,48 +1,89 @@
 {% extends "admin/_base.html" %}
 {% block content %}
+{# TODO Phase 6 polish: design pass — editable render presets form #}
 <header class="admin-page__header">
   <h1>Render presets</h1>
   <p class="admin-page__subtitle">
-    Three-tier render configuration. Read-only in Phase 4a; Phase 5 wires editing.
+    Three-tier render configuration. Edits persist to the
+    <code>render_presets</code> table and bust the 5-minute in-memory cache.
   </p>
 </header>
 
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="admin-flash admin-flash--{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+{% for r in rows %}
 <section class="admin-card">
-  <table class="admin-table">
-    <thead>
-      <tr>
-        <th>Tier</th>
-        <th>Long edge (px)</th>
-        <th>DPI</th>
-        <th>Format</th>
-        <th>Quality</th>
-        <th>Watermark</th>
-        <th>Public</th>
-        <th>Bucket</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in rows %}
-        <tr>
-          <td><strong>{{ r.tier_name }}</strong> <span class="admin-status">tier {{ r.tier }}</span></td>
-          <td>{{ r.long_edge_px }}</td>
-          <td>{{ r.dpi }}</td>
-          <td>{{ r.fmt }}</td>
-          <td>{% if r.fmt == 'JPEG' %}q{{ r.jpeg_quality }}{% else %}—{% endif %}</td>
-          <td>
-            {% if r.watermark %}
-              <span class="admin-badge admin-badge--ok">on</span>
-              <code>{{ r.watermark_text }}</code> @ {{ r.watermark_opacity }}
-            {% else %}
-              <span class="admin-badge">off</span>
-            {% endif %}
-          </td>
-          <td>{% if r.public %}public{% else %}private (signed)
-          {% endif %}</td>
-          <td><code>{{ r.bucket }}</code></td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <h2>{{ r.tier_name }} <span class="admin-status">tier {{ r.tier }}</span></h2>
+  <form method="post"
+        action="{{ url_for('admin.catalog_render_presets_save', tier=r.tier) }}"
+        class="admin-form-stack">
+    <div class="admin-form-grid">
+      <label>Long edge (px)
+        <input type="number" name="long_edge_px" min="100" max="12000"
+               value="{{ r.long_edge_px }}" required class="admin-input">
+      </label>
+      <label>DPI
+        <input type="number" name="dpi" min="72" max="600"
+               value="{{ r.dpi }}" required class="admin-input">
+      </label>
+      <label>Format
+        <select name="format" class="admin-input">
+          {% for opt in ['jpeg', 'png', 'webp'] %}
+            <option value="{{ opt }}" {% if r.fmt == opt %}selected{% endif %}>{{ opt }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>JPEG quality (50-95)
+        <input type="number" name="jpeg_quality" min="50" max="95"
+               value="{{ r.jpeg_quality if r.jpeg_quality is not none else '' }}"
+               placeholder="—"
+               class="admin-input">
+      </label>
+      <label>Bucket env var
+        <input type="text" name="bucket_env_var" value="{{ r.bucket_env }}"
+               required class="admin-input">
+        <small>resolves to <code>{{ r.bucket }}</code></small>
+      </label>
+      <label class="admin-checkbox">
+        <input type="checkbox" name="public_read" value="1"
+               {% if r.public %}checked{% endif %}>
+        public-read ACL
+      </label>
+    </div>
+
+    <fieldset class="admin-fieldset">
+      <legend>Watermark</legend>
+      <label class="admin-checkbox">
+        <input type="checkbox" name="watermark_enabled" value="1"
+               {% if r.watermark %}checked{% endif %}>
+        watermark enabled
+      </label>
+      <div class="admin-form-grid">
+        <label>Text
+          <input type="text" name="watermark_text"
+                 value="{{ r.watermark_text }}" class="admin-input">
+        </label>
+        <label>Opacity (0.0 - 1.0)
+          <input type="number" name="watermark_opacity" step="0.01"
+                 min="0" max="1"
+                 value="{{ '%.2f'|format(r.watermark_opacity) }}"
+                 class="admin-input">
+        </label>
+        <label>Angle (-180 - 180)
+          <input type="number" name="watermark_angle" min="-180" max="180"
+                 value="{{ r.watermark_angle }}" class="admin-input">
+        </label>
+      </div>
+    </fieldset>
+
+    <button type="submit" class="btn btn-primary">Save tier {{ r.tier }}</button>
+  </form>
 </section>
+{% endfor %}
 {% endblock %}

@@ -20,17 +20,19 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass
+from typing import Any
 
-from flask import render_template, request
+from flask import flash, redirect, render_template, request, url_for
 from flask.typing import ResponseReturnValue
 from sqlalchemy import select
 from sqlalchemy.exc import OperationalError, ProgrammingError
 
+from review_app import audit
 from review_app.admin._helpers import crumbs
 from review_app.admin.routes import admin_bp
 from review_app.auth.decorators import requires_role
 from review_app.db import get_session
-from review_app.render.tiers import TIER_CONFIG
+from review_app.render.tiers import TIER_CONFIG, reset_cache as _reset_tier_cache
 
 logger = logging.getLogger(__name__)
 
@@ -278,22 +280,24 @@ def catalog_lakes() -> ResponseReturnValue:
 
 
 # ---------------------------------------------------------------------------
-# Catalog / Render presets — read-only view of TIER_CONFIG
+# Catalog / Render presets — DB-backed editable view (Phase 6)
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class RenderPresetRow:
-    """One row in the render presets table — flattened view of TierConfig."""
+    """One row in the render presets table — flattened view of RenderPreset."""
 
     tier: int
     tier_name: str
     long_edge_px: int
     dpi: int
     fmt: str
-    jpeg_quality: int
+    jpeg_quality: int | None
     watermark: bool
     watermark_text: str
     watermark_opacity: float
+    watermark_angle: int
     public: bool
+    bucket_env: str
     bucket: str
     content_type: str
 
@@ -301,42 +305,80 @@ class RenderPresetRow:
 _TIER_NAMES: dict[int, str] = {1: "Thumbnail", 2: "Preview", 3: "Print"}
 
 
-@admin_bp.route("/catalog/render-presets", methods=["GET"])
-@requires_role("admin")
-def catalog_render_presets() -> ResponseReturnValue:
-    """Read-only display of the three-tier render config.
-
-    Phase 5 wires editing (saved to a settings table); for now the page
-    just shows the locked Phase 2 values from
-    :data:`review_app.render.tiers.TIER_CONFIG`.
-    """
+def _load_preset_rows() -> list[RenderPresetRow]:
+    """Hydrate the three preset rows from the DB, falling back to TIER_CONFIG."""
     rows: list[RenderPresetRow] = []
-    # Watermark text/opacity are app-wide constants; not stored per-tier.
-    # Pull from env so prod can override without code change.
-    watermark_text = os.environ.get("WATERMARK_TEXT", "fishingposter.com")
+
+    db_rows: dict[int, Any] = {}
     try:
-        watermark_opacity = float(os.environ.get("WATERMARK_OPACITY", "0.15"))
-    except ValueError:
-        watermark_opacity = 0.15
+        from review_app.render.presets_model import RenderPreset
+
+        with get_session() as session:
+            try:
+                fetched = session.execute(select(RenderPreset)).scalars().all()
+                db_rows = {int(r.tier): r for r in fetched}
+            except (OperationalError, ProgrammingError):
+                db_rows = {}
+    except ImportError:
+        db_rows = {}
 
     for tier_id, cfg in sorted(TIER_CONFIG.items()):
+        db = db_rows.get(tier_id)
+        if db is not None:
+            fmt_raw = str(db.format)
+            quality = int(db.jpeg_quality) if db.jpeg_quality is not None else None
+            wm_text = str(db.watermark_text or "")
+            wm_opacity = float(db.watermark_opacity) if db.watermark_opacity is not None else 0.0
+            wm_angle = int(db.watermark_angle) if db.watermark_angle is not None else 0
+            bucket_env = str(db.bucket_env_var)
+            long_edge = int(db.long_edge_px)
+            dpi = int(db.dpi)
+            watermark = bool(db.watermark_enabled)
+            public = bool(db.public_read)
+        else:
+            fmt_raw = "jpeg" if cfg.fmt == "JPEG" else "png"
+            quality = cfg.jpeg_quality if cfg.fmt == "JPEG" else None
+            wm_text = os.environ.get("WATERMARK_TEXT", "fishingposter.com") if cfg.watermark else ""
+            try:
+                wm_opacity = float(os.environ.get("WATERMARK_OPACITY", "0.15")) if cfg.watermark else 0.0
+            except ValueError:
+                wm_opacity = 0.15 if cfg.watermark else 0.0
+            wm_angle = 30 if cfg.watermark else 0
+            bucket_env = cfg.bucket_env
+            long_edge = cfg.long_edge_px
+            dpi = cfg.dpi
+            watermark = cfg.watermark
+            public = cfg.public
+
+        # Resolve bucket name through env, falling back to the hardcoded default.
+        bucket_default = TIER_CONFIG[tier_id].default_bucket
+        bucket_name = os.environ.get(bucket_env, bucket_default)
+
         rows.append(
             RenderPresetRow(
                 tier=tier_id,
                 tier_name=_TIER_NAMES.get(tier_id, f"Tier {tier_id}"),
-                long_edge_px=cfg.long_edge_px,
-                dpi=cfg.dpi,
-                fmt=cfg.fmt,
-                jpeg_quality=cfg.jpeg_quality,
-                watermark=cfg.watermark,
-                watermark_text=watermark_text if cfg.watermark else "",
-                watermark_opacity=watermark_opacity if cfg.watermark else 0.0,
-                public=cfg.public,
-                bucket=cfg.bucket(),
-                content_type=cfg.content_type,
+                long_edge_px=long_edge,
+                dpi=dpi,
+                fmt=fmt_raw,
+                jpeg_quality=quality,
+                watermark=watermark,
+                watermark_text=wm_text,
+                watermark_opacity=wm_opacity,
+                watermark_angle=wm_angle,
+                public=public,
+                bucket_env=bucket_env,
+                bucket=bucket_name,
+                content_type=f"image/{fmt_raw}",
             )
         )
+    return rows
 
+
+@admin_bp.route("/catalog/render-presets", methods=["GET"])
+@requires_role("admin")
+def catalog_render_presets() -> ResponseReturnValue:
+    """Editable display of the three-tier render config (Phase 6)."""
     return render_template(
         "admin/catalog/render_presets.html",
         page_title="Render presets",
@@ -345,8 +387,172 @@ def catalog_render_presets() -> ResponseReturnValue:
             ("Catalog", None),
             ("Render presets", None),
         ),
-        rows=rows,
+        rows=_load_preset_rows(),
     )
+
+
+def _validate_preset_form(
+    form: Any,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Validate POSTed render-preset form fields.
+
+    Returns ``(values, None)`` on success or ``(None, error_message)`` on
+    validation failure. Validators mirror the migration's CHECK constraints.
+    """
+    try:
+        long_edge = int(form.get("long_edge_px") or "")
+    except (TypeError, ValueError):
+        return None, "long_edge_px must be an integer."
+    if not (100 <= long_edge <= 12000):
+        return None, "long_edge_px must be between 100 and 12000."
+
+    try:
+        dpi = int(form.get("dpi") or "")
+    except (TypeError, ValueError):
+        return None, "dpi must be an integer."
+    if not (72 <= dpi <= 600):
+        return None, "dpi must be between 72 and 600."
+
+    fmt = str(form.get("format") or "").strip().lower()
+    if fmt not in {"jpeg", "png", "webp"}:
+        return None, "format must be jpeg, png, or webp."
+
+    quality_raw = (form.get("jpeg_quality") or "").strip()
+    quality: int | None
+    if quality_raw == "" or fmt != "jpeg":
+        quality = None
+    else:
+        try:
+            quality = int(quality_raw)
+        except ValueError:
+            return None, "jpeg_quality must be an integer or empty."
+        if not (50 <= quality <= 95):
+            return None, "jpeg_quality must be between 50 and 95."
+
+    watermark_enabled = (form.get("watermark_enabled") or "").lower() in {"1", "true", "on", "yes"}
+    public_read = (form.get("public_read") or "").lower() in {"1", "true", "on", "yes"}
+
+    watermark_text = (form.get("watermark_text") or "").strip() or None
+
+    opacity_raw = (form.get("watermark_opacity") or "").strip()
+    opacity_val: float | None
+    if opacity_raw == "":
+        opacity_val = None
+    else:
+        try:
+            opacity_val = float(opacity_raw)
+        except ValueError:
+            return None, "watermark_opacity must be a decimal between 0 and 1."
+        if not (0.0 <= opacity_val <= 1.0):
+            return None, "watermark_opacity must be between 0.0 and 1.0."
+
+    angle_raw = (form.get("watermark_angle") or "").strip()
+    angle_val: int | None
+    if angle_raw == "":
+        angle_val = None
+    else:
+        try:
+            angle_val = int(angle_raw)
+        except ValueError:
+            return None, "watermark_angle must be an integer."
+        if not (-180 <= angle_val <= 180):
+            return None, "watermark_angle must be between -180 and 180."
+
+    bucket_env_var = (form.get("bucket_env_var") or "").strip()
+    if not bucket_env_var:
+        return None, "bucket_env_var is required."
+
+    return (
+        {
+            "long_edge_px": long_edge,
+            "dpi": dpi,
+            "format": fmt,
+            "jpeg_quality": quality,
+            "watermark_enabled": watermark_enabled,
+            "watermark_text": watermark_text,
+            "watermark_opacity": opacity_val,
+            "watermark_angle": angle_val,
+            "bucket_env_var": bucket_env_var,
+            "public_read": public_read,
+        },
+        None,
+    )
+
+
+@admin_bp.route("/catalog/render-presets/<int:tier>", methods=["POST"])
+@requires_role("admin")
+def catalog_render_presets_save(tier: int) -> ResponseReturnValue:
+    """Save the form for one tier; bust the in-memory cache on success."""
+    if tier not in (1, 2, 3):
+        flash(f"Unknown tier {tier}.", "error")
+        return redirect(url_for("admin.catalog_render_presets"))
+
+    values, err = _validate_preset_form(request.form)
+    if err or values is None:
+        flash(err or "Invalid form.", "error")
+        return redirect(url_for("admin.catalog_render_presets"))
+
+    try:
+        from review_app.render.presets_model import RenderPreset
+    except ImportError:
+        flash("Render presets model unavailable.", "error")
+        return redirect(url_for("admin.catalog_render_presets"))
+
+    user_id_str: str | None = None
+    try:
+        from flask_login import current_user
+
+        if getattr(current_user, "is_authenticated", False):
+            user_id_str = str(current_user.id)
+    except Exception:
+        user_id_str = None
+
+    try:
+        with get_session() as session:
+            row = session.execute(
+                select(RenderPreset).where(RenderPreset.tier == tier)
+            ).scalar_one_or_none()
+            before: dict[str, Any] = {}
+            if row is None:
+                row = RenderPreset(tier=tier, **values, updated_by_user_id=user_id_str)
+                session.add(row)
+            else:
+                before = {
+                    "long_edge_px": row.long_edge_px,
+                    "dpi": row.dpi,
+                    "format": row.format,
+                    "jpeg_quality": row.jpeg_quality,
+                    "watermark_enabled": row.watermark_enabled,
+                    "watermark_text": row.watermark_text,
+                    "watermark_opacity": (
+                        float(row.watermark_opacity)
+                        if row.watermark_opacity is not None
+                        else None
+                    ),
+                    "watermark_angle": row.watermark_angle,
+                    "bucket_env_var": row.bucket_env_var,
+                    "public_read": row.public_read,
+                }
+                for k, v in values.items():
+                    setattr(row, k, v)
+                row.updated_by_user_id = user_id_str
+
+            audit.record(
+                session,
+                action="render_preset.update",
+                target_type="render_preset",
+                target_id=str(tier),
+                before=before,
+                after=values,
+            )
+    except (OperationalError, ProgrammingError) as exc:
+        logger.warning("render_preset save failed: %s", exc)
+        flash("Save failed (DB error).", "error")
+        return redirect(url_for("admin.catalog_render_presets"))
+
+    _reset_tier_cache()
+    flash(f"Tier {tier} ({_TIER_NAMES.get(tier, '')}) updated.", "success")
+    return redirect(url_for("admin.catalog_render_presets"))
 
 
 __all__: list[str] = []

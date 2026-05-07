@@ -46,6 +46,8 @@ from review_app.content import models as _content_models  # noqa: F401, E402
 from review_app.notes import models as _notes_models  # noqa: F401, E402
 # Phase 5a — audit_log table.
 from review_app.audit import models as _audit_models  # noqa: F401, E402
+# Phase 6 polish — DB-backed render presets table.
+from review_app.render import presets_model as _render_presets_model  # noqa: F401, E402
 
 
 config = context.config
