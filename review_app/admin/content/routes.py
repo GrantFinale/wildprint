@@ -48,13 +48,13 @@ EMAIL_TEMPLATE_KINDS: Final[tuple[str, ...]] = (
 
 # Phase 5b: storage moved to DB (review_app.content). These helpers wrap the
 # DB-backed get/set so the route handlers stay readable.
-def _load_templates() -> dict[str, dict[str, str]]:
+def _load_templates(session: "Session | None" = None) -> dict[str, dict[str, str]]:
     from review_app.content import get_block
 
     out: dict[str, dict[str, str]] = {}
     for kind in EMAIL_TEMPLATE_KINDS:
-        subject_block = get_block(f"email.{kind}.subject")
-        body_block = get_block(f"email.{kind}.html")
+        subject_block = get_block(f"email.{kind}.subject", session=session)
+        body_block = get_block(f"email.{kind}.html", session=session)
         out[kind] = {
             "subject": subject_block.body if subject_block else "",
             "body": body_block.body if body_block else "",
@@ -71,12 +71,12 @@ MARKETING_SLOTS: Final[tuple[str, ...]] = (
 )
 
 
-def _load_marketing() -> dict[str, str]:
+def _load_marketing(session: "Session | None" = None) -> dict[str, str]:
     from review_app.content import get_block
 
     out: dict[str, str] = {}
     for slot in MARKETING_SLOTS:
-        block = get_block(slot)
+        block = get_block(slot, session=session)
         out[slot] = block.body if block else ""
     return out
 
@@ -174,7 +174,7 @@ def register(admin_bp: Blueprint) -> None:
                     error = f"unknown action: {action}"
 
             send_counts = _send_counts_by_kind(session)
-            templates = _load_templates()
+            templates = _load_templates(session)
             html = render_template(
                 "admin/content/email_templates.html",
                 kinds=EMAIL_TEMPLATE_KINDS,
@@ -275,7 +275,7 @@ def register(admin_bp: Blueprint) -> None:
                     redirect(url_for("admin.content_marketing")),
                 )
 
-            content = _load_marketing()
+            content = _load_marketing(session)
             return make_response(
                 render_template(
                     "admin/content/marketing.html",
