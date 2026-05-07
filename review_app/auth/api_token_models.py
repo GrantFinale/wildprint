@@ -17,6 +17,7 @@ from sqlalchemy import (
     Index,
     String,
     Text,
+    Uuid,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -30,12 +31,12 @@ class UserApiToken(Base):
     __tablename__ = "user_api_tokens"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        String(length=36),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid7,
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        String(length=36),
+        Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )

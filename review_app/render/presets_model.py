@@ -31,7 +31,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from review_app.db.base import Base
 
-_UUID_FK = String(length=36)
+from sqlalchemy import Uuid
+
+_UUID_FK = Uuid(as_uuid=True)
 
 
 class RenderPreset(Base):
