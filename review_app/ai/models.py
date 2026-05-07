@@ -31,6 +31,13 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from review_app.db.base import Base
 
+# SQLite treats `INTEGER PRIMARY KEY` as a rowid alias (auto-increments);
+# it does NOT do the same for `BIGINT PRIMARY KEY`. Use a dialect variant
+# so Postgres still gets a real BIGINT (BIGSERIAL via the migration) while
+# SQLite tests autoincrement without manual id assignment. Mirrors the
+# pattern in ``review_app.email.outbox``.
+_BigIntPK = BigInteger().with_variant(Integer(), "sqlite")
+
 
 class AIUsageLog(Base):
     """One row per AI provider call (when AI_LOGGING_ENABLED=1)."""
@@ -38,7 +45,7 @@ class AIUsageLog(Base):
     __tablename__ = "ai_usage_log"
 
     id: Mapped[int] = mapped_column(
-        BigInteger,
+        _BigIntPK,
         primary_key=True,
         autoincrement=True,
     )

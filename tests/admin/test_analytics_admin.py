@@ -90,12 +90,11 @@ def test_ai_usage_groups_by_provider(
     """Inserting AI usage rows surfaces them in the by-provider table."""
     from review_app.ai.models import AIUsageLog
 
-    # Explicit ids — SQLite doesn't autoincrement BIGINT PKs the way it
-    # does plain INTEGER PKs (the AIUsageLog model uses BigInteger without
-    # the dialect-variant trick the outbox model uses).
+    # Phase 6: model now uses the ``_BigIntPK`` dialect-variant pattern
+    # (BIGINT on Postgres, INTEGER on SQLite) so the DB autoincrements the
+    # PK without manual ids — same pattern as the outbox model.
     db_session.add(
         AIUsageLog(
-            id=1,
             provider="openai",
             model="gpt-4o-mini",
             endpoint="chat.completions.create",
@@ -106,7 +105,6 @@ def test_ai_usage_groups_by_provider(
     )
     db_session.add(
         AIUsageLog(
-            id=2,
             provider="recraft",
             model="recraft-v3",
             endpoint="images.generate",
