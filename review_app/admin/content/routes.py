@@ -6,9 +6,10 @@ Endpoints registered on ``admin_bp``:
 * ``admin.content_email_log``       — ``GET/POST /admin/content/email-log``
 * ``admin.content_marketing``       — ``GET/POST /admin/content/marketing``
 
-All template/marketing storage is intentionally lightweight for Phase 4b —
-the source of truth lives in module-level dicts (in-memory + writable via
-form). Phase 5 will move these to a ``content_blocks`` DB table.
+Phase 5b: storage moved from in-memory dicts to the ``content_blocks`` DB
+table (see :mod:`review_app.content`). The in-memory dicts below are kept
+as compile-time CONSTANTS only — they enumerate the canonical kind/slot
+sets so the templates can iterate them deterministically.
 """
 from __future__ import annotations
 
@@ -45,29 +46,39 @@ EMAIL_TEMPLATE_KINDS: Final[tuple[str, ...]] = (
     "problem",
 )
 
-# In-memory editable templates. Replaced wholesale on each POST.
-_email_templates: dict[str, dict[str, str]] = {
-    kind: {
-        "subject": f"[wildprint] {kind.replace('_', ' ').title()}",
-        "body": (
-            f"Default {kind} email body — edit me on the admin "
-            f"templates page."
-        ),
-        "last_edited_by": "system",
-    }
-    for kind in EMAIL_TEMPLATE_KINDS
-}
+# Phase 5b: storage moved to DB (review_app.content). These helpers wrap the
+# DB-backed get/set so the route handlers stay readable.
+def _load_templates() -> dict[str, dict[str, str]]:
+    from review_app.content import get_block
 
-# Marketing slot store. Same in-memory pattern.
+    out: dict[str, dict[str, str]] = {}
+    for kind in EMAIL_TEMPLATE_KINDS:
+        subject_block = get_block(f"email.{kind}.subject")
+        body_block = get_block(f"email.{kind}.html")
+        out[kind] = {
+            "subject": subject_block.body if subject_block else "",
+            "body": body_block.body if body_block else "",
+            "last_edited_by": "db",
+        }
+    return out
+
+
+# Marketing slot keys (DB-backed — see review_app.content.MARKETING_SLOTS).
 MARKETING_SLOTS: Final[tuple[str, ...]] = (
     "homepage_hero",
     "about_us",
     "faq",
 )
-_marketing_content: dict[str, str] = {
-    slot: f"Default copy for {slot}. Edit on /admin/content/marketing."
-    for slot in MARKETING_SLOTS
-}
+
+
+def _load_marketing() -> dict[str, str]:
+    from review_app.content import get_block
+
+    out: dict[str, str] = {}
+    for slot in MARKETING_SLOTS:
+        block = get_block(slot)
+        out[slot] = block.body if block else ""
+    return out
 
 
 def _send_counts_by_kind(session: Session) -> dict[str, int]:
@@ -114,13 +125,37 @@ def register(admin_bp: Blueprint) -> None:
                     if kind not in EMAIL_TEMPLATE_KINDS:
                         error = f"unknown kind: {kind}"
                     else:
-                        _email_templates[kind] = {
-                            "subject": (request.form.get("subject") or "").strip(),
-                            "body": (request.form.get("body") or "").strip(),
-                            "last_edited_by": (
-                                request.form.get("editor") or "admin"
-                            ),
-                        }
+                        from review_app import audit
+                        from review_app.content import set_block
+
+                        subj = (request.form.get("subject") or "").strip()
+                        body = (request.form.get("body") or "").strip()
+                        set_block(
+                            session,
+                            key=f"email.{kind}.subject",
+                            slot="email",
+                            title=f"{kind} (subject)",
+                            body=subj,
+                        )
+                        set_block(
+                            session,
+                            key=f"email.{kind}.html",
+                            slot="email",
+                            title=f"{kind} (HTML body)",
+                            body=body,
+                        )
+                        audit.record(
+                            session,
+                            action="content_block_saved",
+                            target_type="content_block",
+                            target_id=f"email.{kind}",
+                            after={"subject_len": len(subj), "body_len": len(body)},
+                        )
+                        _admin_session.close_session_if_owned(session, commit=True)
+                        return cast(
+                            "Response",
+                            redirect(url_for("admin.content_email_templates")),
+                        )
                 elif action == "test_send":
                     kind = request.form.get("kind") or ""
                     recipient = (request.form.get("recipient") or "").strip()
@@ -139,10 +174,11 @@ def register(admin_bp: Blueprint) -> None:
                     error = f"unknown action: {action}"
 
             send_counts = _send_counts_by_kind(session)
+            templates = _load_templates()
             html = render_template(
                 "admin/content/email_templates.html",
                 kinds=EMAIL_TEMPLATE_KINDS,
-                templates=_email_templates,
+                templates=templates,
                 send_counts=send_counts,
                 error=error,
             )
@@ -210,40 +246,64 @@ def register(admin_bp: Blueprint) -> None:
     )
     @requires_role("admin")
     def content_marketing() -> Response:
-        if request.method == "POST":
-            for slot in MARKETING_SLOTS:
-                value = request.form.get(slot)
-                if value is not None:
-                    _marketing_content[slot] = value.strip()
-            return cast(
-                "Response",
-                redirect(url_for("admin.content_marketing")),
-            )
+        session = _admin_session.get_session()
+        try:
+            if request.method == "POST":
+                from review_app import audit
+                from review_app.content import set_block
 
-        return make_response(
-            render_template(
-                "admin/content/marketing.html",
-                slots=MARKETING_SLOTS,
-                content=_marketing_content,
+                for slot in MARKETING_SLOTS:
+                    value = request.form.get(slot)
+                    if value is not None:
+                        set_block(
+                            session,
+                            key=slot,
+                            slot="marketing",
+                            title=slot.replace("_", " ").title(),
+                            body=value.strip(),
+                        )
+                        audit.record(
+                            session,
+                            action="content_block_saved",
+                            target_type="content_block",
+                            target_id=slot,
+                            after={"body_len": len(value.strip())},
+                        )
+                _admin_session.close_session_if_owned(session, commit=True)
+                return cast(
+                    "Response",
+                    redirect(url_for("admin.content_marketing")),
+                )
+
+            content = _load_marketing()
+            return make_response(
+                render_template(
+                    "admin/content/marketing.html",
+                    slots=MARKETING_SLOTS,
+                    content=content,
+                )
             )
-        )
+        finally:
+            _admin_session.close_session_if_owned(session, commit=False)
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 def _enqueue_test_email(session: Session, *, kind: str, recipient: str) -> None:
-    """Enqueue a one-off outbox row for a test send."""
+    """Enqueue a one-off outbox row for a test send (DB-backed templates)."""
+    from review_app.content import get_block
     from review_app.email.outbox import enqueue
 
-    template = _email_templates[kind]
+    subj_block = get_block(f"email.{kind}.subject", session=session)
+    body_block = get_block(f"email.{kind}.html", session=session)
     enqueue(
         session,
         kind=f"email.{kind}",
         to=recipient,
         payload={
-            "subject": template["subject"],
-            "body": template["body"],
+            "subject": subj_block.body if subj_block else f"[wildprint] {kind}",
+            "body": body_block.body if body_block else "",
             "test_send": True,
         },
     )
