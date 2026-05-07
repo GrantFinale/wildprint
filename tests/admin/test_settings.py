@@ -106,14 +106,14 @@ def test_integrations_page_renders(
     assert b"Integrations" in resp.data
 
 
-def test_audit_log_page_shows_phase5_placeholder(
+def test_audit_log_page_renders_for_admin(
     client: FlaskClient, role_setter: Callable[[str | None], None]
 ) -> None:
-    """Audit log page renders the Phase 5 placeholder until the table exists."""
+    """Audit log page renders the real table view (Phase 5a wired the audit_log)."""
     role_setter("admin")
     resp = client.get("/admin/settings/audit")
     assert resp.status_code == 200
-    assert b"Phase 5" in resp.data
+    assert b"Audit" in resp.data
 
 
 def test_my_account_visible_to_all_roles(
