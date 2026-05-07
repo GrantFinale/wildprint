@@ -296,13 +296,18 @@ def compute_tax_for_session(
         api_line_items.append(api_li)
 
     try:
-        # The SDK type stubs for ``stripe.tax.Calculation.create`` are loose.
-        calc = stripe.tax.Calculation.create(  # type: ignore[no-untyped-call,attr-defined]
-            currency=currency,
-            line_items=cast(Any, api_line_items),
-            customer_details=cast(Any, customer_details),
-            **({"customer": customer_id} if customer_id else {}),
-        )
+        # The SDK type stubs for ``stripe.tax.Calculation.create`` are
+        # strict; we want to pass plain dicts. Cast through Any to keep
+        # the call site readable.
+        kwargs: dict[str, Any] = {
+            "currency": currency,
+            "line_items": api_line_items,
+            "customer_details": customer_details,
+        }
+        if customer_id:
+            kwargs["customer"] = customer_id
+        _create = cast(Any, stripe.tax.Calculation).create
+        calc = _create(**kwargs)
     except Exception as exc:
         msg = f"Stripe Tax calculation failed: {type(exc).__name__}: {exc}"
         logger.warning(msg)

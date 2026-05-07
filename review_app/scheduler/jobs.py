@@ -179,7 +179,11 @@ def _emit_sentry(
         with sentry_sdk.push_scope() as scope:
             for k, v in (tags or {}).items():
                 scope.set_tag(k, v)
-            sentry_sdk.capture_message(msg, level=level)
+            # sentry_sdk's capture_message signature is overloaded with a
+            # Literal; cast through Any for typed callers.
+            from typing import Any, cast
+
+            cast(Any, sentry_sdk.capture_message)(msg, level=level)
     except Exception:  # pragma: no cover - never let monitor jobs crash
         pass
 

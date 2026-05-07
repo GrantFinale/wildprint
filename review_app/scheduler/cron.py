@@ -65,7 +65,7 @@ JOB_CATALOG: Final[dict[str, str]] = {
 # ---------------------------------------------------------------------------
 # Setup
 # ---------------------------------------------------------------------------
-def setup_cron_jobs(scheduler: "Scheduler | None" = None) -> dict[str, Any]:
+def setup_cron_jobs(scheduler: Scheduler | None = None) -> dict[str, Any]:
     """Register every recurring job with the scheduler.
 
     Idempotent: if a job with the same id is already scheduled it is
@@ -92,9 +92,8 @@ def setup_cron_jobs(scheduler: "Scheduler | None" = None) -> dict[str, Any]:
     # Late imports — keep this module light so importing it from the admin
     # shell (e.g. for the "fire now" view) doesn't drag in the queue/render
     # stack unless we actually call ``setup_cron_jobs``.
-    from review_app.queue.jobs import drain_outbox_job
     from review_app.prodigi.quote_refresh import refresh_all_skus_job
-
+    from review_app.queue.jobs import drain_outbox_job
     from review_app.scheduler.jobs import (
         cleanup_old_render_outputs,
         monitor_dead_outbox,

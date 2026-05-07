@@ -136,6 +136,16 @@ _init_admin(app)
 _init_account(app)
 _init_content(app)
 _init_notes(app)
+# Phase 5a — audit log middleware + Flask-Limiter rate limiting.
+# Each is a safe no-op when its dependency (DB / Redis) is missing. Wire
+# AFTER the admin/account blueprints so admin POSTs land in the
+# auto-capture path; wire BEFORE _cli.register so limiter init isn't
+# overshadowed by CLI command registration.
+from review_app.audit import init_app as _init_audit  # noqa: E402
+from review_app.limits import init_app as _init_limits  # noqa: E402
+
+_init_audit(app)
+_init_limits(app)
 _cli.register(app)
 
 # ---------------------------------------------------------------------------

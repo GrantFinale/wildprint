@@ -39,6 +39,13 @@ from review_app.orders import models as _orders_models  # noqa: F401, E402
 from review_app.refunds import models as _refunds_models  # noqa: F401, E402
 # Phase 3b — Stripe webhook dedup table.
 from review_app.checkout import stripe_events as _stripe_events  # noqa: F401, E402
+# Phase 5b — customer accounts, reprints, content blocks, notes.
+from review_app.account import models as _account_models  # noqa: F401, E402
+from review_app.refunds import reprints_models as _reprints_models  # noqa: F401, E402
+from review_app.content import models as _content_models  # noqa: F401, E402
+from review_app.notes import models as _notes_models  # noqa: F401, E402
+# Phase 5a — audit_log table.
+from review_app.audit import models as _audit_models  # noqa: F401, E402
 
 
 config = context.config

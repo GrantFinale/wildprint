@@ -26,7 +26,7 @@ import logging
 import signal
 import sys
 from types import FrameType
-from typing import Any, Optional
+from typing import Any
 
 from review_app.scheduler import (
     DEFAULT_SCHEDULER_INTERVAL_SECONDS,
@@ -72,7 +72,7 @@ def main() -> int:
         log.info("scheduler start, jobs=%s", list(registered.keys()))
 
     # Warm shutdown — same pattern as the RQ worker.
-    def _on_signal(signum: int, _frame: Optional[FrameType]) -> None:
+    def _on_signal(signum: int, _frame: FrameType | None) -> None:
         if _structlog_available:
             log.info("scheduler.stop", signum=signum)
         else:

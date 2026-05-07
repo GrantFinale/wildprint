@@ -41,7 +41,7 @@ F = TypeVar("F", bound="Callable[..., Any]")
 # Public API
 # ---------------------------------------------------------------------------
 def record(
-    session: "Session",
+    session: Session,
     *,
     action: str,
     target_type: str | None = None,
@@ -88,7 +88,7 @@ def skip(view: F) -> F:
     Use on the audit log viewer itself + any read-only admin route that
     happens to be POST (rare).
     """
-    setattr(view, "_audit_skip", True)
+    view._audit_skip = True  # type: ignore[attr-defined]
     return view
 
 
@@ -149,7 +149,7 @@ _AUTO_CAPTURE_METHODS: frozenset[str] = frozenset({"POST", "PATCH", "DELETE", "P
 _initialized: bool = False
 
 
-def init_app(app: "Flask") -> None:
+def init_app(app: Flask) -> None:
     """Register the after_request hook that auto-captures admin POST/PATCH/DELETE.
 
     Idempotent — safe to call multiple times across hot reloads.
@@ -159,9 +159,9 @@ def init_app(app: "Flask") -> None:
         return
 
     @app.after_request
-    def _audit_after_request(response: "Response") -> "Response":
+    def _audit_after_request(response: Response) -> Response:
         try:
-            from flask import g, request
+            from flask import request
 
             # Only auto-capture admin state-changing requests.
             if request.method not in _AUTO_CAPTURE_METHODS:
@@ -198,7 +198,7 @@ def init_app(app: "Flask") -> None:
             logger.warning("audit.after_request failed: %s", exc)
         return response
 
-    setattr(app, "_wildprint_audit_attached", True)
+    app._wildprint_audit_attached = True  # type: ignore[attr-defined]
     _initialized = True
 
 

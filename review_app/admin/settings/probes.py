@@ -69,14 +69,14 @@ def reset_cache() -> None:
         _cache.clear()
 
 
-def _cached(name: str, callback: "Any") -> ProbeResult:
+def _cached(name: str, callback: Any) -> ProbeResult:
     now = time.time()
     with _cache_lock:
         existing = _cache.get(name)
         if existing and (now - existing[0]) < _CACHE_TTL_SEC:
             return existing[1]
     # Run the probe outside the lock so concurrent probes don't serialize.
-    result = callback()
+    result: ProbeResult = callback()
     with _cache_lock:
         _cache[name] = (time.time(), result)
     return result
@@ -300,7 +300,7 @@ def probe_stripe() -> ProbeResult:
 # ---------------------------------------------------------------------------
 # Aggregator — runs probes in parallel
 # ---------------------------------------------------------------------------
-PROBES: Final[dict[str, "Any"]] = {
+PROBES: Final[dict[str, Any]] = {
     "Stripe": probe_stripe,
     "Resend": probe_resend,
     "Prodigi": probe_prodigi,

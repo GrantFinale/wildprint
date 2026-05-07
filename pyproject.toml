@@ -126,10 +126,13 @@ ignore_errors = true
 module = [
     "stripe.*",
     "rq.*",
+    "rq_scheduler",
+    "rq_scheduler.*",
     "openai.*",
     "replicate.*",
     "flask_login.*",
     "flask_wtf.*",
+    "flask_limiter.*",
 ]
 ignore_missing_imports = true
 

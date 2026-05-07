@@ -39,10 +39,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-_scheduler_singleton: "Scheduler | None" = None
+_scheduler_singleton: Scheduler | None = None
 
 
-def get_scheduler() -> "Scheduler":
+def get_scheduler() -> Scheduler:
     """Return (and cache) a process-wide :class:`rq_scheduler.Scheduler`.
 
     Uses the same Redis connection as the RQ queue and binds to the
@@ -65,7 +65,7 @@ def reset_for_tests() -> None:
     _scheduler_singleton = None
 
 
-def enqueue_now(func: "Callable[..., Any]", *args: Any, **kwargs: Any) -> "Job":
+def enqueue_now(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Job:
     """Enqueue a one-shot job for immediate execution.
 
     Bypasses the scheduler — goes straight on the default queue. Returns

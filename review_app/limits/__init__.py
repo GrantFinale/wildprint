@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -121,7 +121,10 @@ def _storage_uri() -> str:
     return "memory://"
 
 
-_default_limits_factory: Final[Callable[[], list[str]]] = lambda: [global_limit_string()]
+def _default_limits_factory() -> list[str]:
+    """Return the global default limit list (kept thunk-shaped so we can
+    evaluate env vars at limiter-attach time, not at module import)."""
+    return [global_limit_string()]
 
 
 limiter = Limiter(
@@ -136,12 +139,12 @@ limiter = Limiter(
 # ---------------------------------------------------------------------------
 # Pre-built decorators
 # ---------------------------------------------------------------------------
-def render_limit() -> "Callable[..., Any]":
+def render_limit() -> Callable[..., Any]:
     """Decorator: apply the render limit to a view."""
     return limiter.limit(render_limit_string)
 
 
-def cart_limit() -> "Callable[..., Any]":
+def cart_limit() -> Callable[..., Any]:
     """Decorator: apply the cart limit to a view."""
     return limiter.limit(cart_limit_string)
 
@@ -194,14 +197,19 @@ def is_webhook_request() -> bool:
 _initialized: bool = False
 
 
-def init_app(app: "Flask") -> None:
+def init_app(app: Flask) -> None:
     """Wire the limiter into ``app``. Idempotent."""
     global _initialized
     if _initialized and getattr(app, "_wildprint_limiter_attached", False):
         return
 
     # Apply default global limit at boot time (env vars are now stable).
-    limiter.default_limits = [global_limit_string()]
+    # ``_default_limits`` is the underlying attribute Flask-Limiter reads;
+    # the public setter changed names across versions, so suppress.
+    import contextlib
+
+    with contextlib.suppress(AttributeError, TypeError):
+        limiter.default_limits = [global_limit_string()]  # type: ignore[attr-defined]
     limiter.init_app(app)
 
     # Auto-exempt admin + webhook routes via the request_filter API.
@@ -209,7 +217,7 @@ def init_app(app: "Flask") -> None:
     def _exempt_admin_and_webhooks() -> bool:
         return is_admin_request() or is_webhook_request()
 
-    setattr(app, "_wildprint_limiter_attached", True)
+    app._wildprint_limiter_attached = True  # type: ignore[attr-defined]
     _initialized = True
     logger.info(
         "limits: initialised storage=%s render=%s cart=%s global=%s",

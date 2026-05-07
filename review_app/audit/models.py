@@ -10,12 +10,12 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     DateTime,
     ForeignKey,
     Index,
     Integer,
-    JSON,
     String,
     Text,
     text,
@@ -24,7 +24,6 @@ from sqlalchemy.dialects.postgresql import INET, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from review_app.db.base import Base
-
 
 # Dialect-aware column types — mirror the migration helpers.
 _BIGINT_PK = BigInteger().with_variant(Integer(), "sqlite")
