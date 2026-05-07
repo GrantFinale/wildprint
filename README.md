@@ -2,6 +2,8 @@
 
 A structured pipeline for generating multi-style wildlife illustrations and selecting masters for poster art.
 
+> **Consumer brand:** the customer-facing storefront ships under the **FishingPoster.com** brand (capital F + P). `wildprint` is the internal repo, package, and CLI name; it never appears in user-visible copy.
+
 ## What it does
 
 - Generates multiple variations of each species in multiple illustration styles (scientific, watercolor, vintage engraving, ...) from a single source of truth.
