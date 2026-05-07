@@ -1,0 +1,217 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}
+  {% if order %}Order {{ order.id.hex[:8] }}{% else %}Order not found{% endif %}
+{% endblock %}
+
+{% block content %}
+
+  {% if order_not_found %}
+    <div class="empty-state">
+      <strong>Order not found.</strong>
+      <p>It may have been deleted, or the link is wrong.</p>
+      <a class="btn" href="{{ url_for('admin.orders_list') }}">Back to orders</a>
+    </div>
+
+  {% else %}
+
+    {# ---------- Header ---------- #}
+    <div class="panel" style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <strong>Order {{ order.id.hex[:8] }}</strong>
+        {% set status_class =
+            'badge--ok'   if order.status in ('shipped','delivered') else
+            'badge--warn' if order.status in ('in_production','paid') else
+            'badge--err'  if order.status == 'problem' else
+            'badge--muted' %}
+        <span class="badge {{ status_class }}">{{ order.status }}</span>
+      </div>
+      <div>
+        <a class="btn btn--danger"
+           href="{{ url_for('admin.orders_refunds') }}?order_id={{ order.id }}">
+          Refund
+        </a>
+        <a class="btn"
+           href="{{ url_for('admin.fulfillment_reprints') }}?original_order_id={{ order.id }}">
+          Reprint
+        </a>
+      </div>
+    </div>
+
+    {# ---------- Customer ---------- #}
+    <div class="panel" data-section="customer">
+      <h2>Customer</h2>
+      {% if customer %}
+        <a href="{{ url_for('admin.customers_detail', customer_id=customer.id) }}">
+          {{ customer.email }}
+        </a>
+        {% if customer.name %} — {{ customer.name }}{% endif %}
+      {% else %}
+        <em>No customer attached.</em>
+      {% endif %}
+    </div>
+
+    {# ---------- Line items ---------- #}
+    <div class="panel" data-section="items">
+      <h2>Line items</h2>
+      {% if items %}
+        <table class="fp-table">
+          <thead>
+            <tr>
+              <th>SKU</th><th>Size</th><th>Finish</th><th>Qty</th><th>Unit</th><th>Line total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for it in items %}
+              <tr>
+                <td>{{ it.prodigi_sku_internal }}</td>
+                <td>{{ it.size_inches }}</td>
+                <td>{{ it.finish_display }}</td>
+                <td>{{ it.quantity }}</td>
+                <td>${{ '%.2f'|format(it.unit_price_cents / 100) }}</td>
+                <td>${{ '%.2f'|format(it.line_total_cents / 100) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <em>No line items.</em>
+      {% endif %}
+    </div>
+
+    {# ---------- Payment ---------- #}
+    <div class="panel" data-section="payment">
+      <h2>Payment</h2>
+      <dl style="display:grid;grid-template-columns:max-content 1fr;gap:0.25rem 1rem;font-size:0.9rem;">
+        <dt style="color:var(--fp-muted);">Subtotal</dt>
+        <dd>${{ '%.2f'|format(order.subtotal_cents / 100) }} {{ order.currency }}</dd>
+        <dt style="color:var(--fp-muted);">Shipping</dt>
+        <dd>${{ '%.2f'|format(order.shipping_cents / 100) }}</dd>
+        <dt style="color:var(--fp-muted);">Tax</dt>
+        <dd>${{ '%.2f'|format(order.tax_cents / 100) }}</dd>
+        <dt style="color:var(--fp-muted);"><strong>Total</strong></dt>
+        <dd><strong>${{ '%.2f'|format(order.total_cents / 100) }}</strong></dd>
+        <dt style="color:var(--fp-muted);">Stripe PI</dt>
+        <dd><code>{{ order.stripe_payment_intent_id or '—' }}</code></dd>
+        <dt style="color:var(--fp-muted);">Source</dt>
+        <dd>{{ order.source }}</dd>
+      </dl>
+    </div>
+
+    {# ---------- Prodigi timeline ---------- #}
+    <div class="panel" data-section="prodigi">
+      <h2>Prodigi status timeline</h2>
+      {% if prodigi_order %}
+        <p>
+          Prodigi order: <code>{{ prodigi_order.prodigi_order_id or 'pending' }}</code>
+          — stage <strong>{{ prodigi_order.status_stage or 'unknown' }}</strong>
+        </p>
+        {% if prodigi_order.last_fetched_at %}
+          <p style="color:var(--fp-muted);font-size:0.85rem;">
+            Last refreshed {{ prodigi_order.last_fetched_at.strftime('%Y-%m-%d %H:%M %Z') }}
+          </p>
+        {% endif %}
+        {% if shipments %}
+          <table class="fp-table" style="margin-top:0.5rem;">
+            <thead>
+              <tr><th>Carrier</th><th>Tracking</th><th>Shipped</th><th>Delivered</th></tr>
+            </thead>
+            <tbody>
+              {% for s in shipments %}
+                <tr>
+                  <td>{{ s.carrier_name or '—' }} {{ s.carrier_service or '' }}</td>
+                  <td>
+                    {% if s.tracking_url %}
+                      <a href="{{ s.tracking_url }}" target="_blank" rel="noopener">
+                        {{ s.tracking_number or 'track' }}
+                      </a>
+                    {% else %}
+                      {{ s.tracking_number or '—' }}
+                    {% endif %}
+                  </td>
+                  <td>{{ s.shipped_at.strftime('%Y-%m-%d') if s.shipped_at else '—' }}</td>
+                  <td>{{ s.delivered_at.strftime('%Y-%m-%d') if s.delivered_at else '—' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+        <details style="margin-top:0.5rem;">
+          <summary>Raw event log ({{ callbacks|length }})</summary>
+          {% if callbacks %}
+            <ul style="font-size:0.8rem;font-family:ui-monospace,monospace;">
+              {% for cb in callbacks %}
+                <li>
+                  {{ cb.received_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                  — <strong>{{ cb.event_type }}</strong>
+                  ({{ cb.processed_status }})
+                  {% if cb.error_message %} — {{ cb.error_message }}{% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <em>No callbacks recorded yet.</em>
+          {% endif %}
+        </details>
+      {% else %}
+        <em>No Prodigi order created yet.</em>
+      {% endif %}
+    </div>
+
+    {# ---------- Shipping address ---------- #}
+    <div class="panel" data-section="address">
+      <h2>Shipping address</h2>
+      {% if address %}
+        <address style="font-style:normal;">
+          {{ address.name or order.customer.name or '' }}<br>
+          {{ address.line1 }}{% if address.line2 %} <br>{{ address.line2 }}{% endif %}<br>
+          {{ address.city }}, {{ address.state }} {{ address.zip }}<br>
+          {{ address.country }}
+        </address>
+        <p style="color:var(--fp-muted);font-size:0.8rem;margin-top:0.5rem;">
+          Editable pre-production. Once Prodigi flips to InProgress, address is locked.
+        </p>
+      {% else %}
+        <em>No shipping address attached (digital order?).</em>
+      {% endif %}
+    </div>
+
+    {# ---------- Notes ---------- #}
+    <div class="panel" data-section="notes">
+      <h2>Notes</h2>
+      <em>Notes table not implemented yet (Phase 5).</em>
+    </div>
+
+    {# ---------- Emails sent ---------- #}
+    <div class="panel" data-section="emails">
+      <h2>Emails sent ({{ emails|length }})</h2>
+      {% if emails %}
+        <table class="fp-table">
+          <thead>
+            <tr><th>Sent</th><th>Kind</th><th>Status</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            {% for e in emails %}
+              <tr>
+                <td>{{ e.sent_at.strftime('%Y-%m-%d %H:%M') if e.sent_at else '—' }}</td>
+                <td>{{ e.kind }}</td>
+                <td><span class="badge badge--muted">{{ e.status }}</span></td>
+                <td>
+                  <form method="post"
+                        action="{{ url_for('admin.content_email_log') }}"
+                        style="display:inline;">
+                    <input type="hidden" name="resend_id" value="{{ e.id }}">
+                    <button class="btn" type="submit">Resend</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <em>No emails sent yet.</em>
+      {% endif %}
+    </div>
+
+  {% endif %}
+{% endblock %}

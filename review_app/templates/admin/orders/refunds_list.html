@@ -1,0 +1,66 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}Refunds queue — wildprint admin{% endblock %}
+
+{% block content %}
+
+  <form class="filter-bar" method="get" action="{{ url_for('admin.orders_refunds') }}">
+    <select name="status">
+      <option value="">All statuses</option>
+      {% for s in statuses %}
+        <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <input type="date" name="from" value="{{ filters['from'] }}">
+    <input type="date" name="to" value="{{ filters['to'] }}">
+    <button class="btn" type="submit">Apply</button>
+  </form>
+
+  {% if refunds %}
+    <table class="fp-table">
+      <thead>
+        <tr>
+          <th>Order</th><th>Amount</th><th>Reason</th>
+          <th>Status</th><th>Stripe refund</th><th>Age</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in refunds %}
+          {% set status_class =
+              'badge--ok'    if r.status == 'succeeded' else
+              'badge--warn'  if r.status == 'pending' else
+              'badge--err'   if r.status == 'failed' else
+              'badge--muted' %}
+          <tr>
+            <td>
+              <a href="{{ url_for('admin.orders_detail', order_id=r.order_id) }}">
+                {{ r.order_id.hex[:8] }}
+              </a>
+            </td>
+            <td>${{ '%.2f'|format(r.amount_cents / 100) }}</td>
+            <td>{{ r.reason or '—' }}</td>
+            <td><span class="badge {{ status_class }}">{{ r.status }}</span></td>
+            <td><code>{{ r.stripe_refund_id or '—' }}</code></td>
+            <td>{{ r.created_at.strftime('%Y-%m-%d') if r.created_at else '—' }}</td>
+            <td>
+              {% if r.status == 'pending' %}
+                <a class="btn btn--primary"
+                   href="#process-{{ r.id }}">Process</a>
+              {% elif r.status == 'failed' %}
+                <a class="btn"
+                   href="#retry-{{ r.id }}">Retry</a>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      <strong>No refunds in the queue.</strong>
+    </div>
+  {% endif %}
+
+{% endblock %}

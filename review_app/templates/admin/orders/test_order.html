@@ -1,0 +1,76 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}New test order — wildprint admin{% endblock %}
+
+{% block content %}
+
+  <p style="color:var(--fp-muted);">
+    Creates a sandbox order via the existing checkout pipeline. The order is
+    routed to Prodigi <strong>sandbox</strong>, no Stripe charge happens, and
+    <code>source='admin_test'</code> is stamped on the row so it never shows
+    up in revenue analytics.
+  </p>
+
+  {% if error %}
+    <div class="panel" style="border-color:var(--fp-danger);color:var(--fp-danger);">
+      <strong>Error:</strong> {{ error }}
+    </div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('admin.orders_test') }}" class="panel">
+    <h2>Order details</h2>
+
+    <p>
+      <label>Prodigi SKU<br>
+        <select name="prodigi_sku_internal" required>
+          <option value="">Pick a SKU…</option>
+          {% for sku in skus %}
+            <option value="{{ sku.internal_sku }}"
+                    {% if form.get('prodigi_sku_internal') == sku.internal_sku %}selected{% endif %}>
+              {{ sku.internal_sku }} — {{ sku.size_inches }} {{ sku.finish }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+    </p>
+
+    <p>
+      <label>Render spec ID (optional UUID)<br>
+        <input type="text" name="render_spec_id" placeholder="leave blank to skip"
+               value="{{ form.get('render_spec_id', '') }}">
+      </label>
+    </p>
+
+    <h2>Shipping address</h2>
+    <p>
+      <label>Name<br>
+        <input type="text" name="name" value="{{ form.get('name', 'Test Customer') }}">
+      </label>
+    </p>
+    <p>
+      <label>Line 1<br>
+        <input type="text" name="line1" value="{{ form.get('line1', '1 Test St') }}" required>
+      </label>
+    </p>
+    <p>
+      <label>City<br>
+        <input type="text" name="city" value="{{ form.get('city', 'Testville') }}" required>
+      </label>
+      <label style="margin-left:1rem;">State<br>
+        <input type="text" name="state" maxlength="2"
+               value="{{ form.get('state', 'CA') }}" required>
+      </label>
+      <label style="margin-left:1rem;">ZIP<br>
+        <input type="text" name="zip" value="{{ form.get('zip', '94016') }}" required>
+      </label>
+      <label style="margin-left:1rem;">Country<br>
+        <input type="text" name="country" maxlength="2"
+               value="{{ form.get('country', 'US') }}">
+      </label>
+    </p>
+
+    <button type="submit" class="btn btn--primary">Create test order</button>
+    <a class="btn" href="{{ url_for('admin.orders_list') }}">Cancel</a>
+  </form>
+
+{% endblock %}

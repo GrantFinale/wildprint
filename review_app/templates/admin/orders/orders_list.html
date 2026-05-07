@@ -1,0 +1,105 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}Orders — wildprint admin{% endblock %}
+
+{% block page_actions %}
+  {# Build CSV URL via query string — Jinja's url_for doesn't accept ** unpacks #}
+  {% set csv_qs = 'tab=' ~ tab
+                ~ '&q=' ~ filters.q
+                ~ '&sku=' ~ filters.sku
+                ~ '&from=' ~ filters['from']
+                ~ '&to=' ~ filters['to']
+                ~ ('&problem_only=1' if filters.problem_only else '')
+                ~ '&format=csv' %}
+  <a class="btn" href="{{ url_for('admin.orders_list') }}?{{ csv_qs }}">Export CSV</a>
+  <a class="btn btn--primary"
+     href="{{ url_for('admin.orders_test') }}">New test order</a>
+{% endblock %}
+
+{% block content %}
+
+  <nav class="tabs">
+    {% for slug, label, _statuses in tabs %}
+      <a class="{% if slug == tab %}active{% endif %}"
+         href="{{ url_for('admin.orders_list', tab=slug) }}">
+        {{ label }}
+        <span class="badge badge--muted">{{ tab_counts[slug] }}</span>
+      </a>
+    {% endfor %}
+  </nav>
+
+  <form class="filter-bar" method="get" action="{{ url_for('admin.orders_list') }}">
+    <input type="hidden" name="tab" value="{{ tab }}">
+    <input type="search" name="q" value="{{ filters.q }}"
+           placeholder="customer email or name">
+    <input type="text" name="sku" value="{{ filters.sku }}" placeholder="SKU">
+    <input type="date" name="from" value="{{ filters['from'] }}">
+    <input type="date" name="to" value="{{ filters['to'] }}">
+    <label style="font-size:0.85rem;color:var(--fp-muted);">
+      <input type="checkbox" name="problem_only" value="1"
+             {% if filters.problem_only %}checked{% endif %}>
+      Problem only
+    </label>
+    <button class="btn" type="submit">Apply</button>
+  </form>
+
+  {% if orders %}
+    <table class="fp-table" data-test-id="orders-table">
+      <thead>
+        <tr>
+          <th>Order #</th>
+          <th>Customer</th>
+          <th>SKU summary</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>Age</th>
+          <th>Prodigi #</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+          {% set status_class =
+              'badge--ok'   if o.status in ('shipped','delivered') else
+              'badge--warn' if o.status in ('in_production','paid') else
+              'badge--err'  if o.status == 'problem' else
+              'badge--muted' %}
+          <tr>
+            <td>
+              <a href="{{ url_for('admin.orders_detail', order_id=o.id) }}">
+                {{ o.id.hex[:8] }}
+              </a>
+            </td>
+            <td>{{ customer_emails.get(o.customer_id, '—') }}</td>
+            <td>{{ sku_summary(o.items) or '—' }}</td>
+            <td>${{ '%.2f'|format(o.total_cents / 100) }} {{ o.currency }}</td>
+            <td><span class="badge {{ status_class }}">{{ o.status }}</span></td>
+            <td>{{ o.created_at.strftime('%Y-%m-%d') if o.created_at else '—' }}</td>
+            <td>{{ prodigi_ids.get(o.id, '—') }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if page_count > 1 %}
+      <div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center;">
+        {% if page > 1 %}
+          <a class="btn"
+             href="{{ url_for('admin.orders_list', tab=tab, page=page-1, q=filters.q, sku=filters.sku) }}">Prev</a>
+        {% endif %}
+        <span style="color:var(--fp-muted);">
+          Page {{ page }} of {{ page_count }} — {{ total }} total
+        </span>
+        {% if page < page_count %}
+          <a class="btn"
+             href="{{ url_for('admin.orders_list', tab=tab, page=page+1, q=filters.q, sku=filters.sku) }}">Next</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <strong>No orders yet.</strong>
+      <p>When real or test orders land, they'll show up here.</p>
+    </div>
+  {% endif %}
+
+{% endblock %}
