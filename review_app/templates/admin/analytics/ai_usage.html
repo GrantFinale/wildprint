@@ -3,6 +3,7 @@
 {% block title %}AI usage — wildprint admin{% endblock %}
 
 {% block content %}
+<header class="admin-page__header"><span class="wp-eyebrow">Analytics</span></header>
 
   <form class="filter-bar" method="get" action="{{ url_for('admin.analytics_ai_usage') }}">
     <input type="date" name="from" value="{{ date_from.strftime('%Y-%m-%d') }}">
@@ -36,6 +37,7 @@
   <div class="panel">
     <h2>By provider</h2>
     {% if by_provider %}
+      <div class="admin-table-wrap">
       <table class="fp-table">
         <thead>
           <tr><th>Provider</th><th>Calls</th><th>Cost</th></tr>
@@ -50,6 +52,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     {% else %}
       <em>No AI calls in this window.</em>
     {% endif %}
@@ -58,6 +61,7 @@
   <div class="panel">
     <h2>Daily cost</h2>
     {% if daily %}
+      <div class="admin-table-wrap">
       <table class="fp-table">
         <thead>
           <tr><th>Date</th><th>Per provider</th><th>Total</th></tr>
@@ -77,6 +81,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     {% else %}
       <em>No daily data.</em>
     {% endif %}
@@ -85,6 +90,7 @@
   <div class="panel">
     <h2>Top render specs by cost</h2>
     {% if top_specs %}
+      <div class="admin-table-wrap">
       <table class="fp-table">
         <thead><tr><th>Render spec</th><th>Cost</th></tr></thead>
         <tbody>
@@ -96,6 +102,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     {% else %}
       <em>No render-spec attribution available.</em>
     {% endif %}

@@ -10,6 +10,7 @@
 {% endblock %}
 
 {% block content %}
+<header class="admin-page__header"><span class="wp-eyebrow">Analytics</span></header>
 
   <form class="filter-bar" method="get" action="{{ url_for('admin.analytics_sales') }}">
     <input type="date" name="from" value="{{ date_from.strftime('%Y-%m-%d') }}">
@@ -65,6 +66,7 @@
   <div class="panel">
     <h2>Top SKUs</h2>
     {% if top_skus %}
+      <div class="admin-table-wrap">
       <table class="fp-table">
         <thead>
           <tr><th>SKU</th><th>Units</th><th>Revenue</th></tr>
@@ -79,6 +81,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     {% else %}
       <em>No SKU data.</em>
     {% endif %}
