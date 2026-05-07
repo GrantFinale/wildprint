@@ -1,7 +1,17 @@
 """Orders module — placed orders + their line items.
 
-Phase 3a scaffolding: models only. Order placement, Stripe webhook handling,
-and Prodigi order creation are the parallel agent's scope.
+* Phase 3a (parallel agent): ORM models in :mod:`review_app.orders.models`.
+* Phase 3b (this work):
+    - :mod:`review_app.orders.service` — pure business logic
+      (``place_order_from_cart`` snapshots a cart into an Order +
+      OrderItems, idempotent by stripe_payment_intent_id).
+    - :mod:`review_app.orders.jobs` — RQ-callable
+      ``create_prodigi_order_job(order_id)`` that the outbox drainer
+      invokes after ``checkout.session.completed`` lands.
+
+The customer-facing order pages (``/orders/<id>``, "track my order")
+land in Phase 4. ``init_app`` is a no-op for now — there's no admin
+blueprint yet — but reserves the wiring slot.
 """
 from __future__ import annotations
 
@@ -24,6 +34,7 @@ __all__ = [
 ]
 
 
-def init_app(app: Flask) -> None:
-    """No-op wiring stub. Implementations land in later phases."""
+def init_app(app: "Flask") -> None:
+    """Register order admin/lookup routes. No-op until Phase 4."""
+    _ = app
     return None
