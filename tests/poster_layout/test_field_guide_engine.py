@@ -89,20 +89,28 @@ def test_all_placements_within_canvas_bounds() -> None:
         assert p.y + p.draw_height <= spec.canvas_height
 
 
-def test_pike_dwarfs_bluegill_by_at_least_4x() -> None:
-    """A 2.5-idx pike should render >4× the height of a 0.5-idx bluegill.
+def test_pike_visibly_larger_than_bluegill_under_default_compression() -> None:
+    """A 2.5-idx pike must read clearly larger than a 0.5-idx bluegill.
 
-    The honest-scale floor is 0.4, so the bluegill is clamped to 0.5 (no
-    floor effect). pike/bluegill = 2.5/0.5 = 5x. We assert >4x to leave a
-    safety margin for rounding.
+    Default scale_compression is 0.65 — that maps the 5x raw idx ratio
+    to ~3x rendered, matching the reference fish poster's tighter range
+    (the user wants smaller fish to feel substantial, not insignificant).
+    Setting scale_compression=1.0 restores the prior 4-5x honest range.
     """
     refs = [_ref("northern_pike", 2.5), _ref("bluegill", 0.5)]
     spec = _spec()
+    # Default compression: assert visible hierarchy, not honest 4x.
     result = FieldGuideBandsEngine().layout(spec, refs, _StubLoader())
     by_slug = {p.species_ref.slug: p for p in result.placements}
     pike_h = by_slug["northern_pike"].draw_height
     bluegill_h = by_slug["bluegill"].draw_height
-    assert pike_h > 4 * bluegill_h, f"pike={pike_h} bluegill={bluegill_h}"
+    assert pike_h > 2 * bluegill_h, f"pike={pike_h} bluegill={bluegill_h}"
+    assert pike_h < 4 * bluegill_h, f"compression=0.65 should keep ratio < 4x"
+
+    # Honest scale (compression=1.0) restores the >4x ratio.
+    honest = FieldGuideBandsEngine(scale_compression=1.0).layout(spec, refs, _StubLoader())
+    by_slug2 = {p.species_ref.slug: p for p in honest.placements}
+    assert by_slug2["northern_pike"].draw_height > 4 * by_slug2["bluegill"].draw_height
 
 
 def test_25_species_total_shrink_keeps_inside_body_region() -> None:

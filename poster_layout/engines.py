@@ -2386,6 +2386,12 @@ class FieldGuideBandsEngine(LayoutEngine):
         inter_band_gap_fraction: float = 0.020,
         label_band_fraction: float = 0.030,
         min_idx_floor: float = 0.4,
+        # Compress the relative_scale_index range via power. Pure 1.0 keeps
+        # honest ratios (pike 2.5 vs bluegill 0.5 = 5x). 0.65 maps that to
+        # ~3x — matching the reference fish poster's tighter visual range
+        # where the smallest fish is still substantial. Drop to 1.0 to
+        # restore raw honest scale.
+        scale_compression: float = 0.65,
         target_fish_per_band: int = 2,
         max_fish_per_band: int = 5,
         title_breathing_fraction: float = 0.015,
@@ -2395,7 +2401,7 @@ class FieldGuideBandsEngine(LayoutEngine):
         # Label font size ≈ canvas_h * 0.011, average tracked common name ≈
         # 14 chars * (label_size * 0.65) → ~10% canvas_h ≈ ~7.5% canvas_w
         # at 3:4 aspect. We measure exactly during packing.
-        min_label_pad_fraction: float = 0.025,  # ≈90px on a 3600px canvas — needs to keep adjacent labels visibly separated at the bumped 0.018 label-size
+        min_label_pad_fraction: float = 0.014,  # ≈50px on a 3600px canvas — sized to keep adjacent labels separated at the 0.010 label-size
     ) -> None:
         self.title_band_fraction = title_band_fraction
         self.bottom_margin_fraction = bottom_margin_fraction
@@ -2404,6 +2410,7 @@ class FieldGuideBandsEngine(LayoutEngine):
         self.inter_band_gap_fraction = inter_band_gap_fraction
         self.label_band_fraction = label_band_fraction
         self.min_idx_floor = min_idx_floor
+        self.scale_compression = scale_compression
         self.target_fish_per_band = target_fish_per_band
         self.max_fish_per_band = max_fish_per_band
         self.title_breathing_fraction = title_breathing_fraction
@@ -2456,7 +2463,7 @@ class FieldGuideBandsEngine(LayoutEngine):
         min_label_pad_px = int(round(canvas_w * self.min_label_pad_fraction))
 
         # Estimate tracked-label width using same metrics as the renderer's
-        # _draw_compact_caption_only (font_size = canvas_h * 0.018, tracking
+        # _draw_compact_caption_only (font_size = canvas_h * 0.010, tracking
         # = font_size * 0.18). Per-char advance for uppercase serif ≈ 0.72
         # of font size — empirical (measured against the actual editorial
         # font: SMALLMOUTH BASS at 53px → 0.71, YELLOW PERCH → 0.72). We
@@ -2464,7 +2471,7 @@ class FieldGuideBandsEngine(LayoutEngine):
         # loop to enforce that adjacent labels won't collide horizontally.
         # KEEP IN SYNC with renderer.py:_draw_compact_caption_only's
         # common_size formula — change them together or labels collide.
-        label_font_size = max(34, int(round(canvas_h * 0.018)))
+        label_font_size = max(20, int(round(canvas_h * 0.010)))
         label_tracking = max(2, int(round(label_font_size * 0.18)))
 
         def label_width_for(ref: SpeciesRef) -> int:
@@ -2477,7 +2484,13 @@ class FieldGuideBandsEngine(LayoutEngine):
             ))
 
         # 6. Honest-scale floor on the index.
-        idx_for = lambda ref: max(self.min_idx_floor, ref.relative_scale_index)
+        # Apply scale_compression as a power: compressed_idx = idx**c.
+        # c=1.0 → honest scale; c<1.0 → range narrows (small fish grow
+        # toward median, big fish shrink toward median). The reference
+        # poster reads as ~3:1 range; honest ratios on our species data
+        # would be 5:1, so default c=0.65 hits the sweet spot.
+        _c = max(0.1, min(1.0, self.scale_compression))
+        idx_for = lambda ref: max(self.min_idx_floor, ref.relative_scale_index) ** _c
 
         # Pick a reference index for sizing. The hero target is COUNT-AWARE:
         # more species → smaller hero so everyone fits without dropping

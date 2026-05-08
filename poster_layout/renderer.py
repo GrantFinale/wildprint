@@ -2106,10 +2106,11 @@ class EditorialMultiRenderer(PosterRenderer):
 
         if _label_kind == "tracked_common_only":
             # Tracked uppercase common-name caption centered under each
-            # fish — the field-guide reference look. Bumped to 0.018 (was
-            # 0.011) so labels read at viewing distance — the previous
-            # size was sub-legible.
-            common_size = max(34, int(round(spec.canvas_height * 0.018)))
+            # fish — the field-guide reference look. Tuned to 0.010 of
+            # canvas height (~48px on the 4800 print) to match the
+            # reference poster's tiny tracked-caps aesthetic. Higher
+            # values felt shouty; lower values became sub-legible.
+            common_size = max(20, int(round(spec.canvas_height * 0.010)))
             label_font = _load_caption_font(self.font_candidates, common_size)
             _draw_compact_caption_only(
                 draw=draw,
