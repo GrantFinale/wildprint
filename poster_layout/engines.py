@@ -2515,8 +2515,14 @@ class FieldGuideBandsEngine(LayoutEngine):
         cur_band_slot_w = 0.0  # sum of max(fish_w, label_w) per item
         for ref, master in pairs_sorted:
             cand_w = draw_w_for(ref)
-            src_w = max(1, master.width_px)
-            src_h = max(1, master.height_px)
+            # Use alpha-bbox dimensions (the tight fish silhouette) rather
+            # than the master canvas dimensions. Without this, every fish
+            # gets sized as if it were the master's 1.5:1 box — pike (true
+            # 3.4:1) renders short with huge transparent vertical padding,
+            # making "10 fish on a 4:5 canvas" look like "tiny fish floating
+            # in a sea of whitespace". Bug B fix.
+            src_w = max(1, master.bbox_width_px)
+            src_h = max(1, master.bbox_height_px)
             cand_h = cand_w * src_h / src_w
             label_w = label_width_for(ref)
             # Each item's horizontal "slot" must be at least as wide as
@@ -2610,6 +2616,58 @@ class FieldGuideBandsEngine(LayoutEngine):
 
         total_h, band_heights = _stack_h(bands)
 
+        # 7b-pre. Total-GROW pass: with alpha-bbox aspect (Bug B), fish are
+        # MUCH shorter than they used to be (master canvas was 1.5:1, real
+        # fish are 1.6–3.4:1) so the natural stack is now far shorter than
+        # body_h. Grow fish uniformly until either:
+        #   (a) the stack height matches body_h, or
+        #   (b) any band's slot width hits 85% of usable_w (cosmetic ceiling
+        #       so fish don't crash into the side margins).
+        # Then absorb any remaining vertical slack into inter-band gaps so
+        # the stack visually centers in the body rather than bunching up.
+        # This keeps honest-scale relations intact while filling the body.
+        if total_h < body_h * 0.95 and bands:
+            scalable_h = sum(band_heights) + label_reserve_px * len(bands)
+            constant = inter_band_px * max(0, len(bands) - 1)
+            available = max(1, body_h - constant)
+            if scalable_h > 0:
+                grow_height = available / scalable_h
+            else:
+                grow_height = 1.0
+            # Width ceiling: NO band's combined slot width may exceed 85%
+            # of usable_w after grow (else fish crash into side margins).
+            # Check every band, not just the hero — body bands of 3-4 small
+            # fish can collectively be wider than the hero.
+            max_band_slot = 0.0
+            for band in bands:
+                slot = sum(max(it[2], float(it[4])) for it in band)
+                if len(band) > 1:
+                    slot += min_label_pad_px * (len(band) - 1)
+                max_band_slot = max(max_band_slot, slot)
+            if max_band_slot > 0:
+                grow_width = (usable_w * 0.85) / max_band_slot
+            else:
+                grow_width = grow_height
+            grow = min(grow_height, grow_width)
+            if grow > 1.0:
+                # Apply uniform grow factor by inflating unit_w and
+                # recomputing all per-fish dims. This rebuilds the
+                # band_heights since cand_h scales linearly.
+                unit_w *= grow
+                # Rebuild bands' tuples with grown widths/heights.
+                new_bands: list[
+                    list[tuple[SpeciesRef, MasterImage, float, float, int]]
+                ] = []
+                for band in bands:
+                    new_band = []
+                    for (ref, master, cand_w, cand_h, label_w) in band:
+                        new_band.append(
+                            (ref, master, cand_w * grow, cand_h * grow, label_w)
+                        )
+                    new_bands.append(new_band)
+                bands = new_bands
+                total_h, band_heights = _stack_h(bands)
+
         # 7b. Total-shrink pass: if STILL overflowing, scale uniformly.
         # NEVER drop species — the customer selected them all, every one
         # must appear. The hero target is already count-aware (see step 6),
@@ -2691,6 +2749,25 @@ class FieldGuideBandsEngine(LayoutEngine):
         else:
             body_shrink_factor = 1.0
 
+        # 7c. Absorb leftover vertical slack into inter-band gaps so bands
+        # are evenly distributed in the body region rather than bunched at
+        # the top with empty space below. This is a pure cosmetic adjustment
+        # — fish sizes don't change, just the gap between rows. Triggered
+        # when the natural stack (after grow + shrink) is shorter than the
+        # body height by more than 5%.
+        used_h = (
+            sum(scaled_band_heights)
+            + scaled_label_reserve * len(bands)
+            + inter_band_px * max(0, len(bands) - 1)
+        )
+        slack = body_h - used_h
+        # Distribute as additional gap between bands (not above hero, not
+        # below last band — that would just push the whole stack up/down).
+        gap_count = max(1, len(bands) - 1)
+        if slack > body_h * 0.05 and gap_count > 0:
+            extra_per_gap = slack / gap_count
+            inter_band_px = int(round(inter_band_px + extra_per_gap))
+
         # 6. Spread each band horizontally to ~75% of canvas width, stack
         # vertically, emit placements (Bug 3 fix).
         #
@@ -2742,13 +2819,19 @@ class FieldGuideBandsEngine(LayoutEngine):
                 inter_gap = 0.0
                 total_band_w = scaled_fish_total
             x_cursor = (canvas_w - total_band_w) / 2.0
+            # Baseline-align the band: fish bottoms rest on a shared visual
+            # ground line, the way a field guide typesets specimens. This
+            # gives taller fish (pike, gar) more vertical extent above the
+            # baseline while shorter fat fish (sunfish, crappie) sit
+            # neatly on the line. Baseline at 95% of band height — leaves a
+            # tiny breathing margin so the absolute tallest fish in the
+            # band still has room above it. Bug C fix.
+            band_baseline_y = band_h * 0.95
             for (ref, master, cand_w, cand_h, _label_w) in band:
                 draw_w = max(1, int(round(cand_w * effective_shrink)))
                 draw_h = max(1, int(round(cand_h * effective_shrink)))
-                # Vertical-center each fish within the band's max height
-                # (so smaller fish in a band sit on the same midline as the
-                # tallest one — same as the reference image's row baseline).
-                y_offset = (band_h - draw_h) / 2.0
+                # Anchor each fish's BOTTOM to the band baseline.
+                y_offset = band_baseline_y - draw_h
                 placements.append(
                     PlacedItem(
                         species_ref=ref,

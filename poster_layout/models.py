@@ -51,13 +51,37 @@ class StyleRef:
 
 @dataclass(frozen=True)
 class MasterImage:
-    """A chosen master image for a (species, style) pair on disk."""
+    """A chosen master image for a (species, style) pair on disk.
+
+    ``alpha_bbox`` is the tight pixel rectangle (x0, y0, x1, y1) that contains
+    every pixel with meaningful (>30) alpha — i.e. the actual fish silhouette
+    inside the (mostly-transparent) master canvas. The poster engine sizes
+    each fish using the alpha-bbox aspect ratio (not the master canvas aspect)
+    so a 3.4:1 northern pike doesn't get stuffed into a 1.5:1 bounding box
+    and rendered tiny. Defaults to ``None`` (use full image), which keeps the
+    legacy code paths and stub fixtures working unchanged.
+    """
 
     species_slug: str
     style_slug: str
     image_path: Path
     width_px: int
     height_px: int
+    alpha_bbox: tuple[int, int, int, int] | None = None
+
+    @property
+    def bbox_width_px(self) -> int:
+        """Width of the alpha bbox, or full master width if no bbox."""
+        if self.alpha_bbox is None:
+            return self.width_px
+        return max(1, self.alpha_bbox[2] - self.alpha_bbox[0])
+
+    @property
+    def bbox_height_px(self) -> int:
+        """Height of the alpha bbox, or full master height if no bbox."""
+        if self.alpha_bbox is None:
+            return self.height_px
+        return max(1, self.alpha_bbox[3] - self.alpha_bbox[1])
 
     @classmethod
     def from_file(
@@ -66,18 +90,49 @@ class MasterImage:
         style_slug: str,
         image_path: Path,
     ) -> "MasterImage":
-        """Build a MasterImage by reading dimensions from the file on disk."""
+        """Build a MasterImage by reading dimensions from the file on disk.
+
+        Also computes the tight alpha bbox of the fish silhouette so the
+        poster engine can size at true-fish aspect rather than master-canvas
+        aspect.
+        """
         from PIL import Image
 
         with Image.open(image_path) as img:
             width, height = img.size
+            bbox = _compute_alpha_bbox(img)
         return cls(
             species_slug=species_slug,
             style_slug=style_slug,
             image_path=Path(image_path),
             width_px=int(width),
             height_px=int(height),
+            alpha_bbox=bbox,
         )
+
+
+def _compute_alpha_bbox(img: "object") -> tuple[int, int, int, int] | None:
+    """Return the tight bbox of pixels with alpha>30, or None if fully opaque
+    or fully transparent. Uses numpy for speed; falls back to PIL.getbbox()
+    on import error.
+    """
+    try:
+        import numpy as np
+        from PIL import Image as _Image  # noqa: F401
+    except ImportError:
+        rgba = img.convert("RGBA") if img.mode != "RGBA" else img
+        bbox = rgba.getchannel("A").point(lambda v: 255 if v > 30 else 0).getbbox()
+        return tuple(bbox) if bbox else None
+    rgba = img.convert("RGBA") if img.mode != "RGBA" else img
+    arr = np.asarray(rgba)
+    alpha = arr[:, :, 3]
+    if alpha.min() >= 255:
+        # No transparency — bbox = full image.
+        return (0, 0, int(arr.shape[1]), int(arr.shape[0]))
+    ys, xs = np.where(alpha > 30)
+    if len(xs) == 0:
+        return None
+    return (int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)
 
 
 @dataclass(frozen=True)

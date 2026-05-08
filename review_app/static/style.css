@@ -1163,9 +1163,11 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0eee8;
-  border-radius: 12px;
-  border: 1px solid var(--cv3-border);
+  /* Bug A: white background, no rounded rect. The framed-preview JPEG is now
+     pre-cropped to the wood-frame bbox (≈4:5 portrait) so the wrap should
+     just be a transparent stage that lets the frame fill the available
+     space — no decorative grey card around it. */
+  background: #ffffff;
   padding: 1rem;
   /* No overflow clipping — the frame's outer drop shadow needs to render. */
 }
@@ -1770,8 +1772,9 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
 }
 .cv3-framed-loading {
   position: absolute;
-  /* Brown-frame inner rect: 24.2/14.7/51.6/68.8 — center at 50%, 49.1% */
-  top: 49.1%;
+  /* After Bug A crop, framed image is ~4:5 portrait (1296×1646 for brown).
+     Inner-print center maps to roughly (50%, 51%) of the cropped image. */
+  top: 51%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 42%;            /* a bit narrower than the 51.6% inner-rect width */

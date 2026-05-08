@@ -16,13 +16,25 @@ def _solid(width: int, height: int, color: tuple[int, int, int] = (200, 30, 30))
     return Image.new("RGB", (width, height), color)
 
 
-def test_frame_wrap_returns_image_same_size_as_frame() -> None:
-    """The output dimensions match the frame photograph dimensions."""
+def test_frame_wrap_returns_bbox_cropped_image() -> None:
+    """The output is cropped to the wood-frame bbox (smaller than the photo).
+
+    Prodigi frame photos are square (e.g. 2000×2000) but the actual wood
+    frame only occupies a portrait region in the middle. ``frame_wrap``
+    crops the output to that region so customers don't see grey filler.
+    """
     out = frame_wrap(_solid(400, 600), finish=DEFAULT_FINISH)
     frame_path = frame_compositor._resolve_frame_path(DEFAULT_FINISH)
     with Image.open(frame_path) as raw:
-        expected_size = raw.size
-    assert out.size == expected_size
+        full_size = raw.size
+
+    # Cropped output is strictly smaller than the photo (we clip the filler).
+    assert out.size[0] <= full_size[0]
+    assert out.size[1] <= full_size[1]
+    assert out.size[0] * out.size[1] < full_size[0] * full_size[1]
+    # ...and roughly portrait (4:5 ish), not the original square.
+    aspect = out.size[0] / out.size[1]
+    assert 0.65 < aspect < 0.95, f"unexpected cropped aspect {aspect:.3f}"
 
 
 def test_frame_wrap_pastes_poster_into_inner_rect() -> None:
@@ -47,10 +59,9 @@ def test_frame_wrap_falls_back_to_default_inner_rect(monkeypatch: pytest.MonkeyP
     # the bundled _DEFAULT_INNER_RECT_PCT (8/8/84/84).
     monkeypatch.setattr(frame_compositor, "_load_frame_skus", lambda: [])
     out = frame_wrap(_solid(400, 600), finish=DEFAULT_FINISH)
-    frame_path = frame_compositor._resolve_frame_path(DEFAULT_FINISH)
-    with Image.open(frame_path) as raw:
-        expected_size = raw.size
-    assert out.size == expected_size
+    # Output is bbox-cropped (smaller than photo, roughly portrait).
+    assert out.size[0] > 0 and out.size[1] > 0
+    assert out.size[1] > out.size[0]  # portrait orientation
 
 
 def test_frame_wrap_unknown_finish_raises() -> None:

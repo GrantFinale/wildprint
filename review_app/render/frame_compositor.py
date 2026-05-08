@@ -10,6 +10,13 @@ The legacy ``/create`` page renders posters bare; the new
 function so customers see a real "framed art" preview instead of a flat
 JPEG. The full configurator (``/preview/<spec_hash>``) gets this for free
 once the endpoint is wired in.
+
+After compositing, the output is cropped to the wood-frame bounding box
+plus a small drop-shadow buffer. Prodigi's frame photographs are square
+(e.g. 2000×2000) but the actual frame only occupies a portrait region
+in the middle (≈4:5), with light-grey filler around it. Cropping out the
+filler lets the browser render the framed preview at usable size without
+wasting screen real estate on grey bars. Bug A fix.
 """
 from __future__ import annotations
 
@@ -85,6 +92,85 @@ def _inner_rect_for_finish(finish: str) -> InnerRectPct:
     return dict(_DEFAULT_INNER_RECT_PCT)  # type: ignore[return-value]
 
 
+# Drop-shadow buffer around the wood-frame bbox, expressed as a fraction of
+# the frame photo's larger dimension. ~3% gives the cast shadow enough room
+# to fall off naturally without adding visible grey margin.
+_FRAME_BBOX_BUFFER_FRACTION: float = 0.03
+
+# Fast cache: per-finish bbox detected from the wood pixels of the frame
+# photo. Detection is "any pixel where R < 130" (wood is dark RGB ≈ 70/40/30
+# for brown, even darker for black; light-grey filler is ~245). The wood
+# location is stable for each finish photo so caching once at first use is
+# safe.
+_BBOX_CACHE: dict[str, tuple[int, int, int, int]] = {}
+
+
+def _compute_frame_bbox(finish: str) -> tuple[int, int, int, int]:
+    """Detect the wood-frame bounding box for ``finish``.
+
+    Scans the frame photo for "dark" pixels (R < 130 — wood is much darker
+    than the light-grey filler around it for every Prodigi finish: brown,
+    black, natural, antique-silver/gold, dark-grey/light-grey, white). The
+    returned bbox is a tight rectangle around all wood pixels, expanded by
+    ``_FRAME_BBOX_BUFFER_FRACTION`` of the frame's larger dimension on each
+    side to leave room for the drop shadow.
+
+    Returns
+    -------
+    (x0, y0, x1, y1) in the frame photo's pixel coordinates, suitable for
+    PIL ``Image.crop``.
+
+    Cached per-finish — the wood pixel locations don't change between calls.
+
+    Notes
+    -----
+    For ``classic-white-blank`` and other near-white frames the R<130 test
+    might miss the (white) wood. As a robust fallback we also OR-in pixels
+    where the channels deviate from the filler grey (R-G or R-B differs by
+    >5), which catches stained/painted wood that has subtle color cast.
+    """
+    if finish in _BBOX_CACHE:
+        return _BBOX_CACHE[finish]
+    try:
+        import numpy as np
+    except ImportError:  # pragma: no cover — numpy is a hard dep already
+        # Fall back to "no crop" if numpy is somehow unavailable.
+        path = _resolve_frame_path(finish)
+        with Image.open(path) as raw:
+            w, h = raw.size
+        return (0, 0, w, h)
+
+    path = _resolve_frame_path(finish)
+    with Image.open(path) as raw:
+        rgb = np.asarray(raw.convert("RGB"))
+    fh, fw, _ = rgb.shape
+    r, g, b = rgb[:, :, 0], rgb[:, :, 1], rgb[:, :, 2]
+    # Dark (wood) pixels.
+    mask = r < 130
+    # Color-cast pixels — catches light-stained wood that's bright but not
+    # neutral grey filler.
+    cast = (np.abs(r.astype(np.int16) - g.astype(np.int16)) > 5) | (
+        np.abs(r.astype(np.int16) - b.astype(np.int16)) > 5
+    )
+    mask = mask | cast
+    if not mask.any():
+        # No wood detected — fall back to the whole frame.
+        bbox = (0, 0, fw, fh)
+    else:
+        ys, xs = np.where(mask)
+        x0, y0 = int(xs.min()), int(ys.min())
+        x1, y1 = int(xs.max()) + 1, int(ys.max()) + 1
+        # Expand for drop-shadow buffer.
+        buf = int(round(max(fw, fh) * _FRAME_BBOX_BUFFER_FRACTION))
+        x0 = max(0, x0 - buf)
+        y0 = max(0, y0 - buf)
+        x1 = min(fw, x1 + buf)
+        y1 = min(fh, y1 + buf)
+        bbox = (x0, y0, x1, y1)
+    _BBOX_CACHE[finish] = bbox
+    return bbox
+
+
 def _resolve_frame_path(finish: str) -> Path:
     """Find the frame photo for ``finish`` — try .jpg then .png.
 
@@ -146,7 +232,13 @@ def frame_wrap(
     paste_x = inner_x + (inner_w - new_w) // 2
     paste_y = inner_y + (inner_h - new_h) // 2
     frame.paste(resized, (paste_x, paste_y))
-    return frame
+
+    # Crop to the wood-frame bbox + drop-shadow buffer so the output is
+    # ~4:5 portrait (the frame's natural proportion), not the photograph's
+    # original square with grey filler around it. Bug A fix.
+    bbox = _compute_frame_bbox(finish)
+    cropped = frame.crop(bbox)
+    return cropped
 
 
 __all__ = ["DEFAULT_FINISH", "frame_wrap"]

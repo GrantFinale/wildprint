@@ -1269,6 +1269,15 @@ class PillowPosterRenderer(PosterRenderer):
     def _paste_item(self, canvas: Image.Image, item: PlacedItem) -> None:
         with Image.open(item.master.image_path) as src:
             src = src.convert("RGBA")
+            # Crop to the tight alpha bbox so the resized output is exactly
+            # the fish silhouette at exactly the engine's chosen draw_width
+            # × draw_height. Without this crop, the resize stuffs the master
+            # canvas (with its huge transparent margins) into the draw box,
+            # and the visible fish ends up at a fraction of the requested
+            # size. Bug B fix.
+            bbox = item.master.alpha_bbox
+            if bbox is not None:
+                src = src.crop(bbox)
             resized = src.resize(
                 (max(1, item.draw_width), max(1, item.draw_height)),
                 resample=Image.Resampling.LANCZOS,
@@ -1510,6 +1519,9 @@ class EditorialPosterRenderer(PosterRenderer):
     def _paste_hero(self, canvas: Image.Image, placed: PlacedItem) -> None:
         with Image.open(placed.master.image_path) as src:
             src = src.convert("RGBA")
+            bbox = placed.master.alpha_bbox
+            if bbox is not None:
+                src = src.crop(bbox)
             resized = src.resize(
                 (max(1, placed.draw_width), max(1, placed.draw_height)),
                 resample=Image.Resampling.LANCZOS,
