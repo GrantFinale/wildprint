@@ -507,8 +507,10 @@ def _draw_two_line_title(
       - inner border / rules sit ~3% inset from canvas edges
     """
     # Sizes proportional to canvas height (works for portrait + landscape).
-    preheader_size = max(28, int(round(canvas_h * 0.030)))
-    title_size = max(80, int(round(canvas_h * 0.090)))
+    # Title at 0.077 (85% of the prior 0.090) per user feedback — the giant
+    # title was overpowering the species hierarchy.
+    preheader_size = max(26, int(round(canvas_h * 0.026)))
+    title_size = max(72, int(round(canvas_h * 0.077)))
 
     pre_font = _load_first_truetype(
         _REFERENCE_PREHEADER_FONT_CANDIDATES, preheader_size
@@ -2104,8 +2106,10 @@ class EditorialMultiRenderer(PosterRenderer):
 
         if _label_kind == "tracked_common_only":
             # Tracked uppercase common-name caption centered under each
-            # fish — the field-guide reference look.
-            common_size = max(20, int(round(spec.canvas_height * 0.011)))
+            # fish — the field-guide reference look. Bumped to 0.018 (was
+            # 0.011) so labels read at viewing distance — the previous
+            # size was sub-legible.
+            common_size = max(34, int(round(spec.canvas_height * 0.018)))
             label_font = _load_caption_font(self.font_candidates, common_size)
             _draw_compact_caption_only(
                 draw=draw,
@@ -2117,8 +2121,8 @@ class EditorialMultiRenderer(PosterRenderer):
             )
         elif _label_kind == "common_plus_latin_italic":
             # Two-line label: bold common name + italic Latin scientific.
-            common_size = max(22, int(round(spec.canvas_height * 0.013)))
-            latin_size = max(18, int(round(spec.canvas_height * 0.011)))
+            common_size = max(34, int(round(spec.canvas_height * 0.020)))
+            latin_size = max(28, int(round(spec.canvas_height * 0.016)))
             _, italic_font, body_font = _load_display_fonts(
                 self.font_candidates,
                 title_size=common_size,

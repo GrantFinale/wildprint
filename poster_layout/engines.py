@@ -2395,7 +2395,7 @@ class FieldGuideBandsEngine(LayoutEngine):
         # Label font size ≈ canvas_h * 0.011, average tracked common name ≈
         # 14 chars * (label_size * 0.65) → ~10% canvas_h ≈ ~7.5% canvas_w
         # at 3:4 aspect. We measure exactly during packing.
-        min_label_pad_fraction: float = 0.0067,  # ≈24px on a 3600px canvas
+        min_label_pad_fraction: float = 0.025,  # ≈90px on a 3600px canvas — needs to keep adjacent labels visibly separated at the bumped 0.018 label-size
     ) -> None:
         self.title_band_fraction = title_band_fraction
         self.bottom_margin_fraction = bottom_margin_fraction
@@ -2456,14 +2456,15 @@ class FieldGuideBandsEngine(LayoutEngine):
         min_label_pad_px = int(round(canvas_w * self.min_label_pad_fraction))
 
         # Estimate tracked-label width using same metrics as the renderer's
-        # _draw_compact_caption_only (font_size = canvas_h * 0.011, tracking
+        # _draw_compact_caption_only (font_size = canvas_h * 0.018, tracking
         # = font_size * 0.18). Per-char advance for uppercase serif ≈ 0.72
         # of font size — empirical (measured against the actual editorial
         # font: SMALLMOUTH BASS at 53px → 0.71, YELLOW PERCH → 0.72). We
         # err slightly wide so we never under-allocate. Used by the packing
-        # loop to enforce that adjacent labels won't collide horizontally
-        # (Bug 2 fix).
-        label_font_size = max(20, int(round(canvas_h * 0.011)))
+        # loop to enforce that adjacent labels won't collide horizontally.
+        # KEEP IN SYNC with renderer.py:_draw_compact_caption_only's
+        # common_size formula — change them together or labels collide.
+        label_font_size = max(34, int(round(canvas_h * 0.018)))
         label_tracking = max(2, int(round(label_font_size * 0.18)))
 
         def label_width_for(ref: SpeciesRef) -> int:

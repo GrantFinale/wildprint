@@ -1772,12 +1772,15 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
 }
 .cv3-framed-loading {
   position: absolute;
-  /* After Bug A crop, framed image is ~4:5 portrait (1296×1646 for brown).
-     Inner-print center maps to roughly (50%, 51%) of the cropped image. */
-  top: 51%;
+  /* Anchor at the FINAL title position (top of the inner print area) so
+     the placeholder doesn't visually jump when the rendered poster swaps
+     in. The renderer puts the preheader rule at ~6% from poster top and
+     the giant title just below; on the cropped frame the inner print
+     area starts ~13% down, so the title lands around 18% from top. */
+  top: 18%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 42%;            /* a bit narrower than the 51.6% inner-rect width */
+  transform: translateX(-50%);
+  width: 56%;            /* a bit narrower than the ~62% inner-rect width on the cropped frame */
   display: flex;
   flex-direction: column;
   align-items: center;
