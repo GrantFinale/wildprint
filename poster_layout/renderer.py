@@ -540,7 +540,11 @@ def _draw_two_line_title(
         # canvas edges. Width scales with canvas (~2-3px on the print res
         # so the lines read as a clear, intentional accent without
         # competing with the title or fish — Task E).
-        rule_y = pre_y + pre_h // 2
+        # Use the actual rendered bbox so the rule lands on the visual
+        # midline of the caps (textbbox includes ascender padding that
+        # would otherwise push the rule above the visual midline).
+        _bbox = draw.textbbox((pre_x, pre_y), pre_text_upper, font=pre_font)
+        rule_y = (_bbox[1] + _bbox[3]) // 2
         rule_pad = max(40, int(round(canvas_w * 0.025)))  # gap between rule and preheader
         outer_inset = max(80, int(round(canvas_w * 0.10)))
         rule_width = max(2, int(round(canvas_h / 1500)))
@@ -619,7 +623,11 @@ def _draw_ornamental_title_frame(
         for ch, adv in zip(pre_text, advances):
             draw.text((cur_x, cursor_y), ch, font=pre_font, fill=title_color)
             cur_x += adv + tracking_px
-        _, pre_h = _text_size(draw, pre_text, pre_font)
+        # Use the actual rendered bbox for vertical advance so spacing is
+        # consistent with the preheader's visual baseline (textbbox handles
+        # ascender padding correctly — see _draw_two_line_title fix).
+        _bbox = draw.textbbox((x_start, cursor_y), pre_text, font=pre_font)
+        pre_h = _bbox[3] - _bbox[1]
         cursor_y += pre_h + int(round(canvas_h * 0.015))
 
     # Top rule with center diamond.
@@ -1823,28 +1831,22 @@ class EditorialMultiRenderer(PosterRenderer):
 
         draw = ImageDraw.Draw(canvas)
 
-        # Inner border (Task C): thin warm-brown rule at ~3% inset from
-        # canvas edges, framing the entire content area.
+        # Inner border (Task C): branch on the style profile's inner_border
+        # mode so the two decorations are mutually exclusive (prior code
+        # drew both the thin rectangle AND the diamond accent for
+        # vintage_tackle, producing a double border).
+        #   - "thin"            → draw _draw_inner_border only
+        #   - "double_diamond"  → draw the ornamental diamond corners only
+        #   - "none"            → draw nothing
         if getattr(self, "_inner_border_enabled", False):
             border_color = (
                 _profile.rule_hex if _profile is not None
                 else REFERENCE_INNER_BORDER_HEX
             )
-            try:
-                _draw_inner_border(
-                    draw=draw,
-                    canvas_w=spec.canvas_width,
-                    canvas_h=spec.canvas_height,
-                    color=border_color,
-                )
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Inner border draw failed: %s", exc)
-            # Double-diamond inner border: draw a second inset rule just
-            # inside the first one and add a small diamond at each corner.
-            if (
-                _profile is not None
-                and _profile.inner_border == "double_diamond"
-            ):
+            inner_border_mode = (
+                _profile.inner_border if _profile is not None else "thin"
+            )
+            if inner_border_mode == "double_diamond":
                 try:
                     self._draw_double_diamond_accent(
                         draw=draw,
@@ -1854,6 +1856,16 @@ class EditorialMultiRenderer(PosterRenderer):
                     )
                 except Exception as exc:  # noqa: BLE001
                     logger.warning("Double-diamond accent draw failed: %s", exc)
+            elif inner_border_mode == "thin":
+                try:
+                    _draw_inner_border(
+                        draw=draw,
+                        canvas_w=spec.canvas_width,
+                        canvas_h=spec.canvas_height,
+                        color=border_color,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Inner border draw failed: %s", exc)
 
         if not result.placements:
             logger.warning(
@@ -2598,22 +2610,23 @@ class EditorialMultiRenderer(PosterRenderer):
         canvas_h: int,
         color: str,
     ) -> None:
-        """Draw an inset accent rule with a small diamond glyph at each corner.
+        """Draw four ornamental diamond glyphs at the inset corner positions.
 
-        Used by the "vintage_tackle" :class:`StyleProfile`. Sits just inside
-        the primary inner border to give the page a bookplate feel.
+        Used by the "vintage_tackle" :class:`StyleProfile` as the *sole*
+        outer border decoration (no rectangle rule). Earlier versions also
+        drew an inset rectangle here, which combined with ``_draw_inner_border``
+        produced two parallel borders. The render() branch now selects either
+        thin-rectangle or diamond-corners — never both — so the rectangle
+        was removed from this helper as well.
         """
-        # Inner border lives at ~3% inset; this accent rule sits ~5% inset.
+        # Diamonds sit at ~5% inset from canvas edges (matches the prior
+        # accent-rule corner positions, so existing layout math is preserved).
         inset = int(round(min(canvas_w, canvas_h) * 0.05))
-        rule_w = max(1, int(round(canvas_h / 1800)))
         x1, y1 = inset, inset
         x2, y2 = canvas_w - inset, canvas_h - inset
-        draw.line([(x1, y1), (x2, y1)], fill=color, width=rule_w)
-        draw.line([(x1, y2), (x2, y2)], fill=color, width=rule_w)
-        draw.line([(x1, y1), (x1, y2)], fill=color, width=rule_w)
-        draw.line([(x2, y1), (x2, y2)], fill=color, width=rule_w)
-        # Corner diamonds.
-        d = max(8, int(round(min(canvas_w, canvas_h) * 0.008)))
+        # Slightly larger than the prior corner glyphs since they now read
+        # as the only border decoration.
+        d = max(12, int(round(min(canvas_w, canvas_h) * 0.012)))
         for cx, cy in [(x1, y1), (x2, y1), (x1, y2), (x2, y2)]:
             diamond = [(cx, cy - d), (cx + d, cy), (cx, cy + d), (cx - d, cy)]
             draw.polygon(diamond, fill=color)

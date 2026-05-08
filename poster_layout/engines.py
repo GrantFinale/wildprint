@@ -2387,7 +2387,7 @@ class FieldGuideBandsEngine(LayoutEngine):
         label_band_fraction: float = 0.030,
         min_idx_floor: float = 0.4,
         target_fish_per_band: int = 2,
-        max_fish_per_band: int = 3,
+        max_fish_per_band: int = 5,
         title_breathing_fraction: float = 0.015,
         target_band_width_fraction: float = 0.75,
         max_inter_fish_gap_fraction: float = 0.10,
@@ -2478,13 +2478,16 @@ class FieldGuideBandsEngine(LayoutEngine):
         # 6. Honest-scale floor on the index.
         idx_for = lambda ref: max(self.min_idx_floor, ref.relative_scale_index)
 
-        # Pick a reference index for sizing. Largest fish should fill ~62%
-        # of the usable band width on average — gives the pike a hero
-        # presence without monopolizing the band, leaves room for ~2-3
-        # smaller species below the hero in compact bands.
+        # Pick a reference index for sizing. Largest fish should occupy
+        # ~62% of CANVAS width — gives the pike a true hero presence
+        # matching the field-guide reference image. Honest scale is
+        # preserved across all fish (single unit_w). Bug 3 fix:
+        # earlier code used ``usable_w * 0.62`` (≈53% canvas) and the
+        # total-shrink pass collapsed the hero to ~26% because every fish
+        # ended up in its own band. The post-pack band-MERGING pass below
+        # now packs body fish denser before falling back to total-shrink.
         largest_idx = idx_for(pairs_sorted[0][0])
-        target_largest_w = usable_w * 0.62
-        # px-per-idx-unit (preserves relative scale).
+        target_largest_w = canvas_w * 0.50
         unit_w = target_largest_w / max(1e-6, largest_idx)
 
         # Helper: candidate draw width at the per-species scale.
@@ -2511,9 +2514,12 @@ class FieldGuideBandsEngine(LayoutEngine):
             # its label so labels never overlap their neighbors. Use the
             # max of fish-draw-width and label-width.
             item_slot_w = max(cand_w, float(label_w))
-            # Inter-item gap: max of the cosmetic fish gap and the label
-            # padding (so bands of 3 small fish leave room for labels).
-            extra_gap = max(gap_px, min_label_pad_px) if cur_band else 0
+            # Inter-item gap for PACKING decisions: use only the label
+            # padding minimum (~24px), not the larger cosmetic gap_px
+            # (~252px). The cosmetic gap is enforced later during band
+            # spreading; using it here would prevent fish that comfortably
+            # fit at render-time from packing into the same band.
+            extra_gap = min_label_pad_px if cur_band else 0
             projected_w = cur_band_slot_w + extra_gap + item_slot_w
             band_full = (
                 len(cur_band) >= self.max_fish_per_band
@@ -2530,16 +2536,72 @@ class FieldGuideBandsEngine(LayoutEngine):
             bands.append(cur_band)
 
         # 5. Compute total stack height (item[3] = candidate_h).
-        band_heights = [max((it[3] for it in band), default=0.0) for band in bands]
         label_reserve_px = int(round(canvas_h * self.label_band_fraction))
         inter_band_px = int(round(canvas_h * self.inter_band_gap_fraction))
-        total_h = (
-            sum(band_heights)
-            + label_reserve_px * len(bands)
-            + inter_band_px * max(0, len(bands) - 1)
-        )
 
-        # 7. Total-shrink pass: if overflowing the body, scale uniformly.
+        def _stack_h(_bands: list) -> tuple[float, list[float]]:
+            heights = [
+                max((it[3] for it in band), default=0.0) for band in _bands
+            ]
+            return (
+                sum(heights)
+                + label_reserve_px * len(_bands)
+                + inter_band_px * max(0, len(_bands) - 1),
+                heights,
+            )
+
+        # 7a. Band-merging pass (pre-shrink): rather than shrink everything
+        # uniformly when bands don't fit, try to merge adjacent SMALL bands
+        # whose combined slot widths still fit ``usable_w``. This preserves
+        # the hero's full size while increasing packing density of the
+        # smaller fish — exactly what the field-guide reference does
+        # (Bug 3 fix). Hero (band 0) is always preserved as solo.
+        def _band_slot_width(band: list) -> float:
+            slot = sum(max(it[2], float(it[4])) for it in band)
+            n = len(band)
+            if n > 1:
+                # Use the label-pad minimum for packing-fit decisions;
+                # cosmetic gap_px is only enforced during render-time band
+                # spreading, where there's slack to absorb it.
+                slot += min_label_pad_px * (n - 1)
+            return slot
+
+        max_per_band = self.max_fish_per_band
+        # Iteratively merge: pick the two smallest-cumulative-height
+        # adjacent bands (excluding the hero band 0) whose combined slot
+        # width still fits, until either the stack fits or no merges remain.
+        for _safety in range(50):
+            cur_total, _heights = _stack_h(bands)
+            if cur_total <= body_h:
+                break
+            best_merge: tuple[int, float] | None = None  # (i, combined_h)
+            for i in range(1, len(bands) - 1):
+                # Skip merges that involve the hero (i.e. always keep band 0
+                # as a solo band).
+                a, b = bands[i], bands[i + 1]
+                if len(a) + len(b) > max_per_band:
+                    continue
+                merged_slot = _band_slot_width(a + b)
+                if merged_slot > usable_w:
+                    continue
+                # Prefer merging the two with the SMALLEST max-height (so we
+                # don't accidentally make a band twice as tall by merging a
+                # tall one with another tall one).
+                merged_h = max(
+                    max((it[3] for it in a), default=0.0),
+                    max((it[3] for it in b), default=0.0),
+                )
+                if best_merge is None or merged_h < best_merge[1]:
+                    best_merge = (i, merged_h)
+            if best_merge is None:
+                break
+            i = best_merge[0]
+            bands[i] = bands[i] + bands[i + 1]
+            del bands[i + 1]
+
+        total_h, band_heights = _stack_h(bands)
+
+        # 7b. Total-shrink pass: if STILL overflowing, scale uniformly.
         shrink = 1.0
         if total_h > body_h:
             # Solve: shrink * (sum_band_h + labels) + gaps == body_h.
@@ -2555,8 +2617,93 @@ class FieldGuideBandsEngine(LayoutEngine):
                 f"{body_h}px; shrinking everything to {shrink:.0%} of native size."
             )
 
+            # Hero protection: if shrink dropped the hero below 50% of
+            # canvas width, drop the bottom-most non-hero band and retry.
+            # This trades species count for hero presence — matches the
+            # field-guide aesthetic where the headline fish reads big.
+            # We require at least 4 bands to remain (so the poster never
+            # collapses to "pike + one tiny band").
+            # Threshold: drop bands only if the shrink would push the hero
+            # below 45% of canvas. We aim for 50%+ via the natural sizing
+            # (target_hero_w = 0.60 * canvas_w combined with a lenient
+            # shrink), and only step in here when shrink would otherwise
+            # take the hero into "no longer a hero" territory.
+            min_hero_w = canvas_w * 0.40
+            hero_cand_w = bands[0][0][2]  # candidate width of hero fish
+            min_bands_kept = 4
+            while (
+                hero_cand_w * shrink < min_hero_w
+                and len(bands) > min_bands_kept
+            ):
+                bands.pop()  # drop the bottom band (smallest fish)
+                total_h, band_heights = _stack_h(bands)
+                if total_h <= body_h:
+                    shrink = 1.0
+                    break
+                scalable = sum(band_heights) + label_reserve_px * len(bands)
+                constant = inter_band_px * max(0, len(bands) - 1)
+                avail = max(1, body_h - constant)
+                if scalable > 0:
+                    shrink = min(1.0, avail / scalable)
+            warnings.append(
+                f"FieldGuideBandsEngine: hero protection — final shrink "
+                f"{shrink:.0%}, {len(bands)} bands kept."
+            )
+
         scaled_band_heights = [bh * shrink for bh in band_heights]
         scaled_label_reserve = label_reserve_px * shrink
+
+        # Hero post-scale (Bug 3 final touch): if shrink left the hero
+        # below the visual hero floor (50% of canvas width), scale up
+        # JUST the hero — proportionally — to that floor. We only do this
+        # when the hero is solo (band[0] has 1 fish), and we cap the
+        # rescale so it never exceeds the original natural cand_w
+        # (preserves honest-scale relative to the body fish in the
+        # uncrowded case where shrink == 1.0).
+        #
+        # When the hero rescale grows band[0]'s height, we MUST re-shrink
+        # the body bands to keep total stack height within body_h (so the
+        # bottom row doesn't fall off the canvas).
+        hero_scale_override: float | None = None
+        if bands and len(bands[0]) == 1:
+            hero_cand_w_native = bands[0][0][2]
+            hero_w_after_shrink = hero_cand_w_native * shrink
+            hero_floor = canvas_w * 0.50
+            if hero_w_after_shrink < hero_floor:
+                target_hero_w = min(hero_floor, hero_cand_w_native)
+                if hero_w_after_shrink > 0:
+                    hero_scale_override = target_hero_w / hero_w_after_shrink
+                    # New hero band height after rescale.
+                    new_hero_h = scaled_band_heights[0] * hero_scale_override
+                    # Body budget = body_h minus hero band, hero label,
+                    # and inter-band gaps.
+                    constant = (
+                        new_hero_h
+                        + scaled_label_reserve  # hero's own label
+                        + inter_band_px * max(0, len(bands) - 1)
+                    )
+                    body_budget = max(1.0, body_h - constant)
+                    body_band_h_sum = sum(scaled_band_heights[1:])
+                    body_label_sum = scaled_label_reserve * (len(bands) - 1)
+                    body_scalable = body_band_h_sum + body_label_sum
+                    if body_scalable > body_budget and body_scalable > 0:
+                        body_reshrink = body_budget / body_scalable
+                        # Apply re-shrink to body bands' heights AND
+                        # widths (so honest scale within body is kept).
+                        for j in range(1, len(scaled_band_heights)):
+                            scaled_band_heights[j] *= body_reshrink
+                        # Track the body re-shrink so placement loop uses it.
+                        body_shrink_factor = body_reshrink
+                    else:
+                        body_shrink_factor = 1.0
+                    # Update hero band height.
+                    scaled_band_heights[0] = new_hero_h
+                else:
+                    body_shrink_factor = 1.0
+            else:
+                body_shrink_factor = 1.0
+        else:
+            body_shrink_factor = 1.0
 
         # 6. Spread each band horizontally to ~75% of canvas width, stack
         # vertically, emit placements (Bug 3 fix).
@@ -2569,9 +2716,16 @@ class FieldGuideBandsEngine(LayoutEngine):
         max_gap_px = int(round(canvas_w * self.max_inter_fish_gap_fraction))
         placements: list[PlacedItem] = []
         cursor_y = float(body_top)
-        for band, band_h in zip(bands, scaled_band_heights):
+        for band_idx, (band, band_h) in enumerate(zip(bands, scaled_band_heights)):
             n = len(band)
-            scaled_fish_widths = [it[2] * shrink for it in band]
+            # Apply hero post-rescale only to the hero band (idx 0, single
+            # fish). Body bands use shrink * body_shrink_factor (the
+            # additional shrink applied to compensate for hero growth).
+            if band_idx == 0 and hero_scale_override is not None:
+                effective_shrink = shrink * hero_scale_override
+            else:
+                effective_shrink = shrink * body_shrink_factor
+            scaled_fish_widths = [it[2] * effective_shrink for it in band]
             label_widths = [it[4] for it in band]
             scaled_fish_total = sum(scaled_fish_widths)
             if n >= 2:
@@ -2603,8 +2757,8 @@ class FieldGuideBandsEngine(LayoutEngine):
                 total_band_w = scaled_fish_total
             x_cursor = (canvas_w - total_band_w) / 2.0
             for (ref, master, cand_w, cand_h, _label_w) in band:
-                draw_w = max(1, int(round(cand_w * shrink)))
-                draw_h = max(1, int(round(cand_h * shrink)))
+                draw_w = max(1, int(round(cand_w * effective_shrink)))
+                draw_h = max(1, int(round(cand_h * effective_shrink)))
                 # Vertical-center each fish within the band's max height
                 # (so smaller fish in a band sit on the same midline as the
                 # tallest one — same as the reference image's row baseline).
@@ -2619,7 +2773,7 @@ class FieldGuideBandsEngine(LayoutEngine):
                         draw_height=draw_h,
                     )
                 )
-                x_cursor += cand_w * shrink + inter_gap
+                x_cursor += cand_w * effective_shrink + inter_gap
             cursor_y += band_h + scaled_label_reserve + inter_band_px
 
         return LayoutResult(poster=spec, placements=placements, warnings=warnings)
@@ -2653,13 +2807,21 @@ class VintageCatalogEngine(LayoutEngine):
     def __init__(
         self,
         columns: int = 4,
-        title_band_fraction: float = 0.13,
+        # Bumped from 0.13 → 0.20 so the ornamental title frame
+        # (preheader + top-rule-with-diamond + giant title + bottom-rule-with-
+        # diamond) has enough vertical room. The previous value caused the
+        # bottom rule to land on top of the first row of fish.
+        title_band_fraction: float = 0.20,
         bottom_margin_fraction: float = 0.02,
         side_margin_fraction: float = 0.05,
         gutter_fraction: float = 0.015,
         cell_image_w_fraction: float = 0.85,
         cell_image_h_fraction: float = 0.70,
         cell_label_h_fraction: float = 0.20,
+        # Buffer between the title block's bottom rule and the first row
+        # of fish — guarantees ornamental rule clearance even when the title
+        # font shrinks/grows.
+        title_clearance_fraction: float = 0.025,
     ) -> None:
         self.columns = max(1, columns)
         self.title_band_fraction = title_band_fraction
@@ -2669,6 +2831,7 @@ class VintageCatalogEngine(LayoutEngine):
         self.cell_image_w_fraction = cell_image_w_fraction
         self.cell_image_h_fraction = cell_image_h_fraction
         self.cell_label_h_fraction = cell_label_h_fraction
+        self.title_clearance_fraction = title_clearance_fraction
 
     def layout(
         self,
@@ -2690,11 +2853,14 @@ class VintageCatalogEngine(LayoutEngine):
         canvas_w = spec.canvas_width
         canvas_h = spec.canvas_height
 
-        # 1. Carve regions.
+        # 1. Carve regions. Add a clearance buffer below the ornamental
+        # title frame's bottom rule so the first row of fish never collides
+        # with the diamond rule (Bug 5 fix).
         title_h = int(round(canvas_h * self.title_band_fraction))
+        title_clearance = int(round(canvas_h * self.title_clearance_fraction))
         bottom_h = int(round(canvas_h * self.bottom_margin_fraction))
-        body_top = title_h
-        body_h = max(1, canvas_h - title_h - bottom_h)
+        body_top = title_h + title_clearance
+        body_h = max(1, canvas_h - body_top - bottom_h)
         side_margin = int(round(canvas_w * self.side_margin_fraction))
         gutter_w_px = int(round(canvas_w * self.gutter_fraction))
         gutter_h_px = int(round(canvas_h * self.gutter_fraction))

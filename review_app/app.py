@@ -1789,7 +1789,18 @@ def create():
     """Render the poster creator page."""
     species = load_species()
     styles = load_styles()
-    return render_template("create.html", species=species, styles=styles)
+    # Read the optional ?lake= query string and pass it through so the
+    # title input + loading-overlay default render with the lake name on
+    # the very first paint (Bug 2 fix — previously the static template
+    # default "[your water]" was visible until JS ran, which created a
+    # visible flash for users arriving with ?lake=...).
+    lake_name = (request.args.get("lake", "") or "").strip()
+    return render_template(
+        "create.html",
+        species=species,
+        styles=styles,
+        lake_name=lake_name,
+    )
 
 
 @app.route("/api/recommend", methods=["POST"])

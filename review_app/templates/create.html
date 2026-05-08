@@ -21,7 +21,7 @@
       <h2 class="cv3-wiz-title">Where is your water?</h2>
       <p class="cv3-wiz-sub">Click the map to drop a pin, then name your water body.</p>
       <div id="cv3-map" class="cv3-wiz-map"></div>
-      <input type="text" id="cv3-water-name" class="cv3-input cv3-wiz-input" placeholder="Body of water name (e.g. Lake Michigan)">
+      <input type="text" id="cv3-water-name" class="cv3-input cv3-wiz-input" placeholder="Body of water name (e.g. Lake Michigan)" value="{{ lake_name or '' }}">
       <span id="cv3-water-location" class="cv3-loc-pill"></span>
     </div>
 
@@ -234,7 +234,7 @@
         <input type="text" id="cv3-preheader" class="cv3-input" placeholder="FISH OF" value="FISH OF">
 
         <label class="cv3-label">Title</label>
-        <input type="text" id="cv3-title" class="cv3-input" placeholder="Lake Michigan">
+        <input type="text" id="cv3-title" class="cv3-input" placeholder="Lake Michigan" value="{{ lake_name or '' }}">
 
         <label class="cv3-label">Subtitle</label>
         <input type="text" id="cv3-subtitle" class="cv3-input" placeholder="A field guide">
@@ -365,7 +365,7 @@
           <div class="cv3-framed-loading-rule"></div>
           <div class="cv3-framed-loading-pre">FISH OF</div>
           <div class="cv3-framed-loading-rule"></div>
-          <div class="cv3-framed-loading-title" id="cv3-framed-loading-title">[your water]</div>
+          <div class="cv3-framed-loading-title" id="cv3-framed-loading-title">{{ lake_name or '[your water]' }}</div>
           <div class="cv3-framed-loading-spinner"></div>
         </div>
       </div>
@@ -1719,6 +1719,20 @@
 
   // ---------------- Init ----------------
   function init() {
+    // Apply landing-page prefill (?lake=&state=&email=) FIRST so all
+    // downstream binders see the populated state. Bug 2 fix: previously
+    // the loading-title overlay rendered "[your water]" until the user
+    // typed something, even when the URL already carried ?lake=.
+    const prefill = readPrefill();
+    if (state.waterName) {
+      applyDefaultTitle();
+      const _loadingTitleEl = $('cv3-framed-loading-title');
+      if (_loadingTitleEl) {
+        _loadingTitleEl.textContent =
+          state.title || state.waterName || '[your water]';
+      }
+    }
+
     initMap();
     bindHabitatSliders();
     bindCategoryChips();
@@ -1740,9 +1754,6 @@
         applyDefaultTitle();
       });
     }
-    // Apply landing-page prefill (?lake=&state=&email=). If a state code
-    // arrived, jump straight into step 2 (skip the map).
-    const prefill = readPrefill();
     if (prefill.lake && wn) wn.value = prefill.lake;
     if (prefill.st) {
       const loc = $('cv3-water-location');
