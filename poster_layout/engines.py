@@ -2478,16 +2478,25 @@ class FieldGuideBandsEngine(LayoutEngine):
         # 6. Honest-scale floor on the index.
         idx_for = lambda ref: max(self.min_idx_floor, ref.relative_scale_index)
 
-        # Pick a reference index for sizing. Largest fish should occupy
-        # ~62% of CANVAS width — gives the pike a true hero presence
-        # matching the field-guide reference image. Honest scale is
-        # preserved across all fish (single unit_w). Bug 3 fix:
-        # earlier code used ``usable_w * 0.62`` (≈53% canvas) and the
-        # total-shrink pass collapsed the hero to ~26% because every fish
-        # ended up in its own band. The post-pack band-MERGING pass below
-        # now packs body fish denser before falling back to total-shrink.
+        # Pick a reference index for sizing. The hero target is COUNT-AWARE:
+        # more species → smaller hero so everyone fits without dropping
+        # anyone. Honest scale (relative_scale_index ratios) is preserved
+        # across all fish via a single unit_w. Tiers were chosen so that the
+        # natural pre-shrink stack height roughly matches body_h on a 3:4
+        # canvas, minimising how much the total-shrink pass has to do.
+        n_species = len(pairs_sorted)
+        if n_species <= 5:
+            hero_target_fraction = 0.60
+        elif n_species <= 10:
+            hero_target_fraction = 0.45
+        elif n_species <= 15:
+            hero_target_fraction = 0.35
+        elif n_species <= 20:
+            hero_target_fraction = 0.28
+        else:
+            hero_target_fraction = 0.22
         largest_idx = idx_for(pairs_sorted[0][0])
-        target_largest_w = canvas_w * 0.50
+        target_largest_w = canvas_w * hero_target_fraction
         unit_w = target_largest_w / max(1e-6, largest_idx)
 
         # Helper: candidate draw width at the per-species scale.
@@ -2602,6 +2611,10 @@ class FieldGuideBandsEngine(LayoutEngine):
         total_h, band_heights = _stack_h(bands)
 
         # 7b. Total-shrink pass: if STILL overflowing, scale uniformly.
+        # NEVER drop species — the customer selected them all, every one
+        # must appear. The hero target is already count-aware (see step 6),
+        # so by this point the overflow should be modest and a uniform
+        # shrink keeps relative scale intact across the whole poster.
         shrink = 1.0
         if total_h > body_h:
             # Solve: shrink * (sum_band_h + labels) + gaps == body_h.
@@ -2617,49 +2630,22 @@ class FieldGuideBandsEngine(LayoutEngine):
                 f"{body_h}px; shrinking everything to {shrink:.0%} of native size."
             )
 
-            # Hero protection: if shrink dropped the hero below 50% of
-            # canvas width, drop the bottom-most non-hero band and retry.
-            # This trades species count for hero presence — matches the
-            # field-guide aesthetic where the headline fish reads big.
-            # We require at least 4 bands to remain (so the poster never
-            # collapses to "pike + one tiny band").
-            # Threshold: drop bands only if the shrink would push the hero
-            # below 45% of canvas. We aim for 50%+ via the natural sizing
-            # (target_hero_w = 0.60 * canvas_w combined with a lenient
-            # shrink), and only step in here when shrink would otherwise
-            # take the hero into "no longer a hero" territory.
-            min_hero_w = canvas_w * 0.40
-            hero_cand_w = bands[0][0][2]  # candidate width of hero fish
-            min_bands_kept = 4
-            while (
-                hero_cand_w * shrink < min_hero_w
-                and len(bands) > min_bands_kept
-            ):
-                bands.pop()  # drop the bottom band (smallest fish)
-                total_h, band_heights = _stack_h(bands)
-                if total_h <= body_h:
-                    shrink = 1.0
-                    break
-                scalable = sum(band_heights) + label_reserve_px * len(bands)
-                constant = inter_band_px * max(0, len(bands) - 1)
-                avail = max(1, body_h - constant)
-                if scalable > 0:
-                    shrink = min(1.0, avail / scalable)
-            warnings.append(
-                f"FieldGuideBandsEngine: hero protection — final shrink "
-                f"{shrink:.0%}, {len(bands)} bands kept."
-            )
-
         scaled_band_heights = [bh * shrink for bh in band_heights]
         scaled_label_reserve = label_reserve_px * shrink
 
         # Hero post-scale (Bug 3 final touch): if shrink left the hero
-        # below the visual hero floor (50% of canvas width), scale up
-        # JUST the hero — proportionally — to that floor. We only do this
-        # when the hero is solo (band[0] has 1 fish), and we cap the
-        # rescale so it never exceeds the original natural cand_w
-        # (preserves honest-scale relative to the body fish in the
-        # uncrowded case where shrink == 1.0).
+        # below the count-aware hero target, scale up JUST the hero —
+        # proportionally — toward that target. We only do this when the
+        # hero is solo (band[0] has 1 fish), and we cap the rescale so it
+        # never exceeds the original natural cand_w (preserves honest-scale
+        # relative to the body fish in the uncrowded case where
+        # shrink == 1.0).
+        #
+        # The hero floor is a SOFT preference: if the body re-shrink that
+        # would be required to grow the hero pushes body fish below a
+        # readability floor, we skip the rescale. Species are never
+        # dropped here — the count-aware hero target (step 6) already
+        # ensures the natural sizing fits.
         #
         # When the hero rescale grows band[0]'s height, we MUST re-shrink
         # the body bands to keep total stack height within body_h (so the
@@ -2668,7 +2654,7 @@ class FieldGuideBandsEngine(LayoutEngine):
         if bands and len(bands[0]) == 1:
             hero_cand_w_native = bands[0][0][2]
             hero_w_after_shrink = hero_cand_w_native * shrink
-            hero_floor = canvas_w * 0.50
+            hero_floor = canvas_w * hero_target_fraction
             if hero_w_after_shrink < hero_floor:
                 target_hero_w = min(hero_floor, hero_cand_w_native)
                 if hero_w_after_shrink > 0:
