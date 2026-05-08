@@ -14,7 +14,7 @@ we never modify it.
 Memory contract
 ---------------
 Tier 3 must peak at < 2 GB working memory on the worker. The bottleneck is
-the master itself: 7200 x 10800 RGB = ~233 MB raw, and PIL keeps a few
+the master itself: 5400 x 7200 RGB = ~117 MB raw, and PIL keeps a few
 intermediate copies during save. We:
 
 * Avoid materializing PNG bytes twice (write straight into a

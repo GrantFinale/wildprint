@@ -1,6 +1,6 @@
 """RQ job functions for the tier-3 render pipeline.
 
-Tier 3 cannot run synchronously inside a Stripe webhook handler — a 7200x10800
+Tier 3 cannot run synchronously inside a Stripe webhook handler — a 5400x7200
 PNG render takes ~30-90 s on the droplet, well past Stripe's 10 s budget.
 :func:`render_tier_job` is the worker-side entry point invoked by
 :func:`review_app.render.cache.get_or_render_tier`.

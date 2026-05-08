@@ -87,8 +87,8 @@ def test_render_presets_page_shows_three_tier_configs(
     # Long edge values from the locked TIER_CONFIG.
     assert "400" in body
     assert "2400" in body
-    # Print tier long-edge is 10800.
-    assert "10800" in body
+    # Print tier long-edge is 7200 (18x24 @ 300 DPI).
+    assert "7200" in body
 
 
 def test_lakes_page_renders_with_search(

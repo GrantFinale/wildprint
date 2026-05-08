@@ -5,7 +5,7 @@ Wraps the deterministic ``poster_layout`` renderer with:
 * **Tier 1 (thumbnail)** — 400 px JPEG, no watermark, public, lazy.
 * **Tier 2 (preview)** — 2400 px JPEG (with 1800 px srcset variant), watermarked,
   public, generated once per "generate" click.
-* **Tier 3 (print)** — 7200 x 10800 PNG, no watermark, private, queued via RQ
+* **Tier 3 (print)** — 5400 x 7200 PNG, no watermark, private, queued via RQ
   after Stripe ``payment_intent.succeeded``.
 
 All tiers derive from one canonical :class:`RenderSpec`. The spec hash is the

@@ -2194,12 +2194,12 @@ def api_generate_poster():
     if not species_refs:
         return jsonify({"error": "No valid species found"}), 400
 
-    # Canvas dimensions follow orientation. Portrait is the new default
-    # (3300x5100); landscape is the legacy 5100x3300.
+    # Canvas dimensions follow orientation. 18x24" at 300 DPI = 5400x7200,
+    # which matches the Prodigi 18x24 frame SKUs (3:4 aspect).
     if orientation == "portrait":
-        canvas_w_default, canvas_h_default = 3300, 5100
+        canvas_w_default, canvas_h_default = 5400, 7200
     else:
-        canvas_w_default, canvas_h_default = 5100, 3300
+        canvas_w_default, canvas_h_default = 7200, 5400
 
     # Build PosterSpec
     spec = PosterSpec(
@@ -2386,10 +2386,12 @@ def api_render_framed_preview():
     if not species_refs:
         return jsonify({"error": "No valid species found"}), 400
 
+    # 3:4 aspect (18x24") to match the Prodigi frame photos. 200 DPI is
+    # plenty for the framed-preview JPEG (the frame photo is 2000x2000).
     if orientation == "portrait":
-        canvas_w_default, canvas_h_default = 3300, 5100
+        canvas_w_default, canvas_h_default = 3600, 4800
     else:
-        canvas_w_default, canvas_h_default = 5100, 3300
+        canvas_w_default, canvas_h_default = 4800, 3600
 
     loader = FileSystemMasterImageLoader(masters_dir=MASTER_DIR)
     present_refs = [ref for ref in species_refs if loader.exists(ref.slug, style_slug)]
@@ -2472,13 +2474,14 @@ def api_render_custom():
     # canvas_width/canvas_height directly (legacy callers + drag-aware UI),
     # in which case those win — this preserves user-edited geometry.
     orientation = (data.get("orientation") or "").lower()
+    # 18x24" at 300 DPI = 5400x7200 (3:4), matching Prodigi frame SKUs.
     if orientation == "portrait":
-        canvas_w_default, canvas_h_default = 3300, 5100
+        canvas_w_default, canvas_h_default = 5400, 7200
     elif orientation == "landscape":
-        canvas_w_default, canvas_h_default = 5100, 3300
+        canvas_w_default, canvas_h_default = 7200, 5400
     else:
-        # Legacy default
-        canvas_w_default, canvas_h_default = 5100, 3300
+        # Default landscape for legacy callers that don't pass orientation.
+        canvas_w_default, canvas_h_default = 7200, 5400
     canvas_w = data.get("canvas_width", canvas_w_default)
     canvas_h = data.get("canvas_height", canvas_h_default)
     title = data.get("title", "")

@@ -12,7 +12,7 @@ Tier 2 — preview
     public-read on ``fishingposter-previews``.
 
 Tier 3 — print
-    7200 x 10800 PNG sRGB, no watermark, private on ``fishingposter-posters``.
+    5400 x 7200 PNG sRGB, no watermark, private on ``fishingposter-posters``.
     Signed URLs only. Generated post-payment via the RQ worker.
 
 Phase 6 polish: ``get_tier_config`` now consults the ``render_presets``
@@ -42,9 +42,10 @@ TIER_PRINT: Final[int] = 3
 # A 1800 px srcset variant is also published for tier 2 (non-retina fallback).
 PREVIEW_SRCSET_LONG_EDGE: Final[int] = 1800
 
-# Print master dimensions — fixed at 7200 x 10800 (24" x 36" @ 300 DPI).
-PRINT_CANVAS_WIDTH: Final[int] = 7200
-PRINT_CANVAS_HEIGHT: Final[int] = 10800
+# Print master dimensions — fixed at 5400 x 7200 (18" x 24" @ 300 DPI).
+# Matches the Prodigi 18x24 frame SKUs (3:4 aspect).
+PRINT_CANVAS_WIDTH: Final[int] = 5400
+PRINT_CANVAS_HEIGHT: Final[int] = 7200
 
 
 # ---------------------------------------------------------------------------
@@ -100,7 +101,7 @@ TIER_CONFIG: Final[dict[int, TierConfig]] = {
     ),
     TIER_PRINT: TierConfig(
         tier=TIER_PRINT,
-        long_edge_px=PRINT_CANVAS_HEIGHT,  # the long edge of 7200x10800
+        long_edge_px=PRINT_CANVAS_HEIGHT,  # the long edge of 5400x7200
         dpi=300,
         fmt="PNG",
         jpeg_quality=0,  # n/a

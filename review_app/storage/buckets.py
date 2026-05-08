@@ -7,7 +7,7 @@ evaluated lazily so importing this module doesn't require env to be set.
 Tier mapping (from `docs/integration-plan.md` §"Three-tier render"):
 - Tier 1 (thumbnail, 400 px) → `THUMBS_BUCKET` (public-read, CDN)
 - Tier 2 (preview, 2400 px, watermarked) → `PREVIEWS_BUCKET` (public-read, CDN)
-- Tier 3 (print, 7200x10800, no watermark) → `POSTERS_BUCKET` (private, signed URLs)
+- Tier 3 (print, 5400x7200, no watermark) → `POSTERS_BUCKET` (private, signed URLs)
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def _resolve(env_var: str, default: str) -> str:
 
 
 def posters_bucket() -> str:
-    """Tier 3 — private bucket holding 7200x10800 PNG print masters."""
+    """Tier 3 — private bucket holding 5400x7200 PNG print masters."""
     return _resolve("SPACES_POSTERS_BUCKET", "fishingposter-posters")
 
 
