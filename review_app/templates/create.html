@@ -857,11 +857,22 @@
     setLiveEditorVisible(false);
     const el = $('cv3-framed-preview');
     if (el) { el.style.display = 'none'; el.removeAttribute('src'); }
+    // Free preview gets the FULL species list (primary + secondary).
+    // Server applies the lock overlay on species index >= free_count, so
+    // the customer sees the entire poster with the first 3 in full color
+    // and the rest greyed + lock-iconed. recommendCache.primary holds the
+    // un-capped list from /api/recommend; state.selectedSpecies is capped
+    // for the live editor's paywall view.
+    var freeAll = (recommendCache.primary || []).concat(recommendCache.secondary || []);
+    var freeSlugs = freeAll.map(function(s) { return s.slug; }).filter(Boolean);
+    if (freeSlugs.length === 0) {
+      freeSlugs = state.selectedSpecies.map(function(s) { return s.slug; });
+    }
     fetch('/api/render-framed-preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        species_slugs: state.selectedSpecies.map(function(s) { return s.slug; }),
+        species_slugs: freeSlugs,
         style: state.style,
         title: state.title || (state.waterName || 'this place'),
         subtitle: state.subtitle,

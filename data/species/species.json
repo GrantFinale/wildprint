@@ -1020,8 +1020,8 @@
       "midwest",
       "southwest"
     ],
-    "notes": "Also called shellcracker; feeds heavily on snails.",
-    "enabled": true,
+    "notes": "Also called shellcracker; feeds heavily on snails. [DISABLED 2026-05-07: master image missing \u2014 regenerate before re-enabling]",
+    "enabled": false,
     "commonness": 3,
     "species_scale": 1.0
   },
@@ -1298,7 +1298,7 @@
   {
     "common_name": "Tiger Musky",
     "slug": "tiger_musky",
-    "scientific_name": "Esox masquinongy × lucius",
+    "scientific_name": "Esox masquinongy \u00d7 lucius",
     "category": "fish",
     "habitat_tags": [
       "freshwater",
@@ -1319,7 +1319,7 @@
       "northeast",
       "mountain_west"
     ],
-    "notes": "Sterile hybrid (pike × musky); stocked for sport fishing.",
+    "notes": "Sterile hybrid (pike \u00d7 musky); stocked for sport fishing.",
     "enabled": true,
     "commonness": 1,
     "species_scale": 1.5
@@ -1388,7 +1388,7 @@
   {
     "common_name": "Saugeye",
     "slug": "saugeye",
-    "scientific_name": "Sander vitreus × canadensis",
+    "scientific_name": "Sander vitreus \u00d7 canadensis",
     "category": "fish",
     "habitat_tags": [
       "freshwater",
