@@ -136,10 +136,16 @@ def recommend(
     if cat_filter is not None and len(cat_filter) == 1:
         primary_count = 15
 
-    # --- Apply commonness boost (and drop plants + non-selected cats) ---
+    # --- Apply commonness boost (and drop plants + non-selected cats + disabled) ---
     boosted: list[tuple[str, float, int]] = []
     for slug, raw_score in scored:
         sp = species_by_slug.get(slug, {})
+        # Honor the per-species `enabled` flag. Defaults to True so existing
+        # entries without the field stay in. Set `enabled: false` to hide a
+        # species from recommendations (e.g., when its master image is
+        # missing/broken).
+        if sp.get("enabled", True) is False:
+            continue
         cat = sp.get("category")
         if cat == "plant":
             continue
