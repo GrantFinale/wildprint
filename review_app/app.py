@@ -62,8 +62,20 @@ from poster_layout import (
     PlacedItem,
     PosterSpec,
     SpeciesRef,
+    get_profile,
     select_layout_engine,
 )
+
+
+# Slugs accepted by the layout-style picker. Anything else falls back to
+# "field_guide" — the default since the picker UI shipped.
+_VALID_LAYOUT_STYLES = {"field_guide", "vintage_tackle", "hero", "packed", "custom"}
+
+
+def _resolve_layout_style(raw: object) -> str:
+    """Normalize and validate a ``layout_style`` payload field."""
+    s = (str(raw or "")).strip().lower()
+    return s if s in _VALID_LAYOUT_STYLES else "field_guide"
 from scripts.build_manifest import find_record, load_manifest, save_manifest
 from scripts.select_master import copy_masters, mark_selected
 from webapp.habitat_engine import (
@@ -2146,6 +2158,7 @@ def api_generate_poster():
         frame_style = None
     show_scientific_names = bool(data.get("show_scientific_names", False))
     preheader_text = (data.get("preheader_text") or "FISH OF").upper()
+    layout_style = _resolve_layout_style(data.get("layout_style"))
 
     if not species_slugs:
         return jsonify({"error": "No species selected"}), 400
@@ -2207,7 +2220,7 @@ def api_generate_poster():
         subtitle=subtitle,
         style_slug=style_slug,
         species_slugs=[ref.slug for ref in species_refs],
-        layout_style="hero",
+        layout_style=layout_style,
         canvas_width=canvas_w_default,
         canvas_height=canvas_h_default,
         background_color=background,
@@ -2228,7 +2241,7 @@ def api_generate_poster():
         subtitle=subtitle,
         style_slug=style_slug,
         species_slugs=[ref.slug for ref in present_refs],
-        layout_style="hero",
+        layout_style=layout_style,
         canvas_width=canvas_w_default,
         canvas_height=canvas_h_default,
         background_color=background,
@@ -2242,7 +2255,8 @@ def api_generate_poster():
         return jsonify({"error": "Layout produced zero placements"}), 500
 
     # Render
-    renderer = EditorialMultiRenderer()
+    style_profile = get_profile(layout_style)
+    renderer = EditorialMultiRenderer(style_profile=style_profile)
     # Reference-aesthetic toggles
     renderer._show_scientific_names = show_scientific_names
     renderer._preheader_text = preheader_text
@@ -2356,6 +2370,7 @@ def api_render_framed_preview():
     free_count = int(data.get("free_count", 3))
     if free_count < 0:
         free_count = 0
+    layout_style = _resolve_layout_style(data.get("layout_style"))
 
     # Server is the source of truth for unlock state — same pattern as
     # /api/render-custom.
@@ -2403,7 +2418,7 @@ def api_render_framed_preview():
         subtitle=subtitle,
         style_slug=style_slug,
         species_slugs=[ref.slug for ref in present_refs],
-        layout_style="hero",
+        layout_style=layout_style,
         canvas_width=canvas_w_default,
         canvas_height=canvas_h_default,
         background_color=background,
@@ -2415,7 +2430,7 @@ def api_render_framed_preview():
     if not result.placements:
         return jsonify({"error": "Layout produced zero placements"}), 500
 
-    renderer = EditorialMultiRenderer()
+    renderer = EditorialMultiRenderer(style_profile=get_profile(layout_style))
     poster_id = f"framed_{uuid.uuid4().hex}"
     posters_dir = Path(PROJECT_ROOT) / "output" / "posters"
     posters_dir.mkdir(parents=True, exist_ok=True)
@@ -2498,6 +2513,7 @@ def api_render_custom():
         frame_style = None
     show_scientific_names = bool(data.get("show_scientific_names", False))
     preheader_text = (data.get("preheader_text") or "FISH OF").upper()
+    layout_style = _resolve_layout_style(data.get("layout_style"))
 
     # Determine paywall state. The client sends `unlocked: true|false`
     # but the server is the source of truth: trust the session (and the
@@ -2555,7 +2571,7 @@ def api_render_custom():
         subtitle=subtitle or None,
         style_slug=style_slug,
         species_slugs=[p.species_ref.slug for p in placed_items],
-        layout_style="custom",
+        layout_style=layout_style,
         canvas_width=canvas_w,
         canvas_height=canvas_h,
         background_color=background,
@@ -2574,6 +2590,7 @@ def api_render_custom():
         label_common_font_size=label_size,
         label_scientific_font_size=max(10, int(label_size * 0.76)),
         label_gap_px=label_gap,
+        style_profile=get_profile(layout_style),
     )
 
     # Resolve custom fonts (if user picked one). Map (bold, italic) -> style suffix.

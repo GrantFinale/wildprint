@@ -178,6 +178,18 @@
         <span class="cv3-ed-secbtn-chev" aria-hidden="true">&#9654;</span>
       </button>
       <div class="cv3-ed-pane" id="cv3-pane-design" role="tabpanel" data-tab="design">
+        <label class="cv3-label">Layout style</label>
+        <div class="cv3-frame-grid" role="radiogroup" aria-label="Poster layout style">
+          <button type="button" class="cv3-frame-tile cv3-layout-tile cv3-frame-tile-active" data-layout="field_guide" role="radio" aria-checked="true" title="Field Guide">
+            <span class="cv3-frame-swatch" style="background:#FAF6EA;border:1px solid #2A2A2D;"></span>
+            <span class="cv3-frame-name">Field Guide</span>
+          </button>
+          <button type="button" class="cv3-frame-tile cv3-layout-tile" data-layout="vintage_tackle" role="radio" aria-checked="false" title="Vintage Tackle Catalog">
+            <span class="cv3-frame-swatch" style="background:#F4ECD8;border:1px solid #B8860B;"></span>
+            <span class="cv3-frame-name">Vintage Tackle</span>
+          </button>
+        </div>
+
         <label class="cv3-label">Orientation</label>
         <div class="cv3-orient-toggle" role="radiogroup" aria-label="Poster orientation">
           <button type="button" class="cv3-orient-btn cv3-orient-btn-active" data-orient="portrait" role="radio" aria-checked="true" title="Portrait">
@@ -389,6 +401,7 @@
     showScientificNames: false,
     orientation: 'portrait',
     frameStyle: 'walnut',
+    layoutStyle: 'field_guide',
     bgColor: '#f5efe2',
     bgFilename: null,
     bgUrl: null,
@@ -798,6 +811,7 @@
         background: state.bgColor,
         orientation: state.orientation,
         frame_style: state.frameStyle || null,
+        layout_style: state.layoutStyle || 'field_guide',
         show_scientific_names: !!state.showScientificNames,
         preheader_text: state.preheader || 'FISH OF',
         logo_filename: state.logoFilename,
@@ -904,6 +918,7 @@
         orientation: state.orientation,
         finish: 'brown',
         free_count: 3,
+        layout_style: state.layoutStyle || 'field_guide',
       }),
     })
       .then(function(r) { return r.json(); })
@@ -1339,6 +1354,26 @@
       });
     });
 
+    // Layout-style picker (Field Guide vs Vintage Tackle Catalog).
+    // Re-renders the framed preview so customers see the styling change
+    // without leaving the editor.
+    document.querySelectorAll('.cv3-layout-tile').forEach(function(tile) {
+      tile.addEventListener('click', function() {
+        var ls = this.dataset.layout;
+        if (!ls || state.layoutStyle === ls) return;
+        state.layoutStyle = ls;
+        document.querySelectorAll('.cv3-layout-tile').forEach(function(t) {
+          var active = t.dataset.layout === ls;
+          t.classList.toggle('cv3-frame-tile-active', active);
+          t.setAttribute('aria-checked', active ? 'true' : 'false');
+        });
+        // Re-fetch the framed preview with the new layout.
+        if (typeof fetchFramedPreview === 'function') {
+          fetchFramedPreview();
+        }
+      });
+    });
+
     // Preheader text.
     var preEl = document.getElementById('cv3-preheader');
     if (preEl) {
@@ -1551,6 +1586,7 @@
           canvas_height: state.canvasH,
           orientation: state.orientation,
           frame_style: state.frameStyle || null,
+          layout_style: state.layoutStyle || 'field_guide',
           show_scientific_names: !!state.showScientificNames,
           preheader_text: state.preheader || 'FISH OF',
           title: state.title,

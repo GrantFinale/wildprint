@@ -2342,3 +2342,340 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
                     pass
 
         return work
+
+
+# --- FieldGuideBandsEngine ---------------------------------------------------
+
+
+class FieldGuideBandsEngine(LayoutEngine):
+    """Honest-scale band-packing layout that mirrors a printed field guide.
+
+    Algorithm (matches the reference poster at
+    ``output/uploads/fish poster.jpeg``):
+
+    1. Sort species largest-first by ``relative_scale_index``.
+    2. Carve the canvas: top 12% for the title block, bottom 3% for any
+       tag/mark, the middle 85% is the body the bands live in.
+    3. Greedy band packing — walk the sorted species and open a new band
+       when adding the next fish would exceed 85% of canvas width minus
+       per-fish gaps. Aim for ~2 fish per band on average; allow 1-3.
+    4. Each band's height is the tallest fish in the band. Stack bands
+       top-to-bottom with a 1.2% canvas-height inter-band gap and reserve
+       2.5% canvas-height per band for the renderer-drawn label.
+    5. Center each band horizontally so the row composition reads as a
+       deliberate line break, not left-aligned packing.
+    6. Honest-scale floor: clamp ``relative_scale_index`` at ``min_idx``
+       (default 0.4) so smallest fish (e.g. bluegill) stay visible next to
+       a Northern Pike — but the relative-size relationship is preserved
+       (pike still ~6× bluegill body length, not equal).
+    7. Total-shrink pass: if the computed band-stack overflows the body
+       region, scale every band's draw size by the same overflow ratio so
+       relative sizes stay correct.
+
+    Pairs with :class:`EditorialMultiRenderer` rendering with the
+    "field_guide" :class:`StyleProfile` (cream paper, two-line title,
+    tracked common-name labels under each fish).
+    """
+
+    def __init__(
+        self,
+        title_band_fraction: float = 0.16,
+        bottom_margin_fraction: float = 0.03,
+        side_margin_fraction: float = 0.075,
+        inter_fish_gap_fraction: float = 0.07,
+        inter_band_gap_fraction: float = 0.020,
+        label_band_fraction: float = 0.030,
+        min_idx_floor: float = 0.4,
+        target_fish_per_band: int = 2,
+        max_fish_per_band: int = 3,
+    ) -> None:
+        self.title_band_fraction = title_band_fraction
+        self.bottom_margin_fraction = bottom_margin_fraction
+        self.side_margin_fraction = side_margin_fraction
+        self.inter_fish_gap_fraction = inter_fish_gap_fraction
+        self.inter_band_gap_fraction = inter_band_gap_fraction
+        self.label_band_fraction = label_band_fraction
+        self.min_idx_floor = min_idx_floor
+        self.target_fish_per_band = target_fish_per_band
+        self.max_fish_per_band = max_fish_per_band
+
+    def layout(
+        self,
+        spec: PosterSpec,
+        species: list[SpeciesRef],
+        loader: MasterImageLoader,
+    ) -> LayoutResult:
+        warnings: list[str] = []
+
+        if not species:
+            warnings.append("FieldGuideBandsEngine received zero species.")
+            return LayoutResult(poster=spec, placements=[], warnings=warnings)
+
+        pairs = _resolve_species_with_masters(spec, species, loader, warnings)
+        if not pairs:
+            warnings.append("FieldGuideBandsEngine: no masters available.")
+            return LayoutResult(poster=spec, placements=[], warnings=warnings)
+
+        # 1. Sort largest-first.
+        pairs_sorted = sorted(
+            pairs,
+            key=lambda pr: pr[0].relative_scale_index,
+            reverse=True,
+        )
+
+        canvas_w = spec.canvas_width
+        canvas_h = spec.canvas_height
+
+        # 2. Carve regions.
+        title_h = int(round(canvas_h * self.title_band_fraction))
+        bottom_h = int(round(canvas_h * self.bottom_margin_fraction))
+        body_top = title_h
+        body_h = max(1, canvas_h - title_h - bottom_h)
+
+        side_margin = int(round(canvas_w * self.side_margin_fraction))
+        usable_w = max(1, canvas_w - 2 * side_margin)
+        gap_px = int(round(canvas_w * self.inter_fish_gap_fraction))
+
+        # 6. Honest-scale floor on the index.
+        idx_for = lambda ref: max(self.min_idx_floor, ref.relative_scale_index)
+
+        # Pick a reference index for sizing. Largest fish should fill ~62%
+        # of the usable band width on average — gives the pike a hero
+        # presence without monopolizing the band, leaves room for ~2-3
+        # smaller species below the hero in compact bands.
+        largest_idx = idx_for(pairs_sorted[0][0])
+        target_largest_w = usable_w * 0.62
+        # px-per-idx-unit (preserves relative scale).
+        unit_w = target_largest_w / max(1e-6, largest_idx)
+
+        # Helper: candidate draw width at the per-species scale.
+        def draw_w_for(ref: SpeciesRef) -> float:
+            return idx_for(ref) * unit_w
+
+        # 3-5. Greedy band packing.
+        # Each band is a list of (ref, master, candidate_w, candidate_h).
+        bands: list[list[tuple[SpeciesRef, MasterImage, float, float]]] = []
+        cur_band: list[tuple[SpeciesRef, MasterImage, float, float]] = []
+        cur_band_w = 0.0
+        for ref, master in pairs_sorted:
+            cand_w = draw_w_for(ref)
+            src_w = max(1, master.width_px)
+            src_h = max(1, master.height_px)
+            cand_h = cand_w * src_h / src_w
+            # Width consumed if we add this fish: existing + gap + new.
+            extra_gap = gap_px if cur_band else 0
+            projected_w = cur_band_w + extra_gap + cand_w
+            band_full = (
+                len(cur_band) >= self.max_fish_per_band
+                or projected_w > usable_w
+            )
+            if band_full and cur_band:
+                bands.append(cur_band)
+                cur_band = [(ref, master, cand_w, cand_h)]
+                cur_band_w = cand_w
+            else:
+                cur_band.append((ref, master, cand_w, cand_h))
+                cur_band_w = projected_w
+        if cur_band:
+            bands.append(cur_band)
+
+        # 5. Compute total stack height.
+        band_heights = [max((it[3] for it in band), default=0.0) for band in bands]
+        label_reserve_px = int(round(canvas_h * self.label_band_fraction))
+        inter_band_px = int(round(canvas_h * self.inter_band_gap_fraction))
+        total_h = (
+            sum(band_heights)
+            + label_reserve_px * len(bands)
+            + inter_band_px * max(0, len(bands) - 1)
+        )
+
+        # 7. Total-shrink pass: if overflowing the body, scale uniformly.
+        shrink = 1.0
+        if total_h > body_h:
+            # Solve: shrink * (sum_band_h + labels) + gaps == body_h.
+            # We shrink the band heights AND label reserve uniformly; gaps
+            # stay constant since they're cosmetic.
+            scalable = sum(band_heights) + label_reserve_px * len(bands)
+            constant = inter_band_px * max(0, len(bands) - 1)
+            avail = max(1, body_h - constant)
+            if scalable > 0:
+                shrink = min(1.0, avail / scalable)
+            warnings.append(
+                f"FieldGuideBandsEngine: stack height {int(total_h)}px > body "
+                f"{body_h}px; shrinking everything to {shrink:.0%} of native size."
+            )
+
+        scaled_band_heights = [bh * shrink for bh in band_heights]
+        scaled_label_reserve = label_reserve_px * shrink
+
+        # 6. Center each band horizontally; stack vertically; emit placements.
+        placements: list[PlacedItem] = []
+        cursor_y = float(body_top)
+        for band, band_h in zip(bands, scaled_band_heights):
+            # Sum widths + gaps (after shrink — widths scale too so the
+            # band stays proportionally tight).
+            total_band_w = sum(it[2] * shrink for it in band) + gap_px * max(0, len(band) - 1)
+            x_cursor = (canvas_w - total_band_w) / 2.0
+            for (ref, master, cand_w, cand_h) in band:
+                draw_w = max(1, int(round(cand_w * shrink)))
+                draw_h = max(1, int(round(cand_h * shrink)))
+                # Vertical-center each fish within the band's max height
+                # (so smaller fish in a band sit on the same midline as the
+                # tallest one — same as the reference image's row baseline).
+                y_offset = (band_h - draw_h) / 2.0
+                placements.append(
+                    PlacedItem(
+                        species_ref=ref,
+                        master=master,
+                        x=int(round(x_cursor)),
+                        y=int(round(cursor_y + y_offset)),
+                        draw_width=draw_w,
+                        draw_height=draw_h,
+                    )
+                )
+                x_cursor += cand_w * shrink + gap_px
+            cursor_y += band_h + scaled_label_reserve + inter_band_px
+
+        return LayoutResult(poster=spec, placements=placements, warnings=warnings)
+
+
+# --- VintageCatalogEngine ----------------------------------------------------
+
+
+class VintageCatalogEngine(LayoutEngine):
+    """4-column grid layout in the style of an antique sporting-goods catalog.
+
+    Algorithm:
+
+    1. Reserve top 13% of canvas height for the title block, bottom 2% for
+       margin. Body = the middle 85%.
+    2. Lay the species into 4 columns × ``ceil(N / 4)`` rows. Each cell is
+       the same width and height.
+    3. Inside each cell, scale the master to fit ``cell_w * 0.85 ×
+       cell_h * 0.70`` while preserving aspect ratio. The remaining
+       ``cell_h * 0.20`` at the bottom is reserved for the renderer-drawn
+       two-line label (bold common name + italic Latin).
+    4. Center the master horizontally and vertically within its allotted
+       image region. Last row is centered within the column track when
+       fewer than 4 species remain.
+
+    Unlike :class:`FieldGuideBandsEngine`, this engine does NOT honor
+    ``relative_scale_index`` — every cell is the same size. The vintage
+    catalog aesthetic prizes uniform cells over honest scale.
+    """
+
+    def __init__(
+        self,
+        columns: int = 4,
+        title_band_fraction: float = 0.13,
+        bottom_margin_fraction: float = 0.02,
+        side_margin_fraction: float = 0.05,
+        gutter_fraction: float = 0.015,
+        cell_image_w_fraction: float = 0.85,
+        cell_image_h_fraction: float = 0.70,
+        cell_label_h_fraction: float = 0.20,
+    ) -> None:
+        self.columns = max(1, columns)
+        self.title_band_fraction = title_band_fraction
+        self.bottom_margin_fraction = bottom_margin_fraction
+        self.side_margin_fraction = side_margin_fraction
+        self.gutter_fraction = gutter_fraction
+        self.cell_image_w_fraction = cell_image_w_fraction
+        self.cell_image_h_fraction = cell_image_h_fraction
+        self.cell_label_h_fraction = cell_label_h_fraction
+
+    def layout(
+        self,
+        spec: PosterSpec,
+        species: list[SpeciesRef],
+        loader: MasterImageLoader,
+    ) -> LayoutResult:
+        warnings: list[str] = []
+
+        if not species:
+            warnings.append("VintageCatalogEngine received zero species.")
+            return LayoutResult(poster=spec, placements=[], warnings=warnings)
+
+        pairs = _resolve_species_with_masters(spec, species, loader, warnings)
+        if not pairs:
+            warnings.append("VintageCatalogEngine: no masters available.")
+            return LayoutResult(poster=spec, placements=[], warnings=warnings)
+
+        canvas_w = spec.canvas_width
+        canvas_h = spec.canvas_height
+
+        # 1. Carve regions.
+        title_h = int(round(canvas_h * self.title_band_fraction))
+        bottom_h = int(round(canvas_h * self.bottom_margin_fraction))
+        body_top = title_h
+        body_h = max(1, canvas_h - title_h - bottom_h)
+        side_margin = int(round(canvas_w * self.side_margin_fraction))
+        gutter_w_px = int(round(canvas_w * self.gutter_fraction))
+        gutter_h_px = int(round(canvas_h * self.gutter_fraction))
+
+        # 2. Cell dimensions.
+        cols = self.columns
+        rows = max(1, math.ceil(len(pairs) / cols))
+        cell_w = max(
+            1,
+            (canvas_w - 2 * side_margin - (cols - 1) * gutter_w_px) // cols,
+        )
+        cell_h = max(1, (body_h - (rows - 1) * gutter_h_px) // rows)
+
+        img_w_cap = cell_w * self.cell_image_w_fraction
+        img_h_cap = cell_h * self.cell_image_h_fraction
+        label_h_reserve = cell_h * self.cell_label_h_fraction
+
+        placements: list[PlacedItem] = []
+
+        # Track-x: where the column track starts within the canvas (so the
+        # last partial row can be centered relative to the same track).
+        track_x_start = side_margin
+        track_w = cols * cell_w + (cols - 1) * gutter_w_px
+
+        for idx, (ref, master) in enumerate(pairs):
+            row = idx // cols
+            col = idx % cols
+
+            # 4. Last row centering: if this is the last row and it's
+            # partial, push the row's items so they're centered within the
+            # column track instead of left-aligned.
+            if row == rows - 1:
+                in_last_row = len(pairs) - row * cols
+                if in_last_row < cols:
+                    # Pixel offset that re-centers the partial row.
+                    row_w = in_last_row * cell_w + (in_last_row - 1) * gutter_w_px
+                    row_offset = (track_w - row_w) // 2
+                else:
+                    row_offset = 0
+            else:
+                row_offset = 0
+
+            cell_x = track_x_start + row_offset + col * (cell_w + gutter_w_px)
+            cell_y = body_top + row * (cell_h + gutter_h_px)
+
+            # 3. Scale master to fit the image region preserving aspect.
+            src_w = max(1, master.width_px)
+            src_h = max(1, master.height_px)
+            scale = min(img_w_cap / src_w, img_h_cap / src_h)
+            draw_w = max(1, int(round(src_w * scale)))
+            draw_h = max(1, int(round(src_h * scale)))
+
+            # 4. Center master horizontally; the image region sits on top
+            # of the cell with the label-reserve at the bottom.
+            img_region_h = cell_h - int(round(label_h_reserve))
+            x = cell_x + (cell_w - draw_w) // 2
+            y = cell_y + (img_region_h - draw_h) // 2
+
+            placements.append(
+                PlacedItem(
+                    species_ref=ref,
+                    master=master,
+                    x=int(x),
+                    y=int(y),
+                    draw_width=int(draw_w),
+                    draw_height=int(draw_h),
+                )
+            )
+
+        return LayoutResult(poster=spec, placements=placements, warnings=warnings)

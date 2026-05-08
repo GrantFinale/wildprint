@@ -581,6 +581,163 @@ def _draw_two_line_title(
     return title_y_top
 
 
+def _draw_ornamental_title_frame(
+    draw: ImageDraw.ImageDraw,
+    canvas_w: int,
+    canvas_h: int,
+    preheader_text: str,
+    main_title: str,
+    title_color: str,
+    rule_color: str,
+    accent_color: str,
+) -> int:
+    """Vintage-tackle title frame: preheader, top rule with center diamond,
+    giant title, bottom rule with center diamond.
+
+    Used by the "vintage_tackle" :class:`StyleProfile`. Returns the y-bottom
+    of the entire title frame (useful for downstream layout).
+    """
+    preheader_size = max(28, int(round(canvas_h * 0.026)))
+    title_size = max(80, int(round(canvas_h * 0.070)))
+
+    pre_font = _load_first_truetype(_REFERENCE_PREHEADER_FONT_CANDIDATES, preheader_size)
+    title_font = _load_first_truetype(_REFERENCE_TITLE_FONT_CANDIDATES, title_size)
+
+    cursor_y = int(round(canvas_h * 0.045))
+
+    # Preheader — small tracked uppercase, centered.
+    pre_text = (preheader_text or "").upper()
+    tracking_px = max(3, int(round(preheader_size * 0.25)))
+    if pre_text:
+        advances = []
+        for ch in pre_text:
+            cw, _ = _text_size(draw, ch, pre_font)
+            advances.append(cw)
+        total_w = sum(advances) + tracking_px * max(0, len(pre_text) - 1)
+        x_start = (canvas_w - total_w) // 2
+        cur_x = x_start
+        for ch, adv in zip(pre_text, advances):
+            draw.text((cur_x, cursor_y), ch, font=pre_font, fill=title_color)
+            cur_x += adv + tracking_px
+        _, pre_h = _text_size(draw, pre_text, pre_font)
+        cursor_y += pre_h + int(round(canvas_h * 0.015))
+
+    # Top rule with center diamond.
+    rule_w = max(2, int(round(canvas_h / 1400)))
+    rule_inset = int(round(canvas_w * 0.08))
+    diamond_size = max(8, int(round(rule_w * 6)))
+
+    def _rule_with_diamond(y_pos: int) -> None:
+        cx = canvas_w // 2
+        gap = max(20, int(round(canvas_w * 0.012)))
+        draw.line(
+            [(rule_inset, y_pos), (cx - gap, y_pos)],
+            fill=rule_color,
+            width=rule_w,
+        )
+        draw.line(
+            [(cx + gap, y_pos), (canvas_w - rule_inset, y_pos)],
+            fill=rule_color,
+            width=rule_w,
+        )
+        # Center diamond glyph.
+        diamond = [
+            (cx, y_pos - diamond_size),
+            (cx + diamond_size, y_pos),
+            (cx, y_pos + diamond_size),
+            (cx - diamond_size, y_pos),
+        ]
+        draw.polygon(diamond, fill=accent_color)
+
+    _rule_with_diamond(cursor_y)
+    cursor_y += diamond_size + int(round(canvas_h * 0.018))
+
+    # Main title — auto-shrink to fit 86% of canvas width.
+    if main_title:
+        max_title_w = int(canvas_w * 0.86)
+        cur_size = title_size
+        cur_font = title_font
+        tw, th = _text_size(draw, main_title, cur_font)
+        min_size = max(40, int(title_size * 0.50))
+        while tw > max_title_w and cur_size > min_size:
+            cur_size = max(min_size, int(cur_size * 0.94))
+            cur_font = _load_first_truetype(_REFERENCE_TITLE_FONT_CANDIDATES, cur_size)
+            tw, th = _text_size(draw, main_title, cur_font)
+        tx = (canvas_w - tw) // 2
+        draw.text((tx, cursor_y), main_title, font=cur_font, fill=title_color)
+        cursor_y += th + int(round(canvas_h * 0.018))
+
+    # Bottom rule with center diamond.
+    _rule_with_diamond(cursor_y)
+    cursor_y += diamond_size
+
+    return cursor_y
+
+
+def _draw_compact_caption_only(
+    draw: ImageDraw.ImageDraw,
+    placements,
+    font: ImageFont.ImageFont,
+    ink_hex: str,
+    canvas_h: int,
+    label_letter_spacing: int = 4,
+) -> None:
+    """Draw a single tracked-uppercase common name centered under each fish.
+
+    Used by the "field_guide" :class:`StyleProfile` (label_kind =
+    ``tracked_common_only``). NO leader lines, NO scientific names — just
+    a small, deliberate caps caption that anchors the fish to its species.
+    """
+    pad = max(8, int(round(canvas_h * 0.006)))
+    for placed in placements:
+        sp = placed.species_ref
+        common = (sp.common_name or "").upper()
+        if not common:
+            continue
+        cx = placed.x + placed.draw_width // 2
+        # Compute tracked width.
+        advances = [_text_size(draw, ch, font)[0] for ch in common]
+        total_w = sum(advances) + label_letter_spacing * max(0, len(common) - 1)
+        _, h = _text_size(draw, common, font)
+        x_cursor = cx - total_w // 2
+        y = placed.y + placed.draw_height + pad
+        for ch, adv in zip(common, advances):
+            draw.text((x_cursor, y), ch, font=font, fill=ink_hex)
+            x_cursor += adv + label_letter_spacing
+
+
+def _draw_two_line_label(
+    draw: ImageDraw.ImageDraw,
+    placements,
+    body_font: ImageFont.ImageFont,
+    italic_font: ImageFont.ImageFont,
+    ink_hex: str,
+    canvas_h: int,
+) -> None:
+    """Draw a two-line label: bold common name + italic Latin name.
+
+    Used by the "vintage_tackle" :class:`StyleProfile` (label_kind =
+    ``common_plus_latin_italic``). Both lines are centered under the fish.
+    """
+    pad = max(8, int(round(canvas_h * 0.006)))
+    line_gap = max(4, int(round(canvas_h * 0.004)))
+    for placed in placements:
+        sp = placed.species_ref
+        common = sp.common_name or ""
+        latin = sp.scientific_name or ""
+        if not common and not latin:
+            continue
+        cx = placed.x + placed.draw_width // 2
+        cur_y = placed.y + placed.draw_height + pad
+        if common:
+            cw, ch = _text_size(draw, common, body_font)
+            draw.text((cx - cw // 2, cur_y), common, font=body_font, fill=ink_hex)
+            cur_y += ch + line_gap
+        if latin:
+            lw, _lh = _text_size(draw, latin, italic_font)
+            draw.text((cx - lw // 2, cur_y), latin, font=italic_font, fill=ink_hex)
+
+
 def _draw_inner_border(
     draw: ImageDraw.ImageDraw,
     canvas_w: int,
@@ -1461,6 +1618,7 @@ class EditorialMultiRenderer(PosterRenderer):
         subtitle_letter_spacing: int = 6,
         caption_letter_spacing: int = 4,
         label_letter_spacing: int = 4,
+        style_profile=None,
     ) -> None:
         self.title_font_size = title_font_size
         self.scientific_font_size = scientific_font_size
@@ -1510,17 +1668,44 @@ class EditorialMultiRenderer(PosterRenderer):
         self._inner_border_enabled: bool = True
         self._paper_grain_enabled: bool = True
         self._frame_style: str | None = None  # None | walnut|oak|black|white
+        # Style profile (Field Guide / Vintage Tackle / Classic). When
+        # supplied, its values OVERRIDE the toggles above so a single
+        # profile decision configures every aesthetic knob coherently.
+        # When None, all toggles keep the historical defaults — strict
+        # back-compat for callers that haven't migrated yet.
+        self._style_profile = style_profile
+        if style_profile is not None:
+            tk = style_profile.title_kind
+            self._use_two_line_title = tk == "two_line"
+            self._inner_border_enabled = style_profile.inner_border != "none"
+            self._paper_grain_enabled = style_profile.paper_grain_enabled
+            # label_kind drives leader_line_labels (set later, below).
+            self.leader_line_labels = style_profile.label_kind == "leader_lines"
+            # Show scientific names inline when the profile asks for the
+            # two-line label.
+            self._show_scientific_names = (
+                style_profile.label_kind == "common_plus_latin_italic"
+            )
 
     def render(self, result: LayoutResult, output_path: Path) -> None:
         spec = result.poster
 
         bg = spec.background_color or self.DEFAULT_BACKGROUND
+        # Style profile: when supplied, the profile's paper_hex is the
+        # source of truth UNLESS the caller passed a non-default background
+        # (i.e. a user customization). We treat plain white / default as
+        # "no opinion, use the profile" to avoid breaking older callers.
+        _profile = getattr(self, "_style_profile", None)
+        if _profile is not None and isinstance(bg, str):
+            if bg.lower() in ("#ffffff", "#fff", "white", self.DEFAULT_BACKGROUND.lower()):
+                bg = _profile.paper_hex
         # Reference aesthetic: when the caller passed plain white (the
         # historical default), substitute the cream paper color so the
         # poster looks like the field-guide reference out of the box.
         # Anyone who explicitly picked a non-white background still gets it.
         if (
-            getattr(self, "_use_two_line_title", False)
+            _profile is None
+            and getattr(self, "_use_two_line_title", False)
             and isinstance(bg, str)
             and bg.lower() in ("#ffffff", "#fff", "white")
         ):
@@ -1601,6 +1786,14 @@ class EditorialMultiRenderer(PosterRenderer):
             ):
                 self.title_color = REFERENCE_INK_HEX
                 self.scientific_color = REFERENCE_INK_HEX
+            # Style profile inks override the adaptive palette so each
+            # named style has a coherent identity (warm-brown for Vintage
+            # Tackle, near-black charcoal for Field Guide).
+            if _profile is not None and bg_image_canvas is None:
+                self.title_color = _profile.ink_hex
+                self.scientific_color = _profile.ink_hex
+                self.rule_color = _profile.rule_hex
+                self.caption_color = _profile.ink_hex
         logger.info(
             "editorial-multi background: %s (luminance=%.0f, title ink=%s)",
             bg,
@@ -1623,22 +1816,44 @@ class EditorialMultiRenderer(PosterRenderer):
             getattr(self, "_paper_grain_enabled", False)
             and bg_image_canvas is None
         ):
-            _apply_paper_grain(canvas, intensity=0.10)
+            grain_intensity = (
+                _profile.paper_grain_intensity if _profile is not None else 0.10
+            )
+            _apply_paper_grain(canvas, intensity=grain_intensity)
 
         draw = ImageDraw.Draw(canvas)
 
         # Inner border (Task C): thin warm-brown rule at ~3% inset from
         # canvas edges, framing the entire content area.
         if getattr(self, "_inner_border_enabled", False):
+            border_color = (
+                _profile.rule_hex if _profile is not None
+                else REFERENCE_INNER_BORDER_HEX
+            )
             try:
                 _draw_inner_border(
                     draw=draw,
                     canvas_w=spec.canvas_width,
                     canvas_h=spec.canvas_height,
-                    color=REFERENCE_INNER_BORDER_HEX,
+                    color=border_color,
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Inner border draw failed: %s", exc)
+            # Double-diamond inner border: draw a second inset rule just
+            # inside the first one and add a small diamond at each corner.
+            if (
+                _profile is not None
+                and _profile.inner_border == "double_diamond"
+            ):
+                try:
+                    self._draw_double_diamond_accent(
+                        draw=draw,
+                        canvas_w=spec.canvas_width,
+                        canvas_h=spec.canvas_height,
+                        color=_profile.accent_hex,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Double-diamond accent draw failed: %s", exc)
 
         if not result.placements:
             logger.warning(
@@ -1750,6 +1965,39 @@ class EditorialMultiRenderer(PosterRenderer):
                     font=scientific_font,
                     fill=self.scientific_color,
                 )
+        elif (
+            getattr(self, "_style_profile", None) is not None
+            and getattr(self._style_profile, "title_kind", None) == "ornamental_frame"
+        ):
+            # Vintage-tackle catalog title: preheader, top rule with center
+            # diamond glyph, giant title, bottom rule with diamond.
+            try:
+                _draw_ornamental_title_frame(
+                    draw=draw,
+                    canvas_w=canvas_w,
+                    canvas_h=canvas_h,
+                    preheader_text=getattr(self, "_preheader_text", "FISH OF"),
+                    main_title=spec.title or "",
+                    title_color=self._style_profile.ink_hex,
+                    rule_color=self._style_profile.rule_hex,
+                    accent_color=self._style_profile.accent_hex,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Ornamental title frame draw failed (%s); falling back.", exc
+                )
+                _draw_title_block(
+                    draw=draw,
+                    canvas_w=canvas_w,
+                    title_band_h=title_band_h,
+                    title=spec.title or "",
+                    italic_secondary=spec.subtitle,
+                    bold_font=title_font,
+                    italic_font=scientific_font,
+                    title_color=self.title_color,
+                    secondary_color=self.scientific_color,
+                    rule_color=self.rule_color,
+                )
         elif getattr(self, "_use_two_line_title", False):
             # Reference-aesthetic two-line title: tracked preheader flanked
             # by horizontal rules + big transitional-serif title beneath.
@@ -1821,7 +2069,47 @@ class EditorialMultiRenderer(PosterRenderer):
         for placed in result.placements:
             self._paste_item(canvas, placed)
 
-        if self.leader_line_labels:
+        # Style-profile label kinds take precedence over the legacy
+        # leader-lines / inline-below toggle. The profile sets
+        # `label_kind` to one of: "tracked_common_only" (Field Guide),
+        # "common_plus_latin_italic" (Vintage Tackle), or "leader_lines"
+        # (Classic). When no profile is set, fall through to the legacy
+        # behavior — strict back-compat.
+        _profile = getattr(self, "_style_profile", None)
+        _label_kind = getattr(_profile, "label_kind", None) if _profile else None
+
+        if _label_kind == "tracked_common_only":
+            # Tracked uppercase common-name caption centered under each
+            # fish — the field-guide reference look.
+            common_size = max(20, int(round(spec.canvas_height * 0.011)))
+            label_font = _load_caption_font(self.font_candidates, common_size)
+            _draw_compact_caption_only(
+                draw=draw,
+                placements=result.placements,
+                font=label_font,
+                ink_hex=_profile.ink_hex,
+                canvas_h=spec.canvas_height,
+                label_letter_spacing=max(2, int(round(common_size * 0.18))),
+            )
+        elif _label_kind == "common_plus_latin_italic":
+            # Two-line label: bold common name + italic Latin scientific.
+            common_size = max(22, int(round(spec.canvas_height * 0.013)))
+            latin_size = max(18, int(round(spec.canvas_height * 0.011)))
+            _, italic_font, body_font = _load_display_fonts(
+                self.font_candidates,
+                title_size=common_size,
+                scientific_size=latin_size,
+                regular_size=common_size,
+            )
+            _draw_two_line_label(
+                draw=draw,
+                placements=result.placements,
+                body_font=body_font,
+                italic_font=italic_font,
+                ink_hex=_profile.ink_hex,
+                canvas_h=spec.canvas_height,
+            )
+        elif self.leader_line_labels:
             self._draw_labels_with_leaders(
                 canvas=canvas,
                 draw=draw,
@@ -1989,23 +2277,29 @@ class EditorialMultiRenderer(PosterRenderer):
         # 3. Caption band. The subtitle is already used in the title block,
         # so populate the caption from habitat tags (or fall back to the
         # subtitle when no habitats are available) so the band isn't empty.
-        habitat_summary = self._build_habitat_summary(result)
-        primary = habitat_summary or (spec.subtitle if not habitat_summary else None)
-        secondary = None
+        # SKIP entirely when a style profile is in play — the new Field
+        # Guide / Vintage Tackle layouts handle their own bottom margin
+        # and a habitat-tags caption (e.g. "LAKE · STREAM") collides with
+        # the species labels they draw.
+        _skip_caption_band = bool(getattr(self, "_style_profile", None))
+        if not _skip_caption_band:
+            habitat_summary = self._build_habitat_summary(result)
+            primary = habitat_summary or (spec.subtitle if not habitat_summary else None)
+            secondary = None
 
-        _draw_caption_block(
-            draw=draw,
-            canvas_w=canvas_w,
-            canvas_h=canvas_h,
-            caption_band_h=caption_band_h,
-            primary_text=primary,
-            secondary_text=secondary,
-            primary_font=regular_font,
-            secondary_font=caption_font,
-            color=self.caption_color,
-            primary_letter_spacing=self.subtitle_letter_spacing,
-            secondary_letter_spacing=self.caption_letter_spacing,
-        )
+            _draw_caption_block(
+                draw=draw,
+                canvas_w=canvas_w,
+                canvas_h=canvas_h,
+                caption_band_h=caption_band_h,
+                primary_text=primary,
+                secondary_text=secondary,
+                primary_font=regular_font,
+                secondary_font=caption_font,
+                color=self.caption_color,
+                primary_letter_spacing=self.subtitle_letter_spacing,
+                secondary_letter_spacing=self.caption_letter_spacing,
+            )
 
         # 4. Optional logo — composited at a configurable size & position.
         # Supports PNG (alpha) or JPEG. Defaults: 20% of canvas width,
@@ -2296,6 +2590,33 @@ class EditorialMultiRenderer(PosterRenderer):
             canvas.paste(resized, (placed.x, placed.y), mask=alpha)
         else:
             canvas.paste(resized.convert("RGB"), (placed.x, placed.y))
+
+    def _draw_double_diamond_accent(
+        self,
+        draw: ImageDraw.ImageDraw,
+        canvas_w: int,
+        canvas_h: int,
+        color: str,
+    ) -> None:
+        """Draw an inset accent rule with a small diamond glyph at each corner.
+
+        Used by the "vintage_tackle" :class:`StyleProfile`. Sits just inside
+        the primary inner border to give the page a bookplate feel.
+        """
+        # Inner border lives at ~3% inset; this accent rule sits ~5% inset.
+        inset = int(round(min(canvas_w, canvas_h) * 0.05))
+        rule_w = max(1, int(round(canvas_h / 1800)))
+        x1, y1 = inset, inset
+        x2, y2 = canvas_w - inset, canvas_h - inset
+        draw.line([(x1, y1), (x2, y1)], fill=color, width=rule_w)
+        draw.line([(x1, y2), (x2, y2)], fill=color, width=rule_w)
+        draw.line([(x1, y1), (x1, y2)], fill=color, width=rule_w)
+        draw.line([(x2, y1), (x2, y2)], fill=color, width=rule_w)
+        # Corner diamonds.
+        d = max(8, int(round(min(canvas_w, canvas_h) * 0.008)))
+        for cx, cy in [(x1, y1), (x2, y1), (x1, y2), (x2, y2)]:
+            diamond = [(cx, cy - d), (cx + d, cy), (cx, cy + d), (cx - d, cy)]
+            draw.polygon(diamond, fill=color)
 
     # -------------------------------------------------- leader-line labels
     def _draw_labels_with_leaders(

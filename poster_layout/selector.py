@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 from poster_layout.engines import (
+    FieldGuideBandsEngine,
     HeroLayoutEngine,
     PackedLayoutEngine,
     SilhouettePackedLayoutEngine,
+    VintageCatalogEngine,
 )
 from poster_layout.interfaces import LayoutEngine
 from poster_layout.models import PosterSpec, SpeciesRef
@@ -16,13 +18,24 @@ def select_layout_engine(
 ) -> LayoutEngine:
     """Return the best-fit layout engine for the given species + spec.
 
-    Routing:
-      - N=1 -> HeroLayoutEngine (single-subject editorial)
-      - N>=2 with layout_style == "packed" -> PackedLayoutEngine (bbox shelves)
-      - N>=2 otherwise -> SilhouettePackedLayoutEngine (alpha-aware packing)
+    Routing precedence (first match wins):
+      1. ``layout_style == "field_guide"`` -> FieldGuideBandsEngine
+         (honest-scale band packing, the reference field-guide aesthetic).
+      2. ``layout_style == "vintage_tackle"`` -> VintageCatalogEngine
+         (uniform 4-column grid, antique sporting-goods catalog look).
+      3. ``layout_style == "hero"`` OR len(species) == 1 -> HeroLayoutEngine
+         (single-subject editorial).
+      4. ``layout_style == "packed"`` -> PackedLayoutEngine (bbox shelves).
+      5. Otherwise -> SilhouettePackedLayoutEngine (alpha-aware packing,
+         the historical default for multi-species posters).
     """
-    if len(species) <= 1:
+    style = (spec.layout_style or "").strip().lower()
+    if style == "field_guide":
+        return FieldGuideBandsEngine()
+    if style == "vintage_tackle":
+        return VintageCatalogEngine()
+    if style == "hero" or len(species) <= 1:
         return HeroLayoutEngine()
-    if spec.layout_style == "packed":
+    if style == "packed":
         return PackedLayoutEngine()
     return SilhouettePackedLayoutEngine()
