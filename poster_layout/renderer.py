@@ -1505,7 +1505,7 @@ class EditorialMultiRenderer(PosterRenderer):
         # border, common-name-only labels, and a wood frame composited on
         # the output. Defaults are ON (the new look becomes the default).
         self._use_two_line_title: bool = True
-        self._preheader_text: str = "WILDLIFE OF"
+        self._preheader_text: str = "FISH OF"
         self._show_scientific_names: bool = False
         self._inner_border_enabled: bool = True
         self._paper_grain_enabled: bool = True
@@ -1758,7 +1758,7 @@ class EditorialMultiRenderer(PosterRenderer):
                     draw=draw,
                     canvas_w=canvas_w,
                     canvas_h=canvas_h,
-                    preheader_text=getattr(self, "_preheader_text", "WILDLIFE OF"),
+                    preheader_text=getattr(self, "_preheader_text", "FISH OF"),
                     main_title=spec.title or "",
                     title_color=self.title_color,
                     rule_color=REFERENCE_INNER_BORDER_HEX,

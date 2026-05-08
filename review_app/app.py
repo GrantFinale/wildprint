@@ -2137,7 +2137,7 @@ def api_generate_poster():
     background_image_filename = data.get("background_image_filename")
     # Reference-aesthetic toggles (Tasks A, B, C, D). Defaults match the
     # new poster look: portrait orientation, walnut frame baked in, common
-    # name only, "WILDLIFE OF" preheader.
+    # name only, "FISH OF" preheader.
     orientation = (data.get("orientation") or "portrait").lower()
     if orientation not in ("portrait", "landscape"):
         orientation = "portrait"
@@ -2145,7 +2145,7 @@ def api_generate_poster():
     if frame_style and frame_style not in ("walnut", "oak", "black", "white", "pine"):
         frame_style = None
     show_scientific_names = bool(data.get("show_scientific_names", False))
-    preheader_text = (data.get("preheader_text") or "WILDLIFE OF").upper()
+    preheader_text = (data.get("preheader_text") or "FISH OF").upper()
 
     if not species_slugs:
         return jsonify({"error": "No species selected"}), 400
@@ -2497,7 +2497,7 @@ def api_render_custom():
     if frame_style and frame_style not in ("walnut", "oak", "black", "white", "pine"):
         frame_style = None
     show_scientific_names = bool(data.get("show_scientific_names", False))
-    preheader_text = (data.get("preheader_text") or "WILDLIFE OF").upper()
+    preheader_text = (data.get("preheader_text") or "FISH OF").upper()
 
     # Determine paywall state. The client sends `unlocked: true|false`
     # but the server is the source of truth: trust the session (and the
