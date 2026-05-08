@@ -2379,7 +2379,7 @@ class FieldGuideBandsEngine(LayoutEngine):
 
     def __init__(
         self,
-        title_band_fraction: float = 0.16,
+        title_band_fraction: float = 0.20,
         bottom_margin_fraction: float = 0.03,
         side_margin_fraction: float = 0.075,
         inter_fish_gap_fraction: float = 0.07,
@@ -2388,6 +2388,14 @@ class FieldGuideBandsEngine(LayoutEngine):
         min_idx_floor: float = 0.4,
         target_fish_per_band: int = 2,
         max_fish_per_band: int = 3,
+        title_breathing_fraction: float = 0.015,
+        target_band_width_fraction: float = 0.75,
+        max_inter_fish_gap_fraction: float = 0.10,
+        # Per-fish minimum horizontal spacing must accommodate label width.
+        # Label font size ≈ canvas_h * 0.011, average tracked common name ≈
+        # 14 chars * (label_size * 0.65) → ~10% canvas_h ≈ ~7.5% canvas_w
+        # at 3:4 aspect. We measure exactly during packing.
+        min_label_pad_fraction: float = 0.0067,  # ≈24px on a 3600px canvas
     ) -> None:
         self.title_band_fraction = title_band_fraction
         self.bottom_margin_fraction = bottom_margin_fraction
@@ -2398,6 +2406,10 @@ class FieldGuideBandsEngine(LayoutEngine):
         self.min_idx_floor = min_idx_floor
         self.target_fish_per_band = target_fish_per_band
         self.max_fish_per_band = max_fish_per_band
+        self.title_breathing_fraction = title_breathing_fraction
+        self.target_band_width_fraction = target_band_width_fraction
+        self.max_inter_fish_gap_fraction = max_inter_fish_gap_fraction
+        self.min_label_pad_fraction = min_label_pad_fraction
 
     def layout(
         self,
@@ -2426,15 +2438,42 @@ class FieldGuideBandsEngine(LayoutEngine):
         canvas_w = spec.canvas_width
         canvas_h = spec.canvas_height
 
-        # 2. Carve regions.
+        # 2. Carve regions. Title block is reserved 20% by default to give
+        # the auto-shrunk title + bottom rule clearance from the hero fish
+        # (Bug 1 fix: long lake names like "Lake Champlain" have descenders
+        # that crash into the pike's dorsal fin without this padding).
         title_h = int(round(canvas_h * self.title_band_fraction))
         bottom_h = int(round(canvas_h * self.bottom_margin_fraction))
-        body_top = title_h
-        body_h = max(1, canvas_h - title_h - bottom_h)
+        # Small breathing-room buffer below the title's bottom rule before
+        # the first band starts.
+        breathing_px = int(round(canvas_h * self.title_breathing_fraction))
+        body_top = title_h + breathing_px
+        body_h = max(1, canvas_h - body_top - bottom_h)
 
         side_margin = int(round(canvas_w * self.side_margin_fraction))
         usable_w = max(1, canvas_w - 2 * side_margin)
         gap_px = int(round(canvas_w * self.inter_fish_gap_fraction))
+        min_label_pad_px = int(round(canvas_w * self.min_label_pad_fraction))
+
+        # Estimate tracked-label width using same metrics as the renderer's
+        # _draw_compact_caption_only (font_size = canvas_h * 0.011, tracking
+        # = font_size * 0.18). Per-char advance for uppercase serif ≈ 0.72
+        # of font size — empirical (measured against the actual editorial
+        # font: SMALLMOUTH BASS at 53px → 0.71, YELLOW PERCH → 0.72). We
+        # err slightly wide so we never under-allocate. Used by the packing
+        # loop to enforce that adjacent labels won't collide horizontally
+        # (Bug 2 fix).
+        label_font_size = max(20, int(round(canvas_h * 0.011)))
+        label_tracking = max(2, int(round(label_font_size * 0.18)))
+
+        def label_width_for(ref: SpeciesRef) -> int:
+            text = (ref.common_name or "").upper()
+            if not text:
+                return 0
+            char_advance = label_font_size * 0.72
+            return int(round(
+                len(text) * char_advance + label_tracking * max(0, len(text) - 1)
+            ))
 
         # 6. Honest-scale floor on the index.
         idx_for = lambda ref: max(self.min_idx_floor, ref.relative_scale_index)
@@ -2452,34 +2491,45 @@ class FieldGuideBandsEngine(LayoutEngine):
         def draw_w_for(ref: SpeciesRef) -> float:
             return idx_for(ref) * unit_w
 
-        # 3-5. Greedy band packing.
-        # Each band is a list of (ref, master, candidate_w, candidate_h).
-        bands: list[list[tuple[SpeciesRef, MasterImage, float, float]]] = []
-        cur_band: list[tuple[SpeciesRef, MasterImage, float, float]] = []
-        cur_band_w = 0.0
+        # 3-5. Greedy band packing — packing-aware of label widths.
+        # Each band is a list of (ref, master, candidate_w, candidate_h,
+        # label_w). When projecting whether a fish fits, we use the WIDER
+        # of (fish_width, label_width) plus the label-padding gap to ensure
+        # adjacent labels don't horizontally collide (Bug 2 fix). This
+        # gives uniform label sizing across all bands at the cost of
+        # occasionally pushing a fish to a new band.
+        bands: list[list[tuple[SpeciesRef, MasterImage, float, float, int]]] = []
+        cur_band: list[tuple[SpeciesRef, MasterImage, float, float, int]] = []
+        cur_band_slot_w = 0.0  # sum of max(fish_w, label_w) per item
         for ref, master in pairs_sorted:
             cand_w = draw_w_for(ref)
             src_w = max(1, master.width_px)
             src_h = max(1, master.height_px)
             cand_h = cand_w * src_h / src_w
-            # Width consumed if we add this fish: existing + gap + new.
-            extra_gap = gap_px if cur_band else 0
-            projected_w = cur_band_w + extra_gap + cand_w
+            label_w = label_width_for(ref)
+            # Each item's horizontal "slot" must be at least as wide as
+            # its label so labels never overlap their neighbors. Use the
+            # max of fish-draw-width and label-width.
+            item_slot_w = max(cand_w, float(label_w))
+            # Inter-item gap: max of the cosmetic fish gap and the label
+            # padding (so bands of 3 small fish leave room for labels).
+            extra_gap = max(gap_px, min_label_pad_px) if cur_band else 0
+            projected_w = cur_band_slot_w + extra_gap + item_slot_w
             band_full = (
                 len(cur_band) >= self.max_fish_per_band
                 or projected_w > usable_w
             )
             if band_full and cur_band:
                 bands.append(cur_band)
-                cur_band = [(ref, master, cand_w, cand_h)]
-                cur_band_w = cand_w
+                cur_band = [(ref, master, cand_w, cand_h, label_w)]
+                cur_band_slot_w = item_slot_w
             else:
-                cur_band.append((ref, master, cand_w, cand_h))
-                cur_band_w = projected_w
+                cur_band.append((ref, master, cand_w, cand_h, label_w))
+                cur_band_slot_w = projected_w
         if cur_band:
             bands.append(cur_band)
 
-        # 5. Compute total stack height.
+        # 5. Compute total stack height (item[3] = candidate_h).
         band_heights = [max((it[3] for it in band), default=0.0) for band in bands]
         label_reserve_px = int(round(canvas_h * self.label_band_fraction))
         inter_band_px = int(round(canvas_h * self.inter_band_gap_fraction))
@@ -2508,15 +2558,51 @@ class FieldGuideBandsEngine(LayoutEngine):
         scaled_band_heights = [bh * shrink for bh in band_heights]
         scaled_label_reserve = label_reserve_px * shrink
 
-        # 6. Center each band horizontally; stack vertically; emit placements.
+        # 6. Spread each band horizontally to ~75% of canvas width, stack
+        # vertically, emit placements (Bug 3 fix).
+        #
+        # After packing fish tight, EXPAND inter-fish gaps so each multi-
+        # fish band stretches to roughly the target band width. Caps the
+        # inter-fish gap at max_inter_fish_gap_fraction of canvas width so
+        # bands of 2 small fish don't fly to opposite edges.
+        target_band_w = canvas_w * self.target_band_width_fraction
+        max_gap_px = int(round(canvas_w * self.max_inter_fish_gap_fraction))
         placements: list[PlacedItem] = []
         cursor_y = float(body_top)
         for band, band_h in zip(bands, scaled_band_heights):
-            # Sum widths + gaps (after shrink — widths scale too so the
-            # band stays proportionally tight).
-            total_band_w = sum(it[2] * shrink for it in band) + gap_px * max(0, len(band) - 1)
+            n = len(band)
+            scaled_fish_widths = [it[2] * shrink for it in band]
+            label_widths = [it[4] for it in band]
+            scaled_fish_total = sum(scaled_fish_widths)
+            if n >= 2:
+                # Expand to target band width but respect the cap, and
+                # never go below the original cosmetic fish gap (or label
+                # pad, whichever is wider).
+                min_gap_floor = max(gap_px, min_label_pad_px)
+                # Hard floor for label non-collision: between adjacent
+                # fish, gap must be at least the sum of label half-widths
+                # exceeding fish half-widths plus min label pad. We use the
+                # tightest pair as the band-wide floor (Bug 2 fix —
+                # ensures no two adjacent labels overlap regardless of
+                # which pair is densest).
+                label_collision_floor = 0.0
+                for i in range(n - 1):
+                    lw_i, lw_n = label_widths[i], label_widths[i + 1]
+                    fw_i, fw_n = scaled_fish_widths[i], scaled_fish_widths[i + 1]
+                    needed = (lw_i + lw_n) / 2.0 + min_label_pad_px - (fw_i + fw_n) / 2.0
+                    label_collision_floor = max(label_collision_floor, needed)
+                min_gap = max(float(min_gap_floor), label_collision_floor)
+                desired_remaining = max(0.0, target_band_w - scaled_fish_total)
+                inter_gap = desired_remaining / (n - 1)
+                inter_gap = min(inter_gap, float(max_gap_px))
+                # Label non-collision overrides the cosmetic cap.
+                inter_gap = max(inter_gap, min_gap)
+                total_band_w = scaled_fish_total + inter_gap * (n - 1)
+            else:
+                inter_gap = 0.0
+                total_band_w = scaled_fish_total
             x_cursor = (canvas_w - total_band_w) / 2.0
-            for (ref, master, cand_w, cand_h) in band:
+            for (ref, master, cand_w, cand_h, _label_w) in band:
                 draw_w = max(1, int(round(cand_w * shrink)))
                 draw_h = max(1, int(round(cand_h * shrink)))
                 # Vertical-center each fish within the band's max height
@@ -2533,7 +2619,7 @@ class FieldGuideBandsEngine(LayoutEngine):
                         draw_height=draw_h,
                     )
                 )
-                x_cursor += cand_w * shrink + gap_px
+                x_cursor += cand_w * shrink + inter_gap
             cursor_y += band_h + scaled_label_reserve + inter_band_px
 
         return LayoutResult(poster=spec, placements=placements, warnings=warnings)
