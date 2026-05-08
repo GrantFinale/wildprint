@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from poster_layout.models import (
     LayoutResult,
@@ -95,9 +95,17 @@ def test_apply_locks_unlocks_first_3_species() -> None:
         )
 
 
-def test_apply_locks_greys_species_4_through_n() -> None:
-    """Cells at index >= free_count get visibly dimmer than the source."""
+def test_apply_locks_fades_species_4_through_n_toward_background() -> None:
+    """Cells at index >= free_count fade ~50% toward the canvas background.
+
+    The new lock-overlay design preserves silhouette + scale by lightening
+    locked cells toward the poster's background instead of dimming them
+    with a black wash. We paint a dark patch in each locked cell and
+    assert it brightens (closer to the 240 background).
+    """
     img = _bright_canvas()
+    # Paint a dark patch in each locked-to-be cell so we can detect the fade.
+    draw = ImageDraw.Draw(img)
     placements = [
         _placed("a", 50, 50, 200, 200),
         _placed("b", 300, 50, 200, 200),
@@ -105,18 +113,23 @@ def test_apply_locks_greys_species_4_through_n() -> None:
         _placed("d", 50, 300, 200, 200),
         _placed("e", 300, 300, 200, 200),
     ]
+    for p in placements[3:]:
+        draw.rectangle(
+            [(p.x + 5, p.y + 5), (p.x + 30, p.y + 30)],
+            fill=(20, 20, 20),
+        )
     out = apply_species_locks(img, _layout(placements), free_count=3)
 
     arr = np.asarray(out)
-    # Sample cell centers — but offset by enough that the lock-icon glyph
-    # doesn't dominate the reading. Use a corner of the cell instead.
+    # Each locked cell's dark patch should brighten roughly halfway toward
+    # the (240) background — landing near 130. Allow a generous band.
     for p in placements[3:]:
-        sample_x = p.x + 10
-        sample_y = p.y + 10
-        # 50% wash on a 240 source should land near 120. Allow generous margin.
-        assert arr[sample_y, sample_x, 0] < 200, (
-            f"locked cell at {p.species_ref.slug} not dimmed enough "
-            f"(R={arr[sample_y, sample_x, 0]})"
+        sample_x = p.x + 15
+        sample_y = p.y + 15
+        r = int(arr[sample_y, sample_x, 0])
+        assert 90 < r < 200, (
+            f"locked cell at {p.species_ref.slug} did not fade "
+            f"toward background (R={r})"
         )
 
 
@@ -133,12 +146,13 @@ def test_apply_locks_paints_lock_icon_centered_in_each_locked_cell() -> None:
     arr = np.asarray(out)
 
     # The locked cell is at (50, 300) sized 300x300 → center ≈ (200, 450).
-    # The icon is white-on-dim, so the center should be brighter than the
-    # surrounding wash (i.e. brighter than the cell's corner).
+    # The icon is now black-on-transparent, so the center should be DARKER
+    # than the surrounding faded cell (which sits near the bg color).
     center_pixel = arr[450, 200, 0]
-    corner_pixel = arr[310, 60, 0]  # well inside the dim wash
-    assert center_pixel > corner_pixel, (
-        f"icon not visible at locked-cell center (center={center_pixel}, corner={corner_pixel})"
+    corner_pixel = arr[310, 60, 0]  # well inside the faded cell
+    assert center_pixel < corner_pixel, (
+        f"black lock icon not visible at locked-cell center "
+        f"(center={center_pixel}, corner={corner_pixel})"
     )
 
 

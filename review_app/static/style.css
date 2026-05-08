@@ -1746,6 +1746,75 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
   padding: 1rem;
 }
 
+/* Free-tier framed-preview stage. The img is the rendered (or blank) frame
+   photo; the loading overlay sits over the frame's inner print area while
+   the server render is in flight. Inner-rect math matches data/frame_skus.json
+   for the brown finish (x=24.2%, y=14.7%, w=51.6%, h=68.8%). */
+.cv3-framed-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cv3-framed-stage > img#cv3-framed-preview {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  display: block;
+}
+.cv3-framed-loading {
+  position: absolute;
+  /* Brown-frame inner rect: 24.2/14.7/51.6/68.8 — center at 50%, 49.1% */
+  top: 49.1%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 42%;            /* a bit narrower than the 51.6% inner-rect width */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  color: #1a1a1a;
+  text-align: center;
+  pointer-events: none;
+  font-family: 'Playfair Display', Georgia, serif;
+}
+.cv3-framed-loading-rule {
+  width: 100%;
+  height: 2px;
+  background: #1a1a1a;
+}
+.cv3-framed-loading-pre {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  font-size: clamp(0.7rem, 1.2vw, 1.1rem);
+  text-transform: uppercase;
+}
+.cv3-framed-loading-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(1.4rem, 3.2vw, 2.6rem);
+  line-height: 1.05;
+  margin-top: 0.25rem;
+}
+.cv3-framed-loading-spinner {
+  width: 22px;
+  height: 22px;
+  margin-top: 0.6rem;
+  border: 2px solid rgba(0,0,0,0.18);
+  border-top-color: #1a1a1a;
+  border-radius: 50%;
+  animation: cv3-framed-spin 0.85s linear infinite;
+}
+@keyframes cv3-framed-spin { to { transform: rotate(360deg); } }
+.cv3-framed-stage.is-loaded .cv3-framed-loading { display: none; }
+
 @media (max-width: 900px) {
   .cv3-editor {
     grid-template-columns: 1fr;
@@ -1821,7 +1890,7 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: var(--bg); paddi
   z-index: 9;
 }
 .cv3-watermark::before {
-  content: "PREVIEW · wildlife.5story.com · PREVIEW · wildlife.5story.com · PREVIEW · wildlife.5story.com · PREVIEW · wildlife.5story.com · PREVIEW · wildlife.5story.com · PREVIEW · wildlife.5story.com";
+  content: "PREVIEW · www.fishingposter.com · PREVIEW · www.fishingposter.com · PREVIEW · www.fishingposter.com · PREVIEW · www.fishingposter.com · PREVIEW · www.fishingposter.com · PREVIEW · www.fishingposter.com";
   position: absolute;
   top: 50%;
   left: 50%;

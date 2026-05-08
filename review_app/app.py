@@ -2676,7 +2676,7 @@ def api_render_custom():
     # Server-side watermark for the free preview. Draws a semi-transparent
     # diagonal "PREVIEW" string across the rendered PNG when not unlocked.
     renderer._draw_watermark = apply_watermark
-    renderer._watermark_text = "PREVIEW — wildlife.5story.com"
+    renderer._watermark_text = "PREVIEW — www.fishingposter.com"
 
     poster_id = f"custom_{uuid.uuid4().hex}"
     posters_dir = Path(PROJECT_ROOT) / "output" / "posters"

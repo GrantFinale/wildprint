@@ -219,7 +219,7 @@
         </div>
 
         <label class="cv3-label">Preheader text</label>
-        <input type="text" id="cv3-preheader" class="cv3-input" placeholder="WILDLIFE OF" value="WILDLIFE OF">
+        <input type="text" id="cv3-preheader" class="cv3-input" placeholder="FISH OF" value="FISH OF">
 
         <label class="cv3-label">Title</label>
         <input type="text" id="cv3-title" class="cv3-input" placeholder="Lake Michigan">
@@ -331,7 +331,9 @@
   <!-- Right column: poster preview -->
   <main class="cv3-ed-main">
     <div class="cv3-canvas-wrap">
-      <div id="cv3-canvas-frame" class="cv3-canvas-frame cv3-canvas-frame--walnut" data-orientation="portrait" data-frame="walnut" aria-hidden="false">
+      <!-- Live editor (hidden for free-tier; only revealed for unlocked users
+           who get the drag/customize UI). -->
+      <div id="cv3-canvas-frame" class="cv3-canvas-frame cv3-canvas-frame--walnut" data-orientation="portrait" data-frame="walnut" aria-hidden="true" style="display:none">
         <div id="cv3-canvas" class="cv3-canvas" data-orientation="portrait">
           <div id="cv3-canvas-overlay" class="cv3-canvas-overlay" style="display:none">
             <div class="cv3-spinner"></div>
@@ -341,11 +343,20 @@
         </div>
         <img id="cv3-canvas-frame-overlay" class="cv3-canvas-frame-overlay" src="/static/frame_overlays/walnut.png" alt="">
       </div>
-      <!-- Free-tier framed preview: shown INSTEAD of the live editor for free
-           users. Server-composited (frame + lock overlay + watermark) — see
-           /api/render-framed-preview. Hidden by default; the JS swaps the
-           live editor for this image after the first server render returns. -->
-      <img id="cv3-framed-preview" alt="Framed preview" style="display:none;max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+      <!-- Free-tier framed preview: server-composited (frame + lock overlay
+           + watermark) via /api/render-framed-preview. Defaults to the blank
+           brown frame with a loading overlay on top so the user sees the
+           final framed shape immediately, never the legacy live editor. -->
+      <div class="cv3-framed-stage">
+        <img id="cv3-framed-preview" alt="Framed preview" src="/static/frames/classic-brown-blank.jpg">
+        <div id="cv3-framed-loading" class="cv3-framed-loading" aria-live="polite">
+          <div class="cv3-framed-loading-rule"></div>
+          <div class="cv3-framed-loading-pre">FISH OF</div>
+          <div class="cv3-framed-loading-rule"></div>
+          <div class="cv3-framed-loading-title" id="cv3-framed-loading-title">[your water]</div>
+          <div class="cv3-framed-loading-spinner"></div>
+        </div>
+      </div>
     </div>
     <div class="cv3-canvas-status">
       <span id="cv3-status-msg" class="subtle">Drag animals to reposition. Click the title to edit it.</span>
@@ -374,7 +385,7 @@
     style: 'scientific',
     title: '',
     subtitle: '',
-    preheader: 'WILDLIFE OF',
+    preheader: 'FISH OF',
     showScientificNames: false,
     orientation: 'portrait',
     frameStyle: 'walnut',
@@ -788,7 +799,7 @@
         orientation: state.orientation,
         frame_style: state.frameStyle || null,
         show_scientific_names: !!state.showScientificNames,
-        preheader_text: state.preheader || 'WILDLIFE OF',
+        preheader_text: state.preheader || 'FISH OF',
         logo_filename: state.logoFilename,
         logo_config: {
           size_pct: state.logoSize,
@@ -841,22 +852,35 @@
     const frame = $('cv3-canvas-frame');
     if (frame) frame.style.display = show ? '' : 'none';
   }
+  function setFramedLoading(loading) {
+    var stage = document.querySelector('.cv3-framed-stage');
+    if (!stage) return;
+    if (loading) {
+      stage.classList.remove('is-loaded');
+      var titleEl = $('cv3-framed-loading-title');
+      if (titleEl) titleEl.textContent = (state.title || state.waterName || '[your water]');
+      var preEl = $('cv3-framed-loading-pre') || stage.querySelector('.cv3-framed-loading-pre');
+      if (preEl) preEl.textContent = (state.preheader || 'FISH OF');
+      // Reset the img to the blank brown frame so any prior render is gone.
+      var img = $('cv3-framed-preview');
+      if (img) img.src = '/static/frames/classic-brown-blank.jpg';
+    } else {
+      stage.classList.add('is-loaded');
+    }
+  }
   function hideFramedPreview() {
-    const el = $('cv3-framed-preview');
-    if (el) { el.style.display = 'none'; el.removeAttribute('src'); }
-    setLiveEditorVisible(true);
+    setFramedLoading(true);
   }
   function fetchFramedPreview() {
     if (!state.selectedSpecies || state.selectedSpecies.length === 0) {
-      hideFramedPreview();
+      setFramedLoading(true);
       return;
     }
-    // Hide the live editor IMMEDIATELY — don't wait for the server render.
-    // Replace it with a simple "Preparing your preview…" state so the user
-    // doesn't see the unframed/un-watermarked render.
+    // Live editor stays hidden for free users; the framed-preview stage
+    // (blank frame + loading overlay) is what they see while we wait for
+    // the server to composite the real preview.
     setLiveEditorVisible(false);
-    const el = $('cv3-framed-preview');
-    if (el) { el.style.display = 'none'; el.removeAttribute('src'); }
+    setFramedLoading(true);
     // Free preview gets the FULL species list (primary + secondary).
     // Server applies the lock overlay on species index >= free_count, so
     // the customer sees the entire poster with the first 3 in full color
@@ -888,17 +912,17 @@
           const elx = $('cv3-framed-preview');
           if (elx) {
             // Cache-bust each render so the browser doesn't show a stale frame.
+            elx.onload = function() { setFramedLoading(false); };
             elx.src = data.poster_url + '?t=' + Date.now();
-            elx.style.display = 'block';
           }
         } else {
-          // Server render failed — fall back to the live editor.
-          setLiveEditorVisible(true);
+          // Server render failed — keep the placeholder up but stop spinning.
+          setFramedLoading(false);
         }
       })
       .catch(function() {
-        // Server unreachable — fall back to the live editor so the user sees something.
-        setLiveEditorVisible(true);
+        // Server unreachable — keep the placeholder up but stop spinning.
+        setFramedLoading(false);
       });
   }
 
@@ -1247,7 +1271,7 @@
   function applyDefaultTitle() {
     if (state.titleEdited) return;
     const name = (state.waterName || '').trim();
-    state.title = name ? ('Wildlife of ' + name) : 'Wildlife of [your water]';
+    state.title = name || '[your water]';
     const inp = $('cv3-title');
     if (inp) inp.value = state.title;
   }
@@ -1344,8 +1368,10 @@
     $('cv3-water-name').addEventListener('input', function() {
       state.waterName = this.value;
       const tInp = $('cv3-title');
-      if (tInp) tInp.placeholder = 'Wildlife of ' + (this.value || 'Lake Michigan');
+      if (tInp) tInp.placeholder = (this.value || 'Lake Michigan');
       applyDefaultTitle();
+      var loadingTitle = $('cv3-framed-loading-title');
+      if (loadingTitle) loadingTitle.textContent = (state.title || '[your water]');
       drawCanvas();
     });
 
@@ -1526,7 +1552,7 @@
           orientation: state.orientation,
           frame_style: state.frameStyle || null,
           show_scientific_names: !!state.showScientificNames,
-          preheader_text: state.preheader || 'WILDLIFE OF',
+          preheader_text: state.preheader || 'FISH OF',
           title: state.title,
           subtitle: state.subtitle,
           background: state.bgColor,

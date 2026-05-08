@@ -16,9 +16,9 @@
     "chevron_asset": "/static/frames/classic-black-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-black.png",
     "inner_rect_pct": {
-      "x": 22.6,
+      "x": 21.0,
       "y": 11.2,
-      "w": 55.0,
+      "w": 58.2,
       "h": 77.6
     }
   },
@@ -39,9 +39,9 @@
     "chevron_asset": "/static/frames/classic-black-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-black.png",
     "inner_rect_pct": {
-      "x": 22.6,
+      "x": 21.0,
       "y": 11.2,
-      "w": 55.0,
+      "w": 58.2,
       "h": 77.6
     }
   },
@@ -62,9 +62,9 @@
     "chevron_asset": "/static/frames/classic-black-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-black.png",
     "inner_rect_pct": {
-      "x": 22.6,
+      "x": 21.0,
       "y": 11.2,
-      "w": 55.0,
+      "w": 58.2,
       "h": 77.6
     }
   },
@@ -85,9 +85,9 @@
     "chevron_asset": "/static/frames/classic-black-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-black.png",
     "inner_rect_pct": {
-      "x": 22.6,
+      "x": 21.0,
       "y": 11.2,
-      "w": 55.0,
+      "w": 58.2,
       "h": 77.6
     }
   },
@@ -108,9 +108,9 @@
     "chevron_asset": "/static/frames/classic-white-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-white.png",
     "inner_rect_pct": {
-      "x": 19.0,
+      "x": 18.2,
       "y": 7.6,
-      "w": 62.0,
+      "w": 63.5,
       "h": 84.7
     }
   },
@@ -131,9 +131,9 @@
     "chevron_asset": "/static/frames/classic-white-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-white.png",
     "inner_rect_pct": {
-      "x": 19.0,
+      "x": 18.2,
       "y": 7.6,
-      "w": 62.0,
+      "w": 63.5,
       "h": 84.7
     }
   },
@@ -154,9 +154,9 @@
     "chevron_asset": "/static/frames/classic-white-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-white.png",
     "inner_rect_pct": {
-      "x": 19.0,
+      "x": 18.2,
       "y": 7.6,
-      "w": 62.0,
+      "w": 63.5,
       "h": 84.7
     }
   },
@@ -177,9 +177,9 @@
     "chevron_asset": "/static/frames/classic-white-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-white.png",
     "inner_rect_pct": {
-      "x": 19.0,
+      "x": 18.2,
       "y": 7.6,
-      "w": 62.0,
+      "w": 63.5,
       "h": 84.7
     }
   },
@@ -200,9 +200,9 @@
     "chevron_asset": "/static/frames/classic-natural-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-natural.jpg",
     "inner_rect_pct": {
-      "x": 22.6,
+      "x": 21.0,
       "y": 11.2,
-      "w": 55.0,
+      "w": 58.3,
       "h": 77.7
     }
   },
@@ -223,9 +223,9 @@
     "chevron_asset": "/static/frames/classic-natural-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-natural.jpg",
     "inner_rect_pct": {
-      "x": 22.6,
+      "x": 21.0,
       "y": 11.2,
-      "w": 55.0,
+      "w": 58.3,
       "h": 77.7
     }
   },
@@ -246,9 +246,9 @@
     "chevron_asset": "/static/frames/classic-natural-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-natural.jpg",
     "inner_rect_pct": {
-      "x": 22.6,
+      "x": 21.0,
       "y": 11.2,
-      "w": 55.0,
+      "w": 58.3,
       "h": 77.7
     }
   },
@@ -269,9 +269,9 @@
     "chevron_asset": "/static/frames/classic-natural-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-natural.jpg",
     "inner_rect_pct": {
-      "x": 22.6,
+      "x": 21.0,
       "y": 11.2,
-      "w": 55.0,
+      "w": 58.3,
       "h": 77.7
     }
   },
@@ -292,9 +292,9 @@
     "chevron_asset": "/static/frames/classic-antique-silver-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-antique-silver.jpg",
     "inner_rect_pct": {
-      "x": 22.0,
+      "x": 21.8,
       "y": 13.0,
-      "w": 55.0,
+      "w": 55.5,
       "h": 74.0
     }
   },
@@ -315,9 +315,9 @@
     "chevron_asset": "/static/frames/classic-antique-silver-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-antique-silver.jpg",
     "inner_rect_pct": {
-      "x": 22.0,
+      "x": 21.8,
       "y": 13.0,
-      "w": 55.0,
+      "w": 55.5,
       "h": 74.0
     }
   },
@@ -338,9 +338,9 @@
     "chevron_asset": "/static/frames/classic-antique-silver-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-antique-silver.jpg",
     "inner_rect_pct": {
-      "x": 22.0,
+      "x": 21.8,
       "y": 13.0,
-      "w": 55.0,
+      "w": 55.5,
       "h": 74.0
     }
   },
@@ -361,9 +361,9 @@
     "chevron_asset": "/static/frames/classic-antique-silver-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-antique-silver.jpg",
     "inner_rect_pct": {
-      "x": 22.0,
+      "x": 21.8,
       "y": 13.0,
-      "w": 55.0,
+      "w": 55.5,
       "h": 74.0
     }
   },
@@ -384,9 +384,9 @@
     "chevron_asset": "/static/frames/classic-antique-gold-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-antique-gold.jpg",
     "inner_rect_pct": {
-      "x": 22.0,
+      "x": 21.8,
       "y": 13.0,
-      "w": 55.0,
+      "w": 55.5,
       "h": 74.0
     }
   },
@@ -407,9 +407,9 @@
     "chevron_asset": "/static/frames/classic-antique-gold-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-antique-gold.jpg",
     "inner_rect_pct": {
-      "x": 22.0,
+      "x": 21.8,
       "y": 13.0,
-      "w": 55.0,
+      "w": 55.5,
       "h": 74.0
     }
   },
@@ -430,9 +430,9 @@
     "chevron_asset": "/static/frames/classic-antique-gold-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-antique-gold.jpg",
     "inner_rect_pct": {
-      "x": 22.0,
+      "x": 21.8,
       "y": 13.0,
-      "w": 55.0,
+      "w": 55.5,
       "h": 74.0
     }
   },
@@ -453,9 +453,9 @@
     "chevron_asset": "/static/frames/classic-antique-gold-chevron.jpg",
     "swatch_asset": "/static/frames/swatch-classic-antique-gold.jpg",
     "inner_rect_pct": {
-      "x": 22.0,
+      "x": 21.8,
       "y": 13.0,
-      "w": 55.0,
+      "w": 55.5,
       "h": 74.0
     }
   },
@@ -476,9 +476,9 @@
     "chevron_asset": "/static/frames/classic-brown-chevron.jpg",
     "swatch_asset": "/static/frames/classic-brown-chevron.jpg",
     "inner_rect_pct": {
-      "x": 24.4,
+      "x": 24.2,
       "y": 14.7,
-      "w": 51.3,
+      "w": 51.6,
       "h": 68.8
     },
     "_swatch_note": "no dedicated swatch yet \u2014 falls back to chevron close-up"
@@ -500,9 +500,9 @@
     "chevron_asset": "/static/frames/classic-brown-chevron.jpg",
     "swatch_asset": "/static/frames/classic-brown-chevron.jpg",
     "inner_rect_pct": {
-      "x": 24.4,
+      "x": 24.2,
       "y": 14.7,
-      "w": 51.3,
+      "w": 51.6,
       "h": 68.8
     },
     "_swatch_note": "no dedicated swatch yet \u2014 falls back to chevron close-up"
@@ -524,9 +524,9 @@
     "chevron_asset": "/static/frames/classic-brown-chevron.jpg",
     "swatch_asset": "/static/frames/classic-brown-chevron.jpg",
     "inner_rect_pct": {
-      "x": 24.4,
+      "x": 24.2,
       "y": 14.7,
-      "w": 51.3,
+      "w": 51.6,
       "h": 68.8
     },
     "_swatch_note": "no dedicated swatch yet \u2014 falls back to chevron close-up"
@@ -548,9 +548,9 @@
     "chevron_asset": "/static/frames/classic-brown-chevron.jpg",
     "swatch_asset": "/static/frames/classic-brown-chevron.jpg",
     "inner_rect_pct": {
-      "x": 24.4,
+      "x": 24.2,
       "y": 14.7,
-      "w": 51.3,
+      "w": 51.6,
       "h": 68.8
     },
     "_swatch_note": "no dedicated swatch yet \u2014 falls back to chevron close-up"
@@ -572,9 +572,9 @@
     "chevron_asset": "/static/frames/classic-dark-grey-chevron.jpg",
     "swatch_asset": "/static/frames/classic-dark-grey-chevron.jpg",
     "inner_rect_pct": {
-      "x": 22.9,
+      "x": 22.8,
       "y": 13.8,
-      "w": 54.1,
+      "w": 54.4,
       "h": 72.5
     },
     "_swatch_note": "no dedicated swatch yet \u2014 falls back to chevron close-up"
@@ -596,9 +596,9 @@
     "chevron_asset": "/static/frames/classic-dark-grey-chevron.jpg",
     "swatch_asset": "/static/frames/classic-dark-grey-chevron.jpg",
     "inner_rect_pct": {
-      "x": 22.9,
+      "x": 22.8,
       "y": 13.8,
-      "w": 54.1,
+      "w": 54.4,
       "h": 72.5
     },
     "_swatch_note": "no dedicated swatch yet \u2014 falls back to chevron close-up"
@@ -620,9 +620,9 @@
     "chevron_asset": "/static/frames/classic-dark-grey-chevron.jpg",
     "swatch_asset": "/static/frames/classic-dark-grey-chevron.jpg",
     "inner_rect_pct": {
-      "x": 22.9,
+      "x": 22.8,
       "y": 13.8,
-      "w": 54.1,
+      "w": 54.4,
       "h": 72.5
     },
     "_swatch_note": "no dedicated swatch yet \u2014 falls back to chevron close-up"
@@ -644,9 +644,9 @@
     "chevron_asset": "/static/frames/classic-dark-grey-chevron.jpg",
     "swatch_asset": "/static/frames/classic-dark-grey-chevron.jpg",
     "inner_rect_pct": {
-      "x": 22.9,
+      "x": 22.8,
       "y": 13.8,
-      "w": 54.1,
+      "w": 54.4,
       "h": 72.5
     },
     "_swatch_note": "no dedicated swatch yet \u2014 falls back to chevron close-up"
@@ -668,9 +668,9 @@
     "chevron_asset": "/static/frames/classic-light-grey-chevron.jpg",
     "swatch_asset": "/static/frames/classic-light-grey-chevron.jpg",
     "inner_rect_pct": {
-      "x": 20.6,
+      "x": 16.5,
       "y": 15.4,
-      "w": 55.2,
+      "w": 63.4,
       "h": 84.5
     },
     "_swatch_note": "no dedicated swatch yet \u2014 falls back to chevron close-up"
@@ -692,9 +692,9 @@
     "chevron_asset": "/static/frames/classic-light-grey-chevron.jpg",
     "swatch_asset": "/static/frames/classic-light-grey-chevron.jpg",
     "inner_rect_pct": {
-      "x": 20.6,
+      "x": 16.5,
       "y": 15.4,
-      "w": 55.2,
+      "w": 63.4,
       "h": 84.5
     },
     "_swatch_note": "no dedicated swatch yet \u2014 falls back to chevron close-up"
@@ -716,9 +716,9 @@
     "chevron_asset": "/static/frames/classic-light-grey-chevron.jpg",
     "swatch_asset": "/static/frames/classic-light-grey-chevron.jpg",
     "inner_rect_pct": {
-      "x": 20.6,
+      "x": 16.5,
       "y": 15.4,
-      "w": 55.2,
+      "w": 63.4,
       "h": 84.5
     },
     "_swatch_note": "no dedicated swatch yet \u2014 falls back to chevron close-up"
@@ -740,9 +740,9 @@
     "chevron_asset": "/static/frames/classic-light-grey-chevron.jpg",
     "swatch_asset": "/static/frames/classic-light-grey-chevron.jpg",
     "inner_rect_pct": {
-      "x": 20.6,
+      "x": 16.5,
       "y": 15.4,
-      "w": 55.2,
+      "w": 63.4,
       "h": 84.5
     },
     "_swatch_note": "no dedicated swatch yet \u2014 falls back to chevron close-up"
