@@ -2348,31 +2348,32 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
 
 
 class FieldGuideBandsEngine(LayoutEngine):
-    """Deterministic HERO + alternating PAIR / SINGLE zigzag layout.
+    """Deterministic HERO + adaptive PAIR/SINGLE/TRIPLE/DOUBLE zigzag layout.
 
-    Matches the reference poster at ``output/uploads/fish poster.jpeg``:
-    a single hero fish centered under the title, followed by alternating
-    rows of paired (L/R edge) fish and a single centered fish positioned
-    at a half-step between adjacent pair rows.
+    Inspired by the reference poster at ``output/uploads/fish poster.jpeg``
+    but with an adaptive enhancement: rows of small fish use 3-across triples
+    (with 2-across doubles staggered between them) so the bottom of the poster
+    reads as a denser "field guide" page when many small species are present.
 
-    Layout per N fish (sorted largest-first by relative_scale_index)::
+    Layout pattern (sorted largest-first by relative_scale_index)::
 
         Row 0   — HERO: largest fish, centered, ~hero_target_w_fraction wide
-        Row 1   — PAIR: 2 fish at LEFT and RIGHT edges
-        Row 1.5 — SINGLE: 1 fish centered, vertically between row 1 and row 2
+        Row 1   — PAIR (2 at L/R edges)
+        Row 1.5 — SINGLE (1 centered, between rows 1 and 2)
         Row 2   — PAIR
-        Row 2.5 — SINGLE
         ...
-        Row k   — PAIR (no trailing single)
+        (transition: SINGLE if next 3 are "small")
+        Row k   — TRIPLE (3 across: L, C, R)
+        Row k.5 — DOUBLE (2 staggered into the gaps between triple positions)
+        Row k+1 — TRIPLE
+        ...
 
-    Slot assignment alternates pair → single → pair → single ... over the
-    N-1 non-hero fish. The largest non-hero fish go into pair slots
-    (matching the reference where the centered between-fish are typically
-    smaller than the L/R edge fish).
+    "Small" is defined per fish: ``draw_width < canvas_w * small_fish_threshold_fraction``.
+    When the next 3 fish in the sorted queue are all small, an entire
+    TRIPLE/DOUBLE cycle is emitted instead of PAIR/SINGLE.
 
     Pairs with :class:`EditorialMultiRenderer` rendering with the
-    "field_guide" :class:`StyleProfile` (cream paper, two-line title,
-    tracked common-name labels under each fish).
+    "field_guide" :class:`StyleProfile`.
     """
 
     def __init__(
@@ -2381,21 +2382,22 @@ class FieldGuideBandsEngine(LayoutEngine):
         title_band_fraction: float = 0.20,
         # Bottom margin. Symmetric with the outer border (3% inset).
         bottom_margin_fraction: float = 0.04,
-        # Side gutter. Hugs the L/R edge fish in pair rows.
+        # Side gutter. Hugs the L/R edge fish in pair / triple rows.
         side_margin_fraction: float = 0.060,
         # Honest-scale floor so the smallest fish remain substantial.
         min_idx_floor: float = 0.4,
-        # Compress the relative_scale_index range via power. 1.0 = honest;
-        # 0.65 maps a 5:1 raw range to ~3:1 visual range (matches reference).
+        # Compress the relative_scale_index range via power.
         scale_compression: float = 0.65,
         # Hero fish target draw-width as a fraction of canvas_w.
-        hero_target_w_fraction: float = 0.45,
-        # Gap (canvas-fraction) between L/R fish in a pair row. Larger =
-        # bigger gap, smaller fish.
-        pair_separation_fraction: float = 0.45,
-        # Where a single fish sits vertically between two adjacent pair rows.
-        # 0.5 = exactly halfway, <0.5 = nearer the upper pair.
+        hero_target_w_fraction: float = 0.55,
+        # Gap (canvas-fraction) between L/R fish in a pair row. Tightened
+        # from 0.45 → 0.30 so pair fish are bigger.
+        pair_separation_fraction: float = 0.30,
+        # Where a single fish sits vertically between two adjacent main rows.
         single_y_offset_fraction: float = 0.50,
+        # Fish whose draw_width is below this fraction of canvas_w count
+        # as "small" and trigger triple-row mode.
+        small_fish_threshold_fraction: float = 0.22,
         # ---- Back-compat (accepted, silently unused by the new layout) ----
         target_fish_per_band: int | None = None,
         max_fish_per_band: int | None = None,
@@ -2415,6 +2417,7 @@ class FieldGuideBandsEngine(LayoutEngine):
         self.hero_target_w_fraction = hero_target_w_fraction
         self.pair_separation_fraction = pair_separation_fraction
         self.single_y_offset_fraction = single_y_offset_fraction
+        self.small_fish_threshold_fraction = small_fish_threshold_fraction
         # Back-compat — surface kept for older callers.
         self.target_fish_per_band = target_fish_per_band
         self.max_fish_per_band = max_fish_per_band
@@ -2466,88 +2469,10 @@ class FieldGuideBandsEngine(LayoutEngine):
         _c = max(0.1, min(1.0, self.scale_compression))
         idx_for = lambda ref: max(self.min_idx_floor, ref.relative_scale_index) ** _c
 
-        # 4. Slot assignment for the N-1 non-hero fish: alternating
-        # pair_L, pair_R, single, pair_L, pair_R, single, ...
+        # 4. Size every fish first so we can classify "small" by draw_width.
+        # unit_w is chosen so the HERO renders at hero_target_w_fraction × canvas_w.
         N = len(pairs_sorted)
-
-        def assign_slots(n_total: int) -> list[str]:
-            """Return slot type for each non-hero fish."""
-            remaining = n_total - 1
-            slots: list[str] = []
-            next_kind = "pair"
-            while remaining > 0:
-                if next_kind == "pair":
-                    if remaining >= 2:
-                        slots.append("pair_L")
-                        slots.append("pair_R")
-                        remaining -= 2
-                    else:
-                        slots.append("single")
-                        remaining -= 1
-                    next_kind = "single"
-                else:
-                    slots.append("single")
-                    remaining -= 1
-                    next_kind = "pair"
-            return slots
-
-        if N == 1:
-            # Degenerate: single hero fish only.
-            slots: list[str] = []
-        else:
-            slots = assign_slots(N)
-
-        # Group slots into rows. Each pair contributes one "pair row"
-        # (containing two fish). Each single contributes one "single row".
-        # We walk slots in order: 'pair_L' starts a pair row, 'pair_R'
-        # completes it, 'single' is its own row.
-        rows: list[dict] = []  # each row: {"kind": "pair"|"single", "fish": [...]}
-        i = 0
-        while i < len(slots):
-            if slots[i] == "pair_L":
-                rows.append({"kind": "pair", "fish": [None, None]})
-                i += 1  # next is pair_R
-                if i < len(slots) and slots[i] == "pair_R":
-                    i += 1
-            else:
-                rows.append({"kind": "single", "fish": [None]})
-                i += 1
-
-        # Map (hero + non-hero) fish into the slots in sorted order.
         hero_ref, hero_master = pairs_sorted[0]
-        non_hero_pairs = pairs_sorted[1:]
-
-        # Assign non-hero fish to slot positions in order. We walk the
-        # slots list (length N-1) and pair each slot with the next fish.
-        # We then thread them into the rows[].
-        slot_idx_to_fish: list[tuple[SpeciesRef, MasterImage]] = list(non_hero_pairs)
-
-        # Re-walk slots and rows in sync to populate rows[].fish[].
-        fi = 0  # fish index into slot_idx_to_fish
-        row_idx = 0
-        i = 0
-        while i < len(slots):
-            row = rows[row_idx]
-            if slots[i] == "pair_L":
-                row["fish"][0] = slot_idx_to_fish[fi]
-                fi += 1
-                i += 1
-                if i < len(slots) and slots[i] == "pair_R":
-                    row["fish"][1] = slot_idx_to_fish[fi]
-                    fi += 1
-                    i += 1
-                else:
-                    # Odd count edge case (shouldn't happen here)
-                    pass
-                row_idx += 1
-            else:
-                row["fish"][0] = slot_idx_to_fish[fi]
-                fi += 1
-                i += 1
-                row_idx += 1
-
-        # 5. Size every fish. unit_w is chosen so the HERO renders at
-        # hero_target_w_fraction × canvas_w. Aspect uses master alpha-bbox.
         largest_idx = idx_for(hero_ref)
         target_hero_w = canvas_w * self.hero_target_w_fraction
         unit_w = target_hero_w / max(1e-6, largest_idx)
@@ -2560,8 +2485,143 @@ class FieldGuideBandsEngine(LayoutEngine):
             draw_h = draw_w / max(1e-6, aspect)
             return draw_w, draw_h
 
-        # Pre-compute dimensions for hero + all rows.
         hero_w, hero_h = fish_dims(hero_ref, hero_master)
+        non_hero_pairs = pairs_sorted[1:]
+        non_hero_dims = [fish_dims(ref, m) for (ref, m) in non_hero_pairs]
+        small_threshold_w = canvas_w * self.small_fish_threshold_fraction
+
+        def _is_small(idx: int) -> bool:
+            return non_hero_dims[idx][0] < small_threshold_w
+
+        # 5. Adaptive slot assignment for the N-1 non-hero fish.
+        # Modes: pair/single zigzag for medium+ fish; triple/double zigzag
+        # for small fish; a "transition single" sits between the two modes.
+        slots: list[str] = []  # parallel to non_hero_pairs / non_hero_dims
+        idx = 0
+        next_kind = "pair"  # "pair" | "single" | "triple" | "double"
+        n = len(non_hero_pairs)
+
+        def _next3_all_small(start: int) -> bool:
+            if start + 3 > n:
+                return False
+            return all(_is_small(start + k) for k in range(3))
+
+        while idx < n:
+            remaining = n - idx
+            if next_kind == "pair":
+                # If the next 3 are all small, transition: emit a single
+                # (if there's at least one fish left that's medium-ish)
+                # then switch to triple mode. But the cleanest transition
+                # is to skip pair and emit single → triple if the next
+                # cohort is small.
+                if _next3_all_small(idx):
+                    # Transition single (if a fish remains) then triple.
+                    next_kind = "single_to_triple"
+                    continue
+                if remaining >= 2:
+                    slots.append("pair_L")
+                    slots.append("pair_R")
+                    idx += 2
+                    next_kind = "single"
+                elif remaining == 1:
+                    slots.append("single")
+                    idx += 1
+                    next_kind = "pair"
+            elif next_kind == "single":
+                slots.append("single")
+                idx += 1
+                # Decide next mode: triple if next 3 are small, else pair.
+                if _next3_all_small(idx):
+                    next_kind = "triple"
+                else:
+                    next_kind = "pair"
+            elif next_kind == "single_to_triple":
+                # Emit one transition single (uses the largest of the
+                # next batch — i.e. the current head, which is just
+                # barely under the small threshold or borderline).
+                slots.append("single")
+                idx += 1
+                next_kind = "triple"
+            elif next_kind == "triple":
+                if remaining >= 3 and _next3_all_small(idx):
+                    slots.append("triple_L")
+                    slots.append("triple_C")
+                    slots.append("triple_R")
+                    idx += 3
+                    next_kind = "double"
+                elif remaining >= 2:
+                    # Not enough small fish for a full triple — fall back
+                    # to pair for cleanup.
+                    slots.append("pair_L")
+                    slots.append("pair_R")
+                    idx += 2
+                    next_kind = "single"
+                else:
+                    slots.append("single")
+                    idx += 1
+                    next_kind = "pair"
+            elif next_kind == "double":
+                if remaining >= 2:
+                    slots.append("double_L")
+                    slots.append("double_R")
+                    idx += 2
+                    # After a double, look for another triple cycle; if
+                    # not enough small fish remain, fall back to pair.
+                    if _next3_all_small(idx):
+                        next_kind = "triple"
+                    else:
+                        next_kind = "pair"
+                else:
+                    slots.append("single")
+                    idx += 1
+                    next_kind = "pair"
+
+        # Group slots into rows. Each row knows its kind + 1/2/3 fish entries.
+        rows: list[dict] = []  # {"kind": "pair"|"single"|"triple"|"double", "fish": [...]}
+        i = 0
+        fi = 0  # index into non_hero_pairs
+        while i < len(slots):
+            s = slots[i]
+            if s == "pair_L":
+                row = {"kind": "pair", "fish": [non_hero_pairs[fi], None]}
+                fi += 1
+                i += 1
+                if i < len(slots) and slots[i] == "pair_R":
+                    row["fish"][1] = non_hero_pairs[fi]
+                    fi += 1
+                    i += 1
+                rows.append(row)
+            elif s == "triple_L":
+                row = {"kind": "triple", "fish": [non_hero_pairs[fi], None, None]}
+                fi += 1
+                i += 1
+                if i < len(slots) and slots[i] == "triple_C":
+                    row["fish"][1] = non_hero_pairs[fi]
+                    fi += 1
+                    i += 1
+                if i < len(slots) and slots[i] == "triple_R":
+                    row["fish"][2] = non_hero_pairs[fi]
+                    fi += 1
+                    i += 1
+                rows.append(row)
+            elif s == "double_L":
+                row = {"kind": "double", "fish": [non_hero_pairs[fi], None]}
+                fi += 1
+                i += 1
+                if i < len(slots) and slots[i] == "double_R":
+                    row["fish"][1] = non_hero_pairs[fi]
+                    fi += 1
+                    i += 1
+                rows.append(row)
+            elif s == "single":
+                rows.append({"kind": "single", "fish": [non_hero_pairs[fi]]})
+                fi += 1
+                i += 1
+            else:
+                # Defensive: should not happen.
+                i += 1
+
+        # Pre-compute dimensions per row.
         for row in rows:
             dims = []
             for entry in row["fish"]:
@@ -2572,12 +2632,16 @@ class FieldGuideBandsEngine(LayoutEngine):
             row["dims"] = dims
             row["max_h"] = max((d[1] for d in dims), default=0.0)
 
-        # 6. Compute vertical layout. Hero sits near the top; pairs fill
-        # the remaining body region; singles sit at half-steps between
-        # pair rows. We compute Y centers, then verify total fit.
+        # 6. Compute vertical layout. Hero sits near the top; "main" rows
+        # (pair + triple) fill the remaining body region; "stagger" rows
+        # (single + double) sit at half-steps between adjacent main rows.
 
-        pair_rows = [r for r in rows if r["kind"] == "pair"]
-        single_rows = [r for r in rows if r["kind"] == "single"]
+        MAIN_KINDS = {"pair", "triple"}
+        STAGGER_KINDS = {"single", "double"}
+        main_rows = [r for r in rows if r["kind"] in MAIN_KINDS]
+        # Keep legacy names for code below.
+        pair_rows = main_rows
+        single_rows = [r for r in rows if r["kind"] in STAGGER_KINDS]
         P = len(pair_rows)
 
         # Hero Y-center: positioned near the top of the body region with
@@ -2602,28 +2666,29 @@ class FieldGuideBandsEngine(LayoutEngine):
             )
             cur_y = hero_y + int(round(hero_h)) + int(round(body_h * 0.05))
             for row in rows:
-                ref, master = row["fish"][0]
-                dw, dh = row["dims"][0]
-                x = int(round((canvas_w - dw) / 2.0))
-                placements.append(
-                    PlacedItem(
-                        species_ref=ref,
-                        master=master,
-                        x=x,
-                        y=cur_y,
-                        draw_width=int(round(dw)),
-                        draw_height=int(round(dh)),
+                for entry, (dw, dh) in zip(row["fish"], row["dims"]):
+                    if entry is None:
+                        continue
+                    ref, master = entry
+                    x = int(round((canvas_w - dw) / 2.0))
+                    placements.append(
+                        PlacedItem(
+                            species_ref=ref,
+                            master=master,
+                            x=x,
+                            y=cur_y,
+                            draw_width=int(round(dw)),
+                            draw_height=int(round(dh)),
+                        )
                     )
-                )
-                cur_y += int(round(dh)) + int(round(body_h * 0.04))
+                    cur_y += int(round(dh)) + int(round(body_h * 0.04))
             return LayoutResult(poster=spec, placements=placements, warnings=warnings)
 
-        # Detect whether the layout ends on a trailing single (the slot
-        # pattern can end with either pair_R or single). If it ends on a
-        # single, we need to reserve y-space below the last pair for it.
+        # Detect whether the layout ends on a trailing stagger row (single
+        # or double). If it does, reserve y-space below the last main row.
         trailing_single_h = 0.0
-        if rows and rows[-1]["kind"] == "single":
-            trailing_single_h = rows[-1]["dims"][0][1]
+        if rows and rows[-1]["kind"] in STAGGER_KINDS:
+            trailing_single_h = rows[-1]["max_h"]
 
         # Helper: compute row y-centers given current dims. Returns
         # (hero_yc, row_y_centers, pair_ys) so the caller can inspect
@@ -2664,30 +2729,27 @@ class FieldGuideBandsEngine(LayoutEngine):
             yc_list: list[float] = []
             pair_i = 0
             for row in local_rows:
-                if row["kind"] == "pair":
+                if row["kind"] in MAIN_KINDS:
                     yc_list.append(pys[pair_i])
                     pair_i += 1
                 else:
                     if 1 <= pair_i < len(pys):
-                        # Between pair_i-1 and pair_i.
+                        # Between main_i-1 and main_i.
                         y_upper = pys[pair_i - 1]
                         y_lower = pys[pair_i]
                         yc = y_upper + (y_lower - y_upper) * self.single_y_offset_fraction
                     elif pair_i >= len(pys):
-                        # Trailing single after the last pair. Place it
-                        # below the last pair by half the inter-pair gap,
-                        # clipped so it stays inside body_bottom.
+                        # Trailing stagger after the last main row.
                         if P_local > 1:
                             inter_gap = pys[-1] - pys[-2]
                         else:
                             inter_gap = body_h * 0.12
                         yc = pys[-1] + inter_gap * 0.5
-                        # Clamp so the single's bottom fits within body.
-                        single_h = row["dims"][0][1]
-                        yc = min(yc, body_bottom - single_h / 2.0 - body_h * 0.005)
+                        # Clamp so the stagger's bottom fits within body.
+                        stagger_h = row["max_h"]
+                        yc = min(yc, body_bottom - stagger_h / 2.0 - body_h * 0.005)
                     else:
-                        # Leading single (no pairs before it). Place
-                        # between hero and first pair.
+                        # Leading stagger (no main rows before it).
                         yc = (h_yc + pys[0]) / 2.0 if pys else h_yc
                     yc_list.append(yc)
             return h_yc, yc_list, pys
@@ -2713,10 +2775,7 @@ class FieldGuideBandsEngine(LayoutEngine):
                 return False
             # Every row bottom inside body and every row top inside body.
             for row, yc in zip(local_rows, yc_list):
-                if row["kind"] == "pair":
-                    row_h = row["max_h"]
-                else:
-                    row_h = row["dims"][0][1]
+                row_h = row["max_h"]
                 if yc + row_h / 2.0 > body_bottom + 1:
                     return False
                 if yc - row_h / 2.0 < body_top - 1:
@@ -2733,8 +2792,8 @@ class FieldGuideBandsEngine(LayoutEngine):
             for i in range(len(local_rows) - 1):
                 ya = yc_list[i]
                 yb = yc_list[i + 1]
-                ha = local_rows[i]["max_h"] if local_rows[i]["kind"] == "pair" else local_rows[i]["dims"][0][1]
-                hb = local_rows[i + 1]["max_h"] if local_rows[i + 1]["kind"] == "pair" else local_rows[i + 1]["dims"][0][1]
+                ha = local_rows[i]["max_h"]
+                hb = local_rows[i + 1]["max_h"]
                 a_bot = ya + ha / 2.0
                 b_top = yb - hb / 2.0
                 # Pair-fish hug L/R edges; singles are centered. A
@@ -2786,58 +2845,69 @@ class FieldGuideBandsEngine(LayoutEngine):
             )
         )
 
+        def _emit(entry, dw, dh, x_f, yc_f):
+            ref, master = entry
+            placements.append(
+                PlacedItem(
+                    species_ref=ref,
+                    master=master,
+                    x=int(round(x_f)),
+                    y=int(round(yc_f - dh / 2.0)),
+                    draw_width=int(round(dw)),
+                    draw_height=int(round(dh)),
+                )
+            )
+
         for row, yc in zip(rows, row_y_centers):
-            if row["kind"] == "pair":
-                left_entry = row["fish"][0]
-                right_entry = row["fish"][1]
+            kind = row["kind"]
+            if kind == "pair":
+                left_entry, right_entry = row["fish"]
                 (lw, lh) = row["dims"][0]
+                (rw, rh) = row["dims"][1]
                 if left_entry is not None:
-                    lref, lmaster = left_entry
-                    lx = side_margin
-                    ly = int(round(yc - lh / 2.0))
-                    placements.append(
-                        PlacedItem(
-                            species_ref=lref,
-                            master=lmaster,
-                            x=lx,
-                            y=ly,
-                            draw_width=int(round(lw)),
-                            draw_height=int(round(lh)),
-                        )
-                    )
+                    _emit(left_entry, lw, lh, side_margin, yc)
                 if right_entry is not None:
-                    (rw, rh) = row["dims"][1]
-                    rref, rmaster = right_entry
-                    rx = canvas_w - side_margin - int(round(rw))
-                    ry = int(round(yc - rh / 2.0))
-                    placements.append(
-                        PlacedItem(
-                            species_ref=rref,
-                            master=rmaster,
-                            x=rx,
-                            y=ry,
-                            draw_width=int(round(rw)),
-                            draw_height=int(round(rh)),
-                        )
-                    )
-            else:
+                    _emit(right_entry, rw, rh, canvas_w - side_margin - rw, yc)
+            elif kind == "triple":
+                lE, cE, rE = row["fish"]
+                (lw, lh) = row["dims"][0]
+                (cw, ch) = row["dims"][1]
+                (rw, rh) = row["dims"][2]
+                # L flush to side margin; R flush to right side margin;
+                # C centered horizontally.
+                lx = side_margin
+                rx = canvas_w - side_margin - rw
+                cx = (canvas_w - cw) / 2.0
+                if lE is not None:
+                    _emit(lE, lw, lh, lx, yc)
+                if cE is not None:
+                    _emit(cE, cw, ch, cx, yc)
+                if rE is not None:
+                    _emit(rE, rw, rh, rx, yc)
+            elif kind == "double":
+                # Position in the two gaps of the triple pattern: midway
+                # between (L center) and (C center), and between (C center)
+                # and (R center). We derive those center anchors from the
+                # canvas geometry assuming a hypothetical triple at this y.
+                lE, rE = row["fish"]
+                (lw, lh) = row["dims"][0]
+                (rw, rh) = row["dims"][1]
+                # Anchor positions (same logic as triple_L / triple_C / triple_R).
+                anchor_l_center = side_margin + lw / 2.0  # approx
+                anchor_r_center = canvas_w - side_margin - rw / 2.0
+                anchor_c_center = canvas_w / 2.0
+                left_mid = (anchor_l_center + anchor_c_center) / 2.0
+                right_mid = (anchor_c_center + anchor_r_center) / 2.0
+                if lE is not None:
+                    _emit(lE, lw, lh, left_mid - lw / 2.0, yc)
+                if rE is not None:
+                    _emit(rE, rw, rh, right_mid - rw / 2.0, yc)
+            else:  # single
                 entry = row["fish"][0]
                 if entry is None:
                     continue
-                ref, master = entry
                 (dw, dh) = row["dims"][0]
-                x = int(round((canvas_w - dw) / 2.0))
-                y = int(round(yc - dh / 2.0))
-                placements.append(
-                    PlacedItem(
-                        species_ref=ref,
-                        master=master,
-                        x=x,
-                        y=y,
-                        draw_width=int(round(dw)),
-                        draw_height=int(round(dh)),
-                    )
-                )
+                _emit(entry, dw, dh, (canvas_w - dw) / 2.0, yc)
 
         return LayoutResult(poster=spec, placements=placements, warnings=warnings)
 
