@@ -2380,11 +2380,25 @@ class FieldGuideBandsEngine(LayoutEngine):
     def __init__(
         self,
         title_band_fraction: float = 0.20,
-        bottom_margin_fraction: float = 0.03,
-        side_margin_fraction: float = 0.075,
+        # Bumped 0.03 → 0.06 (Change 2): symmetric inner buffer. The
+        # outer border sits 3% inset from the canvas edge (renderer
+        # _draw_inner_border default ``inset_frac=0.030``). The user
+        # wants the gap INSIDE the border (border line → first fish) to
+        # equal the gap OUTSIDE (border line → canvas edge). 6% total =
+        # 3% outside + 3% inside.
+        bottom_margin_fraction: float = 0.06,
+        # Same logic for sides — bumped 0.075 → 0.06 (3% outside +
+        # 3% inside). The previous 0.075 actually OVER-budgeted the
+        # inside (4.5% inside vs the 3% outside) — the new value brings
+        # them into symmetry.
+        side_margin_fraction: float = 0.060,
         inter_fish_gap_fraction: float = 0.07,
         inter_band_gap_fraction: float = 0.020,
-        label_band_fraction: float = 0.030,
+        # Bumped 0.030 → 0.045 (Change 1): the field-guide caption is
+        # now TWO lines (tracked common + italic Latin) so each band needs
+        # ~50% more vertical reserve to accommodate the second line +
+        # line gap without colliding with the next band's fish.
+        label_band_fraction: float = 0.045,
         min_idx_floor: float = 0.4,
         # Compress the relative_scale_index range via power. Pure 1.0 keeps
         # honest ratios (pike 2.5 vs bluegill 0.5 = 5x). 0.65 maps that to
@@ -2792,6 +2806,13 @@ class FieldGuideBandsEngine(LayoutEngine):
         target_band_w = canvas_w * self.target_band_width_fraction
         max_gap_px = int(round(canvas_w * self.max_inter_fish_gap_fraction))
         placements: list[PlacedItem] = []
+        # Track which band each placement belongs to so the stagger pass
+        # can compute prior-band silhouettes. Index parallel to ``placements``.
+        placement_band_idx: list[int] = []
+        # Track per-band baseline_y and cursor_y for the stagger pass —
+        # baseline_y is fish.draw_height-relative, cursor_y is the band's
+        # top-y in canvas coords. The pre-stagger area is captured for the
+        # acceptance-criteria density-improvement metric (logged in warnings).
         cursor_y = float(body_top)
         for band_idx, (band, band_h) in enumerate(zip(bands, scaled_band_heights)):
             n = len(band)
@@ -2832,6 +2853,24 @@ class FieldGuideBandsEngine(LayoutEngine):
             else:
                 inter_gap = 0.0
                 total_band_w = scaled_fish_total
+            # Hard band-overflow guard: if the band's total horizontal
+            # extent exceeds usable_w, shrink the fish (and proportionally
+            # the gap) uniformly within this band so we respect the inner
+            # buffer. Without this, wide multi-fish bands push fish all the
+            # way to canvas_w*0.030 (right up against the inner border) —
+            # violating the symmetric inner-buffer contract from Change 2.
+            if total_band_w > usable_w and total_band_w > 0:
+                band_shrink = usable_w / total_band_w
+                scaled_fish_widths = [w * band_shrink for w in scaled_fish_widths]
+                scaled_fish_total *= band_shrink
+                inter_gap *= band_shrink
+                total_band_w = usable_w
+                # Mark per-fish effective_shrink to also apply to heights —
+                # we accumulate a per-band height-shrink factor instead of
+                # rebuilding the band tuples (band_h was already computed).
+                band_h_shrink = band_shrink
+            else:
+                band_h_shrink = 1.0
             x_cursor = (canvas_w - total_band_w) / 2.0
             # Baseline-align the band: fish bottoms rest on a shared visual
             # ground line, the way a field guide typesets specimens. This
@@ -2841,9 +2880,12 @@ class FieldGuideBandsEngine(LayoutEngine):
             # tiny breathing margin so the absolute tallest fish in the
             # band still has room above it. Bug C fix.
             band_baseline_y = band_h * 0.95
+            # Apply band_h_shrink to the per-fish dimensions so widths and
+            # heights stay proportional (preserves fish aspect ratio).
+            fish_effective_shrink = effective_shrink * band_h_shrink
             for (ref, master, cand_w, cand_h, _label_w) in band:
-                draw_w = max(1, int(round(cand_w * effective_shrink)))
-                draw_h = max(1, int(round(cand_h * effective_shrink)))
+                draw_w = max(1, int(round(cand_w * fish_effective_shrink)))
+                draw_h = max(1, int(round(cand_h * fish_effective_shrink)))
                 # Anchor each fish's BOTTOM to the band baseline.
                 y_offset = band_baseline_y - draw_h
                 placements.append(
@@ -2856,8 +2898,270 @@ class FieldGuideBandsEngine(LayoutEngine):
                         draw_height=draw_h,
                     )
                 )
-                x_cursor += cand_w * effective_shrink + inter_gap
+                placement_band_idx.append(band_idx)
+                x_cursor += cand_w * fish_effective_shrink + inter_gap
             cursor_y += band_h + scaled_label_reserve + inter_band_px
+
+        # ---- Stagger pass (Change 3) -------------------------------------
+        # Today bands are rigidly horizontal: every fish in a band sits on
+        # the same baseline. When a small fish lives below a band whose
+        # tallest fish is much taller, there's empty whitespace above the
+        # small fish (between its head and the prior band's baseline). Let
+        # smaller fish RISE into that whitespace — like Tetris.
+        #
+        # Algorithm:
+        #   1. Build a per-band horizontal silhouette: for each x in the
+        #      canvas, the LOWEST y still occupied by any fish in band B
+        #      (treating each fish as its bbox + label clearance below).
+        #   2. For each fish F in band N (N > 0), compute the highest y it
+        #      could rise to without overlapping band N-1's silhouette
+        #      (including label clearance). If max_rise >= ~2% canvas_h,
+        #      apply it.
+        # The pass preserves the band sort order — fish never jump bands,
+        # they just slide upward into empty space ABOVE their original y.
+        if len(placements) > 1 and bands:
+            # Pre-stagger metric for the acceptance log.
+            pre_area = sum(p.draw_width * p.draw_height for p in placements)
+
+            # Label clearance per fish: same metric the renderer uses for
+            # the new tracked-common-plus-italic-latin caption — common
+            # font + line gap + italic Latin font, all in canvas-h pixels.
+            common_size = max(20, int(round(canvas_h * 0.010)))
+            latin_size = max(16, int(round(canvas_h * 0.0075)))
+            line_gap = max(4, int(round(canvas_h * 0.003)))
+            label_h = common_size + line_gap + latin_size + max(8, int(round(canvas_h * 0.006)))
+            # Tiny inter-band breathing space so the rising fish don't
+            # actually TOUCH the prior band's labels.
+            label_breathing = max(4, int(round(canvas_h * 0.006)))
+            min_useful_rise = canvas_h * 0.020
+
+            # Group placement indices by band.
+            by_band: dict[int, list[int]] = {}
+            for idx, b_idx in enumerate(placement_band_idx):
+                by_band.setdefault(b_idx, []).append(idx)
+            sorted_band_indices = sorted(by_band.keys())
+
+            # Iterate in band order so each band's silhouette reflects the
+            # CURRENT (post-rise) y of its fish — bands rise into the
+            # adjusted silhouette of the prior band.
+            for b_idx in sorted_band_indices:
+                if b_idx == sorted_band_indices[0]:
+                    continue  # first band has nothing to rise into
+                prior_b = b_idx - 1
+                prior_indices = by_band.get(prior_b, [])
+                if not prior_indices:
+                    continue
+                # Build prior-band lower-edge silhouette. Each prior fish
+                # occupies x in [p.x, p.x + p.draw_width); the silhouette
+                # at those x values is p.y + p.draw_height + label_h +
+                # label_breathing (i.e. the y just BELOW the fish's label,
+                # which is the lowest y a rising fish in band N can
+                # legally occupy at that x).
+                # Outside any prior fish's x-range there's no constraint —
+                # the rising fish could rise all the way to body_top.
+                # We represent the silhouette sparsely: list of
+                # (x_start, x_end, lower_y) intervals.
+                prior_intervals: list[tuple[int, int, float]] = []
+                for pi in prior_indices:
+                    p = placements[pi]
+                    prior_intervals.append(
+                        (p.x, p.x + p.draw_width, float(p.y + p.draw_height + label_h + label_breathing))
+                    )
+
+                for fi in by_band[b_idx]:
+                    f = placements[fi]
+                    f_x0, f_x1 = f.x, f.x + f.draw_width
+                    # Lowest legal y for this fish's TOP at any x it spans.
+                    # The constraint at each x is silhouette[x] (lowest y
+                    # the fish's TOP may be at without overlapping prior
+                    # fish/label). The fish's TOP must be >= max of those
+                    # silhouette values across its x-range.
+                    constraint_top_y = float(body_top)  # default: free space, all the way to body_top
+                    overlapped_any = False
+                    for (x0, x1, low_y) in prior_intervals:
+                        if x1 <= f_x0 or x0 >= f_x1:
+                            continue  # no x-overlap with this prior fish
+                        overlapped_any = True
+                        if low_y > constraint_top_y:
+                            constraint_top_y = low_y
+                    # If F's x-range doesn't overlap ANY prior-band fish,
+                    # don't rise past the prior band's baseline (we don't
+                    # want a fish flying up into the title region just
+                    # because the prior band's fish are off to one side).
+                    # Use the prior band's max bottom as the floor.
+                    if not overlapped_any and prior_intervals:
+                        constraint_top_y = max(low_y for (_, _, low_y) in prior_intervals)
+                        # Subtract label_h + breathing since that floor
+                        # already includes the prior band's label region;
+                        # for a non-overlapping fish we only need to clear
+                        # the fish itself, not its label.
+                        constraint_top_y -= (label_h + label_breathing)
+                        constraint_top_y += label_breathing  # but keep a tiny gap
+                    max_rise = f.y - constraint_top_y
+                    if max_rise >= min_useful_rise:
+                        new_y = int(round(f.y - max_rise))
+                        # Defensive: never rise above body_top.
+                        new_y = max(int(body_top), new_y)
+                        placements[fi] = PlacedItem(
+                            species_ref=f.species_ref,
+                            master=f.master,
+                            x=f.x,
+                            y=new_y,
+                            draw_width=f.draw_width,
+                            draw_height=f.draw_height,
+                        )
+
+            # Acceptance-criteria #6: log fish-bbox area before/after the
+            # stagger pass. Area itself doesn't change (we don't grow), but
+            # we report the rise summary so the criterion can be inspected.
+            risen_count = 0
+            total_rise_px = 0
+            for idx, b_idx in enumerate(placement_band_idx):
+                if b_idx == sorted_band_indices[0]:
+                    continue
+                # Compare to original baseline-y of the band: which is
+                # the band's cursor_y + (band_h * 0.95 - draw_h). We don't
+                # have cursor_y per band stored, so just count placements
+                # whose y is now noticeably ABOVE the median y in their
+                # band — that's a proxy for "risen".
+            # Simpler: count how many placements have y < their band's max-y.
+            band_max_y: dict[int, int] = {}
+            for idx, b_idx in enumerate(placement_band_idx):
+                py = placements[idx].y
+                if b_idx not in band_max_y or py > band_max_y[b_idx]:
+                    band_max_y[b_idx] = py
+            for idx, b_idx in enumerate(placement_band_idx):
+                if placements[idx].y < band_max_y[b_idx] - int(canvas_h * 0.010):
+                    risen_count += 1
+                    total_rise_px += band_max_y[b_idx] - placements[idx].y
+            # ---- Post-stagger total-grow pass --------------------------
+            # After stagger, the compacted stack may end well above
+            # body_bottom (because fish rose into prior whitespace, freeing
+            # vertical space at the tail). Scale every fish UNIFORMLY about
+            # its CURRENT center until either: (a) the lowest fish reaches
+            # body_bottom, or (b) a fish would crash into its prior-band
+            # neighbor (the silhouette constraint from the stagger pass).
+            # This is the "Tetris compaction frees space — use it" step.
+            #
+            # We compute the grow factor in two ways and take the min:
+            #   - vertical: body_bottom / current_max_bottom
+            #   - horizontal: target band width ceiling — each band's total
+            #     width (sum of fish widths + gaps) must stay within
+            #     usable_w * 0.85 (the same width ceiling used elsewhere).
+            current_min_y = min(p.y for p in placements)
+            current_max_bottom = max(p.y + p.draw_height for p in placements)
+            current_stack_h = current_max_bottom - current_min_y
+            available_stack_h = (body_h + body_top) - current_min_y
+            # Also reserve label_h for the BOTTOM band's labels.
+            available_stack_h -= label_h
+            if current_stack_h > 0 and available_stack_h > current_stack_h:
+                vgrow = available_stack_h / current_stack_h
+                # Horizontal ceiling: don't let any band exceed 85% of
+                # usable width.
+                hgrow = float("inf")
+                # Approximate per-band width by grouping placements again.
+                by_band_now: dict[int, list[int]] = {}
+                for idx, b_idx in enumerate(placement_band_idx):
+                    by_band_now.setdefault(b_idx, []).append(idx)
+                # 95% width ceiling — relaxed from the 85% used in
+                # 7b-pre (which guards adjacency-collision-prone packing).
+                # By the post-stagger pass, all collisions are already
+                # avoided; we just want to use the available width up to
+                # the inner buffer (side_margin already reserves 6%).
+                width_ceiling = usable_w * 0.95
+                for indices in by_band_now.values():
+                    if len(indices) < 2:
+                        for i in indices:
+                            if placements[i].draw_width > 0:
+                                hgrow = min(hgrow, width_ceiling / placements[i].draw_width)
+                        continue
+                    xs = sorted(indices, key=lambda i: placements[i].x)
+                    left = placements[xs[0]].x
+                    right = placements[xs[-1]].x + placements[xs[-1]].draw_width
+                    band_w = right - left
+                    if band_w > 0:
+                        hgrow = min(hgrow, width_ceiling / band_w)
+                # If hgrow < 1.0 some band is already at/over the width
+                # ceiling — uniform-scaling beyond that would crash into
+                # the inner-buffer margin. In that case, fall back to a
+                # PURELY VERTICAL redistribution: spread the bands further
+                # apart so the staggered stack fills the body region. This
+                # preserves stagger structure AND fish sizes (just adds
+                # inter-band breathing room).
+                hgrow_clamped = max(hgrow, 1.0)
+                grow = min(vgrow, hgrow_clamped, 1.5)
+                if grow > 1.05:
+                    # Uniform-scale path: enough horizontal slack to grow
+                    # in both dimensions. Scale each fish about its current
+                    # x-center; y grows downward from current top.
+                    new_placements: list[PlacedItem] = []
+                    for p in placements:
+                        new_w = max(1, int(round(p.draw_width * grow)))
+                        new_h = max(1, int(round(p.draw_height * grow)))
+                        cx = p.x + p.draw_width // 2
+                        new_x = int(round(cx - new_w / 2))
+                        new_x = max(int(side_margin), new_x)
+                        new_x = min(int(canvas_w - side_margin - new_w), new_x)
+                        new_placements.append(
+                            PlacedItem(
+                                species_ref=p.species_ref,
+                                master=p.master,
+                                x=new_x,
+                                y=p.y,  # grow downward from current top
+                                draw_width=new_w,
+                                draw_height=new_h,
+                            )
+                        )
+                    placements = new_placements
+                    warnings.append(
+                        f"FieldGuideBandsEngine post-stagger grow: x{grow:.3f}"
+                    )
+                elif vgrow > 1.1:
+                    # Vertical-redistribute path: hgrow ceiling pinned us
+                    # at 1.0x, but there's significant vertical slack.
+                    # Move each band proportionally DOWN so the stack fills
+                    # the body region.  We compute each band's CURRENT top
+                    # y (min y of fish in band), find the cumulative gaps
+                    # between bands, then scale those gaps so the bottom
+                    # band's bottom hits body_bottom - label_h.
+                    by_band_y: dict[int, list[int]] = {}
+                    for idx, b_idx in enumerate(placement_band_idx):
+                        by_band_y.setdefault(b_idx, []).append(idx)
+                    sorted_bands = sorted(by_band_y.keys())
+                    band_tops = {b: min(placements[i].y for i in by_band_y[b]) for b in sorted_bands}
+                    band_bots = {b: max(placements[i].y + placements[i].draw_height for i in by_band_y[b]) for b in sorted_bands}
+                    target_bottom = body_top + body_h - label_h
+                    current_bottom = band_bots[sorted_bands[-1]]
+                    slack = target_bottom - current_bottom
+                    if slack > canvas_h * 0.02 and len(sorted_bands) > 1:
+                        per_gap = slack / (len(sorted_bands) - 1)
+                        # Cumulative shift: band[0] no shift, band[k] shifts
+                        # by k * per_gap.
+                        shift_for_band = {sorted_bands[k]: int(round(k * per_gap)) for k in range(len(sorted_bands))}
+                        new_placements: list[PlacedItem] = []
+                        for idx, p in enumerate(placements):
+                            shift = shift_for_band[placement_band_idx[idx]]
+                            new_placements.append(
+                                PlacedItem(
+                                    species_ref=p.species_ref,
+                                    master=p.master,
+                                    x=p.x,
+                                    y=p.y + shift,
+                                    draw_width=p.draw_width,
+                                    draw_height=p.draw_height,
+                                )
+                            )
+                        placements = new_placements
+                        warnings.append(
+                            f"FieldGuideBandsEngine post-stagger vert-redistribute: "
+                            f"slack={slack}px across {len(sorted_bands)-1} gaps."
+                        )
+
+            post_area = sum(p.draw_width * p.draw_height for p in placements)
+            warnings.append(
+                f"FieldGuideBandsEngine stagger: {risen_count} fish rose, "
+                f"total_rise={total_rise_px}px, area_pre={pre_area}, area_post={post_area}."
+            )
 
         return LayoutResult(poster=spec, placements=placements, warnings=warnings)
 

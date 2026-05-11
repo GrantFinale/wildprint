@@ -37,7 +37,12 @@ from typing import Literal
 
 
 TitleKind = Literal["classic", "two_line", "ornamental_frame"]
-LabelKind = Literal["leader_lines", "tracked_common_only", "common_plus_latin_italic"]
+LabelKind = Literal[
+    "leader_lines",
+    "tracked_common_only",
+    "common_plus_latin_italic",
+    "tracked_common_plus_italic_latin",
+]
 InnerBorderKind = Literal["none", "thin", "double_diamond"]
 
 
@@ -99,7 +104,7 @@ FIELD_GUIDE_PROFILE = StyleProfile(
     paper_grain_intensity=0.10,
     inner_border="thin",
     title_kind="two_line",
-    label_kind="tracked_common_only",
+    label_kind="tracked_common_plus_italic_latin",
     display_font_family="Cormorant Garamond",
     body_font_family="Inter",
 )

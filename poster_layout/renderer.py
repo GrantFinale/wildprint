@@ -716,6 +716,56 @@ def _draw_compact_caption_only(
             x_cursor += adv + label_letter_spacing
 
 
+def _draw_compact_caption_with_latin(
+    draw: ImageDraw.ImageDraw,
+    placements,
+    common_font: ImageFont.ImageFont,
+    italic_font: ImageFont.ImageFont,
+    ink_hex: str,
+    canvas_h: int,
+    label_letter_spacing: int = 4,
+) -> None:
+    """Field-Guide two-line caption: tracked-uppercase common + italic Latin.
+
+    Used by the "field_guide" :class:`StyleProfile` (label_kind =
+    ``tracked_common_plus_italic_latin``). The first line is the tracked
+    uppercase common name (matching the existing field-guide caption style);
+    the second line is the species' italic scientific name at ~75% the
+    common-name font size, centered with a small line gap. Both lines render
+    in the profile's ink color.
+    """
+    pad = max(8, int(round(canvas_h * 0.006)))
+    line_gap = max(4, int(round(canvas_h * 0.003)))
+    for placed in placements:
+        sp = placed.species_ref
+        common = (sp.common_name or "").upper()
+        latin = (sp.scientific_name or "").strip()
+        if not common and not latin:
+            continue
+        cx = placed.x + placed.draw_width // 2
+        cur_y = placed.y + placed.draw_height + pad
+        # Line 1: tracked uppercase common name (same algorithm as
+        # _draw_compact_caption_only — kept inline so the two helpers can
+        # diverge cosmetically without coupling).
+        if common:
+            advances = [_text_size(draw, ch, common_font)[0] for ch in common]
+            total_w = (
+                sum(advances)
+                + label_letter_spacing * max(0, len(common) - 1)
+            )
+            _, ch_h = _text_size(draw, common, common_font)
+            x_cursor = cx - total_w // 2
+            for ch, adv in zip(common, advances):
+                draw.text((x_cursor, cur_y), ch, font=common_font, fill=ink_hex)
+                x_cursor += adv + label_letter_spacing
+            cur_y += ch_h + line_gap
+        # Line 2: italic centered scientific name. NO tracking — italics are
+        # already optically loose; tracking them looks broken.
+        if latin:
+            lw, _lh = _text_size(draw, latin, italic_font)
+            draw.text((cx - lw // 2, cur_y), latin, font=italic_font, fill=ink_hex)
+
+
 def _draw_two_line_label(
     draw: ImageDraw.ImageDraw,
     placements,
@@ -2116,6 +2166,35 @@ class EditorialMultiRenderer(PosterRenderer):
                 draw=draw,
                 placements=result.placements,
                 font=label_font,
+                ink_hex=_profile.ink_hex,
+                canvas_h=spec.canvas_height,
+                label_letter_spacing=max(2, int(round(common_size * 0.18))),
+            )
+        elif _label_kind == "tracked_common_plus_italic_latin":
+            # Field Guide v2: tracked-caps common name on top + italic Latin
+            # below. Common stays at the same size as ``tracked_common_only``
+            # so the visual weight of the species hierarchy is preserved.
+            # Italic Latin renders at ~75% of that, with a min of 16px so it
+            # remains legible on smaller canvases.
+            common_size = max(20, int(round(spec.canvas_height * 0.010)))
+            latin_size = max(16, int(round(spec.canvas_height * 0.0075)))
+            label_font = _load_caption_font(self.font_candidates, common_size)
+            # Italic serif — load from the title-font candidates the way
+            # _draw_two_line_label (vintage tackle) does. Cormorant Garamond
+            # Italic ships in assets/fonts; system Didot italic is the
+            # ultimate fallback.
+            italic_candidates = (
+                str(_PROJECT_ROOT_FOR_RENDERER / "assets" / "fonts" / "CormorantGaramond-Italic.ttf"),
+                str(_PROJECT_ROOT_FOR_RENDERER / "assets" / "fonts" / "EBGaramond-Italic.ttf"),
+                str(_PROJECT_ROOT_FOR_RENDERER / "assets" / "fonts" / "PlayfairDisplay-Italic.ttf"),
+                "/System/Library/Fonts/Supplemental/Didot.ttc",
+            )
+            italic_font = _load_first_truetype(italic_candidates, latin_size)
+            _draw_compact_caption_with_latin(
+                draw=draw,
+                placements=result.placements,
+                common_font=label_font,
+                italic_font=italic_font,
                 ink_hex=_profile.ink_hex,
                 canvas_h=spec.canvas_height,
                 label_letter_spacing=max(2, int(round(common_size * 0.18))),
