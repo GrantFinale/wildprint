@@ -2511,17 +2511,20 @@ class FieldGuideBandsEngine(LayoutEngine):
         idx_for = lambda ref: max(self.min_idx_floor, ref.relative_scale_index) ** _c
 
         # 4. Size every fish first so we can classify "small" by draw_width.
-        # unit_w is chosen so the HERO renders at hero_target_w_fraction × canvas_w.
-        # Apply the global 1.5x fish-size bump (per user request) HERE,
-        # at the start of the sizing math, so the engine's vertical
-        # stacking / shrink-to-fit / grow-to-fill all see the FINAL
-        # rendered dimensions. The clamped multiplier at emit time has
-        # been removed; sizes flow through layout naturally.
-        _GLOBAL_FISH_BUMP = 1.5
+        # The widest fish in the catalog (typically the hero or the most-
+        # compressed-large like the carp) is sized to FILL the usable
+        # canvas width — exactly hugging the inner buffer on both sides.
+        # That's the "maximum fish size that does not infringe on the
+        # buffer" constraint, per user direction. Vertical stack then
+        # shrinks to fit body_h if necessary; otherwise grows.
         N = len(pairs_sorted)
         hero_ref, hero_master = pairs_sorted[0]
         largest_idx = idx_for(hero_ref)
-        target_hero_w = canvas_w * self.hero_target_w_fraction * _GLOBAL_FISH_BUMP
+        usable_w = canvas_w - 2 * side_margin
+        # The widest fish across all species is whichever has the
+        # largest compressed-idx (== hero in our pre-sort). Target that
+        # fish at exactly usable_w so it butts up against the buffer.
+        target_hero_w = float(usable_w)
         unit_w = target_hero_w / max(1e-6, largest_idx)
 
         def fish_dims(ref: SpeciesRef, master: MasterImage) -> tuple[float, float]:
@@ -2896,6 +2899,22 @@ class FieldGuideBandsEngine(LayoutEngine):
                     return False
                 if yc - row_h / 2.0 < body_top - 1:
                     return False
+            # Enforce inter-row buffer between adjacent MAIN rows. The
+            # half-step stagger between them rides at canvas-center
+            # (different x-column), so it's not the constraint; what
+            # matters is that two consecutive L-or-R-justified pair
+            # fish have visual breathing room of at least inner_buffer_px
+            # between them. The shrink/grow loops converge to a state
+            # where this buffer is just satisfied — fish are maximal
+            # size that respects the inner-row buffer.
+            for i in range(len(pys) - 1):
+                hi = local_pair_rows[i]["max_h"]
+                hj = local_pair_rows[i + 1]["max_h"]
+                main_i_bot = pys[i] + hi / 2.0
+                main_next_top = pys[i + 1] - hj / 2.0
+                if main_next_top - main_i_bot < inner_buffer_px - 1:
+                    return False
+
             # Adjacent rows must not vertically overlap (the centered single
             # has free horizontal space, but if its bbox extends past the
             # neighbouring pair's fish bbox vertically AND the single's x
@@ -2926,14 +2945,6 @@ class FieldGuideBandsEngine(LayoutEngine):
                     # are on the outside (no x-collision).
                     if a_kind in MAIN_KINDS and b_kind in MAIN_KINDS:
                         return False
-                # Pair-fish hug L/R edges; singles are centered. A
-                # centered-single's bbox CAN vertically overlap an adjacent
-                # pair if the single is narrow enough that its x-range
-                # doesn't reach the pair fish — but we conservatively
-                # forbid vertical overlap of the boxes to keep the design
-                # clean (singles never tuck behind pair fish).
-                if a_bot > b_top + 1:
-                    return False
             return True
 
         scale = 1.0
@@ -2985,22 +2996,35 @@ class FieldGuideBandsEngine(LayoutEngine):
                         max_w = w
             return max_w
 
-        # Whitespace-fill grow always runs (even after shrink) so any
-        # vertical room left under the trailing fish gets eaten.
+        # Whitespace-fill grow always runs (even after shrink). With the
+        # even-distribution layout, fish are placed at fixed y-centers
+        # spread across pair_top..pair_bot. After shrink, the rows fit
+        # but there's slack BETWEEN them. We grow fish until the min
+        # inter-row gap (between adjacent MAIN rows) equals the inner
+        # buffer (~108px) — that's "max fish size respecting buffers".
         if True:
             usable_w = canvas_w - 2 * side_margin
-            grow_total = 1.0
-            for _i in range(30):
-                _, ycs_now, _ = compute_y_centers(
+
+            def _min_inter_main_gap() -> float:
+                """Return the smallest gap between consecutive main rows
+                in the current sizing. Used as the grow-stop signal."""
+                _, _, current_pys = compute_y_centers(
                     hero_h, rows, pair_rows, trailing_single_h
                 )
-                bot = _stack_bottom(0.0 if not ycs_now and hero_h == 0
-                                    else (body_top + hero_h * 0.55 + body_h * 0.02),
-                                    ycs_now, rows)
-                # Account for label_reserve below the trailing row when
-                # measuring "used" vertical space.
-                unused = body_bottom - bot - label_reserve
-                if unused <= canvas_h * 0.02:
+                if len(current_pys) < 2:
+                    return float("inf")
+                heights = [r["max_h"] for r in pair_rows]
+                gaps = []
+                for i in range(len(current_pys) - 1):
+                    step = current_pys[i + 1] - current_pys[i]
+                    gap = step - (heights[i] + heights[i + 1]) / 2.0
+                    gaps.append(gap)
+                return min(gaps) if gaps else float("inf")
+
+            grow_total = 1.0
+            for _i in range(40):
+                gap = _min_inter_main_gap()
+                if gap <= inner_buffer_px:
                     break
                 # Try a 5% grow step.
                 step = 1.05
