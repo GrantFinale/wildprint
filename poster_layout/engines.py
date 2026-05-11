@@ -2380,8 +2380,11 @@ class FieldGuideBandsEngine(LayoutEngine):
         self,
         # Top reserved for the title block.
         title_band_fraction: float = 0.20,
-        # Bottom margin. Symmetric with the outer border (3% inset).
-        bottom_margin_fraction: float = 0.04,
+        # Bottom margin. Has to reserve room for the trailing fish's label
+        # AND the inner-border buffer (~3% inset matching the side margin).
+        # Set to 0.08 so a trailing single's label can't overhang the
+        # bottom border. 4% was eating into the border on tall stacks.
+        bottom_margin_fraction: float = 0.08,
         # Side gutter. Hugs the L/R edge fish in pair / triple rows.
         side_margin_fraction: float = 0.060,
         # Honest-scale floor so the smallest fish remain substantial.
@@ -2390,8 +2393,10 @@ class FieldGuideBandsEngine(LayoutEngine):
         # 0.50 yields a ~2:1 bluegill→pike ratio (tighter than the 0.65
         # default's ~2.84:1 — closer to the reference poster's even read).
         scale_compression: float = 0.50,
-        # Hero fish target draw-width as a fraction of canvas_w.
-        hero_target_w_fraction: float = 0.55,
+        # Hero fish target draw-width as a fraction of canvas_w. 0.65 (was
+        # 0.55) so fish read bigger across the board — the prior default
+        # left visible whitespace after the shrink-to-fit pass.
+        hero_target_w_fraction: float = 0.65,
         # Gap (canvas-fraction) between L/R fish in a pair row. Tightened
         # from 0.45 → 0.30 so pair fish are bigger.
         pair_separation_fraction: float = 0.30,
@@ -2483,6 +2488,12 @@ class FieldGuideBandsEngine(LayoutEngine):
         body_top = title_h
         body_bottom = canvas_h - bottom_margin
         body_h = max(1, body_bottom - body_top)
+
+        # Reserve room for the trailing fish's caption (common + italic
+        # latin) — keep label inside the body. Matches the renderer's
+        # _draw_compact_caption_with_latin sizes (canvas_h * 0.010 for
+        # common + 0.0075 for latin + ~0.006 padding + 0.003 line gap).
+        label_reserve = int(round(canvas_h * 0.026))
 
         side_margin = int(round(canvas_w * self.side_margin_fraction))
 
@@ -2725,28 +2736,156 @@ class FieldGuideBandsEngine(LayoutEngine):
             if P_local == 0:
                 return h_yc, [], []
 
-            # First pair y-center must clear hero by half the pair's tallest
-            # fish height (so the top of the first pair fish sits below the
-            # bottom of the hero).
-            first_pair_max_h = local_pair_rows[0]["max_h"]
-            pair_top = (
-                h_yc + local_hero_h / 2.0
-                + body_h * 0.03
-                + first_pair_max_h / 2.0
-            )
-            last_pair_max_h = local_pair_rows[-1]["max_h"]
-            # Reserve y-space below the last pair if there's a trailing
-            # single fish. We give it half the inter-pair gap.
-            reserve_below = 0.0
-            if local_trailing_single_h > 0:
-                reserve_below = local_trailing_single_h * 0.5 + body_h * 0.025
-            pair_bot = body_bottom - last_pair_max_h / 2.0 - body_h * 0.01 - reserve_below
-            if P_local == 1:
-                pys = [(pair_top + pair_bot) / 2.0]
-            else:
-                step = (pair_bot - pair_top) / (P_local - 1)
-                pys = [pair_top + i * step for i in range(P_local)]
+            # ---- Tight-pack-then-center algorithm ----------------------
+            # Stagger row indexing: for each pair of adjacent main rows
+            # (main[i-1], main[i]) we find the stagger row (if any) that
+            # sits in local_rows BETWEEN them — its height becomes the
+            # constraint for the inter-main gap.
+            #
+            # Algorithm:
+            #   1. Place main[0] tight under the hero.
+            #   2. For each subsequent main[i], step down by
+            #        (main[i-1].h + main[i].h)/2 + inter_row_gap
+            #      where inter_row_gap is large enough that a stagger row
+            #      (if present between i-1 and i) fits in the gap with
+            #      label_reserve clearance on both sides.
+            #   3. Compute total stack bottom. If room left at bottom of
+            #      body, vertically center the entire stack.
+            #   4. If stack overflows body, return as-is so stack_fits()
+            #      detects the overflow and the shrink loop kicks in.
 
+            # Index stagger rows by which main-pair they belong to. For
+            # each i in [0..P_local], stagger_between[i] = height of the
+            # stagger row sitting between main[i-1] and main[i] (i>=1),
+            # or stagger_below[i] = height of the stagger row trailing
+            # main[i] (only for i == P_local-1).
+            stagger_between: list[float] = [0.0] * (P_local + 1)
+            # We need to walk local_rows in order, tracking which main
+            # row each stagger row falls between.
+            main_seen = 0
+            for row in local_rows:
+                if row["kind"] in MAIN_KINDS:
+                    main_seen += 1
+                else:
+                    # A stagger row that has seen `main_seen` main rows
+                    # so far sits between main[main_seen-1] and
+                    # main[main_seen]. If main_seen == 0, it's a leading
+                    # stagger (before any main row) — treat as
+                    # stagger_between[0]. If main_seen == P_local, it's
+                    # trailing — treat as stagger_between[P_local].
+                    idx_between = main_seen
+                    # Take max so multiple staggers in same gap (rare)
+                    # are handled.
+                    if idx_between <= P_local:
+                        stagger_between[idx_between] = max(
+                            stagger_between[idx_between], row["max_h"]
+                        )
+
+            # Hero clearance above the first main row.
+            hero_clearance = body_h * 0.03
+
+            # Baseline inter-row breathing (used when no stagger lives
+            # between two adjacent main rows).
+            baseline_gap = label_reserve + body_h * 0.005
+
+            # Place main[0]: its center is below the hero bottom by half
+            # its height + hero_clearance.
+            first_h = local_pair_rows[0]["max_h"]
+            pys: list[float] = [
+                h_yc + local_hero_h / 2.0 + hero_clearance + first_h / 2.0
+            ]
+
+            # Place each subsequent main row tight against the previous
+            # one with a gap sized to fit the stagger row in between.
+            for i in range(1, P_local):
+                prev_h = local_pair_rows[i - 1]["max_h"]
+                cur_h = local_pair_rows[i]["max_h"]
+                stagger_h = stagger_between[i]  # may be 0 if no stagger
+                # Required inter-row gap (vertical space between main
+                # row bottom and next main row top). The stagger sits
+                # vertically centered in this gap. We need:
+                #   gap >= stagger_h + 2 * label_reserve + small_buffer
+                # (label_reserve above the stagger so the upper main's
+                # caption clears it, and below so the stagger's own
+                # caption clears the lower main).
+                if stagger_h > 0:
+                    # Tight: stagger fish (L/R captions of mains are in
+                    # different x-columns, so they don't constrain the
+                    # centered stagger vertically). We need room for the
+                    # stagger fish itself + its own caption beneath +
+                    # tiny breathing above and below.
+                    gap = stagger_h + label_reserve + body_h * 0.01
+                else:
+                    gap = baseline_gap
+                step = (prev_h + cur_h) / 2.0 + gap
+                pys.append(pys[-1] + step)
+
+            # Trailing stagger sits below the last main row — reserve
+            # half-step room (the stagger sits at midpoint of the
+            # implied next-row position).
+            trailing_extra = 0.0
+            trailing_stagger_h = stagger_between[P_local]
+            if trailing_stagger_h > 0 or local_trailing_single_h > 0:
+                th = max(trailing_stagger_h, local_trailing_single_h)
+                # Trailing stagger sits below last main with breathing
+                # above + the stagger's own caption beneath.
+                trailing_extra = (
+                    th + label_reserve + body_h * 0.01
+                )
+
+            # Compute stack extents.
+            stack_top = pys[0] - local_pair_rows[0]["max_h"] / 2.0
+            stack_bot = (
+                pys[-1]
+                + local_pair_rows[-1]["max_h"] / 2.0
+                + label_reserve
+                + trailing_extra
+            )
+
+            # Effective top floor for the stack: we keep the hero pinned
+            # to its natural position; we only shift the main stack down
+            # so the hero never moves. The "stack" we re-center is just
+            # the main + stagger rows below the hero.
+            min_main_top = h_yc + local_hero_h / 2.0 + hero_clearance
+            unused = body_bottom - stack_bot
+            if unused > 0:
+                # Vertically center the main stack within the leftover
+                # body region below the hero.
+                offset = unused / 2.0
+                # Clamp so we don't push main[0] up above its clearance.
+                # (offset is positive — we shift DOWN, never up — so the
+                # min_main_top constraint is automatically satisfied.)
+                pys = [yc + offset for yc in pys]
+            elif unused < 0 and P_local > 1:
+                # Overflow case. The tight-pack stack exceeds body —
+                # fall back to UNIFORM DISTRIBUTION across the available
+                # range so rows fit (at the cost of some whitespace
+                # between rows). This guards against the per-row fixed
+                # caption-reserve overhead exceeding the body when fish
+                # are heavily shrunk. The shrink loop above this layer
+                # will already be at its scale floor (~0.25); we just
+                # need to NOT overflow the body in that worst case.
+                pair_top = (
+                    h_yc + local_hero_h / 2.0
+                    + hero_clearance
+                    + local_pair_rows[0]["max_h"] / 2.0
+                )
+                last_pair_max_h = local_pair_rows[-1]["max_h"]
+                reserve_below = trailing_extra
+                pair_bot = (
+                    body_bottom
+                    - last_pair_max_h / 2.0
+                    - label_reserve
+                    - reserve_below
+                )
+                if pair_bot > pair_top:
+                    spread_step = (pair_bot - pair_top) / (P_local - 1)
+                    pys = [pair_top + i * spread_step for i in range(P_local)]
+                # If pair_bot <= pair_top, the body really can't fit
+                # even uniformly — leave tight-pack pys as-is and let
+                # stack_fits report the overflow.
+
+            # ---- Build per-row yc_list including stagger rows ----------
             yc_list: list[float] = []
             pair_i = 0
             for row in local_rows:
@@ -2755,23 +2894,32 @@ class FieldGuideBandsEngine(LayoutEngine):
                     pair_i += 1
                 else:
                     if 1 <= pair_i < len(pys):
-                        # Between main_i-1 and main_i.
+                        # Between main[pair_i-1] and main[pair_i].
                         y_upper = pys[pair_i - 1]
                         y_lower = pys[pair_i]
                         yc = y_upper + (y_lower - y_upper) * self.single_y_offset_fraction
                     elif pair_i >= len(pys):
-                        # Trailing stagger after the last main row.
-                        if P_local > 1:
-                            inter_gap = pys[-1] - pys[-2]
-                        else:
-                            inter_gap = body_h * 0.12
-                        yc = pys[-1] + inter_gap * 0.5
-                        # Clamp so the stagger's bottom fits within body.
+                        # Trailing stagger after the last main row. Sit
+                        # below last main with breathing + its own
+                        # caption beneath. Mains have L/R captions, the
+                        # trailing stagger is centered — so its top can
+                        # sit close to the last main's bottom.
                         stagger_h = row["max_h"]
-                        yc = min(yc, body_bottom - stagger_h / 2.0 - body_h * 0.005)
+                        last_main_h = local_pair_rows[-1]["max_h"]
+                        yc = (
+                            pys[-1]
+                            + last_main_h / 2.0
+                            + body_h * 0.005
+                            + stagger_h / 2.0
+                        )
+                        # Clamp so the stagger's caption stays in body.
+                        yc = min(
+                            yc,
+                            body_bottom - stagger_h / 2.0 - label_reserve,
+                        )
                     else:
                         # Leading stagger (no main rows before it).
-                        yc = (h_yc + pys[0]) / 2.0 if pys else h_yc
+                        yc = (h_yc + pys[0]) / 2.0
                     yc_list.append(yc)
             return h_yc, yc_list, pys
 
@@ -2795,9 +2943,11 @@ class FieldGuideBandsEngine(LayoutEngine):
             if h_yc - local_hero_h / 2.0 < body_top - 1:
                 return False
             # Every row bottom inside body and every row top inside body.
+            # Bottom check INCLUDES label_reserve so the caption stays
+            # above the inner-border bottom margin.
             for row, yc in zip(local_rows, yc_list):
                 row_h = row["max_h"]
-                if yc + row_h / 2.0 > body_bottom + 1:
+                if yc + row_h / 2.0 + label_reserve > body_bottom + 1:
                     return False
                 if yc - row_h / 2.0 < body_top - 1:
                     return False
@@ -2876,7 +3026,9 @@ class FieldGuideBandsEngine(LayoutEngine):
                         max_w = w
             return max_w
 
-        if scale >= 1.0:
+        # Whitespace-fill grow always runs (even after shrink) so any
+        # vertical room left under the trailing fish gets eaten.
+        if True:
             usable_w = canvas_w - 2 * side_margin
             grow_total = 1.0
             for _ in range(30):
@@ -2886,8 +3038,10 @@ class FieldGuideBandsEngine(LayoutEngine):
                 bot = _stack_bottom(0.0 if not ycs_now and hero_h == 0
                                     else (body_top + hero_h * 0.55 + body_h * 0.02),
                                     ycs_now, rows)
-                unused = body_bottom - bot
-                if unused <= canvas_h * 0.05:
+                # Account for label_reserve below the trailing row when
+                # measuring "used" vertical space.
+                unused = body_bottom - bot - label_reserve
+                if unused <= canvas_h * 0.02:
                     break
                 # Try a 5% grow step.
                 step = 1.05
