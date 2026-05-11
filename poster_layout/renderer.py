@@ -733,9 +733,59 @@ def _draw_compact_caption_with_latin(
     the second line is the species' italic scientific name at ~75% the
     common-name font size, centered with a small line gap. Both lines render
     in the profile's ink color.
+
+    When the tracked common name is wider than the fish silhouette (typical
+    for small species with long compound names like "PUMPKINSEED SUNFISH"),
+    we break the common name onto two lines on its longest word boundary
+    so the label visually anchors to the fish instead of overhanging the
+    neighbors. Single-word labels (BLUEGILL, BOWFIN) never wrap.
     """
     pad = max(8, int(round(canvas_h * 0.006)))
     line_gap = max(4, int(round(canvas_h * 0.003)))
+
+    def _tracked_w(text: str) -> int:
+        if not text:
+            return 0
+        advances = [_text_size(draw, ch, common_font)[0] for ch in text]
+        return sum(advances) + label_letter_spacing * max(0, len(text) - 1)
+
+    def _draw_tracked_line(text: str, x_left: int, y: int) -> int:
+        """Draw one tracked-uppercase line, return its height."""
+        if not text:
+            return 0
+        advances = [_text_size(draw, ch, common_font)[0] for ch in text]
+        _, h = _text_size(draw, text, common_font)
+        x_cursor = x_left
+        for ch, adv in zip(text, advances):
+            draw.text((x_cursor, y), ch, font=common_font, fill=ink_hex)
+            x_cursor += adv + label_letter_spacing
+        return h
+
+    def _split_common(text: str, max_w: int) -> list[str]:
+        """Break a multi-word common name into 1 or 2 tracked lines.
+
+        Picks the word boundary that produces the most balanced widths
+        (closest tracked-width parity between the two halves). Returns a
+        single-element list when wrapping isn't possible (one word) or
+        unnecessary (already fits).
+        """
+        if _tracked_w(text) <= max_w:
+            return [text]
+        words = text.split()
+        if len(words) < 2:
+            return [text]  # single word — can't wrap
+        # Try every split point; pick the one minimizing max(line1_w, line2_w).
+        best_split = 1
+        best_max = None
+        for i in range(1, len(words)):
+            l1 = " ".join(words[:i])
+            l2 = " ".join(words[i:])
+            mx = max(_tracked_w(l1), _tracked_w(l2))
+            if best_max is None or mx < best_max:
+                best_max = mx
+                best_split = i
+        return [" ".join(words[:best_split]), " ".join(words[best_split:])]
+
     for placed in placements:
         sp = placed.species_ref
         common = (sp.common_name or "").upper()
@@ -744,23 +794,20 @@ def _draw_compact_caption_with_latin(
             continue
         cx = placed.x + placed.draw_width // 2
         cur_y = placed.y + placed.draw_height + pad
-        # Line 1: tracked uppercase common name (same algorithm as
-        # _draw_compact_caption_only — kept inline so the two helpers can
-        # diverge cosmetically without coupling).
+        # Line 1 (+ optional line 2): tracked uppercase common name. Wrap to
+        # 2 lines if a single line would overhang the fish bbox; budget the
+        # max line width at 1.10x the fish width so a label is allowed a
+        # small slop over the silhouette before wrapping kicks in.
         if common:
-            advances = [_text_size(draw, ch, common_font)[0] for ch in common]
-            total_w = (
-                sum(advances)
-                + label_letter_spacing * max(0, len(common) - 1)
-            )
-            _, ch_h = _text_size(draw, common, common_font)
-            x_cursor = cx - total_w // 2
-            for ch, adv in zip(common, advances):
-                draw.text((x_cursor, cur_y), ch, font=common_font, fill=ink_hex)
-                x_cursor += adv + label_letter_spacing
-            cur_y += ch_h + line_gap
-        # Line 2: italic centered scientific name. NO tracking — italics are
-        # already optically loose; tracking them looks broken.
+            max_line_w = max(1, int(placed.draw_width * 1.10))
+            lines = _split_common(common, max_line_w)
+            for line in lines:
+                lw = _tracked_w(line)
+                _, lh = _text_size(draw, line, common_font)
+                _draw_tracked_line(line, cx - lw // 2, cur_y)
+                cur_y += lh + line_gap
+        # Line N+1: italic centered scientific name. NO tracking — italics
+        # are already optically loose; tracking them looks broken.
         if latin:
             lw, _lh = _text_size(draw, latin, italic_font)
             draw.text((cx - lw // 2, cur_y), latin, font=italic_font, fill=ink_hex)
