@@ -2848,15 +2848,12 @@ class FieldGuideBandsEngine(LayoutEngine):
             # the main + stagger rows below the hero.
             min_main_top = h_yc + local_hero_h / 2.0 + hero_clearance
             unused = body_bottom - stack_bot
-            if unused > 0:
-                # Vertically center the main stack within the leftover
-                # body region below the hero.
-                offset = unused / 2.0
-                # Clamp so we don't push main[0] up above its clearance.
-                # (offset is positive — we shift DOWN, never up — so the
-                # min_main_top constraint is automatically satisfied.)
-                pys = [yc + offset for yc in pys]
-            elif unused < 0 and P_local > 1:
+            # NOTE: do NOT center the stack when there's unused space —
+            # leave the whitespace at the bottom so the grow-pass below
+            # can iteratively enlarge all fish until the body is filled.
+            # If we centered here, `unused` from the grow-pass perspective
+            # would already be ~0 and the grow loop would no-op.
+            if unused < 0 and P_local > 1:
                 # Overflow case. The tight-pack stack exceeds body —
                 # fall back to UNIFORM DISTRIBUTION across the available
                 # range so rows fit (at the cost of some whitespace
@@ -2967,6 +2964,20 @@ class FieldGuideBandsEngine(LayoutEngine):
                 hb = local_rows[i + 1]["max_h"]
                 a_bot = ya + ha / 2.0
                 b_top = yb - hb / 2.0
+                # If the rows' y-bboxes overlap, check whether their
+                # x-ranges actually collide. Pair fish hug L/R columns,
+                # centered singles live in the middle — they're allowed
+                # to vertically overlap so long as their x-ranges don't.
+                if a_bot > b_top + 1:
+                    a_kind = local_rows[i]["kind"]
+                    b_kind = local_rows[i + 1]["kind"]
+                    # Only main row pairs (pair/triple ↔ pair/triple) are
+                    # forbidden from y-overlapping. Any pairing involving
+                    # a stagger (single/double) is allowed to y-overlap
+                    # because the stagger is centered and the main fish
+                    # are on the outside (no x-collision).
+                    if a_kind in MAIN_KINDS and b_kind in MAIN_KINDS:
+                        return False
                 # Pair-fish hug L/R edges; singles are centered. A
                 # centered-single's bbox CAN vertically overlap an adjacent
                 # pair if the single is narrow enough that its x-range
@@ -3031,7 +3042,7 @@ class FieldGuideBandsEngine(LayoutEngine):
         if True:
             usable_w = canvas_w - 2 * side_margin
             grow_total = 1.0
-            for _ in range(30):
+            for _i in range(30):
                 _, ycs_now, _ = compute_y_centers(
                     hero_h, rows, pair_rows, trailing_single_h
                 )
@@ -3119,26 +3130,47 @@ class FieldGuideBandsEngine(LayoutEngine):
                 )
             )
 
+        # Pair / triple rows are CENTERED as a group rather than
+        # justified to the side margins. The fish hug each other with
+        # a fixed pair_separation gap (canvas-fraction); the resulting
+        # cluster is centered horizontally. Falls back to justified
+        # positioning when the cluster would exceed (canvas_w - 2 *
+        # side_margin), so the inner-border buffer is always respected.
+        pair_gap_px = int(round(canvas_w * self.pair_separation_fraction))
+
         for row, yc in zip(rows, row_y_centers):
             kind = row["kind"]
             if kind == "pair":
                 left_entry, right_entry = row["fish"]
                 (lw, lh) = row["dims"][0]
                 (rw, rh) = row["dims"][1]
+                cluster_w = lw + pair_gap_px + rw
+                usable_w = canvas_w - 2 * side_margin
+                if cluster_w <= usable_w:
+                    lx = (canvas_w - cluster_w) / 2.0
+                    rx = lx + lw + pair_gap_px
+                else:
+                    lx = side_margin
+                    rx = canvas_w - side_margin - rw
                 if left_entry is not None:
-                    _emit(left_entry, lw, lh, side_margin, yc)
+                    _emit(left_entry, lw, lh, lx, yc)
                 if right_entry is not None:
-                    _emit(right_entry, rw, rh, canvas_w - side_margin - rw, yc)
+                    _emit(right_entry, rw, rh, rx, yc)
             elif kind == "triple":
                 lE, cE, rE = row["fish"]
                 (lw, lh) = row["dims"][0]
                 (cw, ch) = row["dims"][1]
                 (rw, rh) = row["dims"][2]
-                # L flush to side margin; R flush to right side margin;
-                # C centered horizontally.
-                lx = side_margin
-                rx = canvas_w - side_margin - rw
-                cx = (canvas_w - cw) / 2.0
+                cluster_w = lw + pair_gap_px + cw + pair_gap_px + rw
+                usable_w = canvas_w - 2 * side_margin
+                if cluster_w <= usable_w:
+                    lx = (canvas_w - cluster_w) / 2.0
+                    cx = lx + lw + pair_gap_px
+                    rx = cx + cw + pair_gap_px
+                else:
+                    lx = side_margin
+                    rx = canvas_w - side_margin - rw
+                    cx = (canvas_w - cw) / 2.0
                 if lE is not None:
                     _emit(lE, lw, lh, lx, yc)
                 if cE is not None:
