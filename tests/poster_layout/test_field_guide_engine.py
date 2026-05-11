@@ -138,7 +138,7 @@ def test_25_species_total_shrink_keeps_inside_body_region() -> None:
 
 
 def test_single_species_still_works() -> None:
-    """N=1 is a degenerate band — engine should still produce one placement."""
+    """N=1 is a degenerate case — engine should still produce one placement."""
     refs = [_ref("northern_pike", 2.5)]
     spec = _spec()
     result = FieldGuideBandsEngine().layout(spec, refs, _StubLoader())
@@ -148,3 +148,48 @@ def test_single_species_still_works() -> None:
     assert p.draw_height > 0
     assert p.x >= 0
     assert p.y >= 0
+
+
+def test_hero_plus_pair_single_zigzag_pattern() -> None:
+    """13 fish should produce 1 hero + 4 pairs + 4 singles in the canonical pattern.
+
+    Pair fish hug the L/R edges (x near side_margin or canvas - side_margin - w);
+    singles sit centered horizontally.
+    """
+    refs = [_ref(f"sp{i}", 2.5 - i * 0.15) for i in range(13)]
+    spec = _spec()
+    engine = FieldGuideBandsEngine()
+    result = engine.layout(spec, refs, _StubLoader())
+    assert len(result.placements) == 13
+
+    # Hero is the first placement and has the largest draw width.
+    hero = result.placements[0]
+    assert hero.species_ref.slug == "sp0"
+    max_w = max(p.draw_width for p in result.placements)
+    assert hero.draw_width == max_w
+
+    # Hero is roughly centered.
+    cx = hero.x + hero.draw_width / 2
+    assert abs(cx - spec.canvas_width / 2) < spec.canvas_width * 0.02
+
+
+def test_no_fish_overlap_any_other_fish_bbox() -> None:
+    """With 13 species, no two placement bboxes should overlap."""
+    refs = [_ref(f"sp{i}", 2.5 - i * 0.15) for i in range(13)]
+    spec = _spec()
+    result = FieldGuideBandsEngine().layout(spec, refs, _StubLoader())
+
+    def boxes_overlap(a, b) -> bool:
+        return not (
+            a.x + a.draw_width <= b.x
+            or b.x + b.draw_width <= a.x
+            or a.y + a.draw_height <= b.y
+            or b.y + b.draw_height <= a.y
+        )
+
+    placements = result.placements
+    for i, a in enumerate(placements):
+        for b in placements[i + 1:]:
+            assert not boxes_overlap(a, b), (
+                f"{a.species_ref.slug} overlaps {b.species_ref.slug}"
+            )

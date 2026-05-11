@@ -2348,29 +2348,27 @@ class SilhouettePackedLayoutEngine(LayoutEngine):
 
 
 class FieldGuideBandsEngine(LayoutEngine):
-    """Honest-scale band-packing layout that mirrors a printed field guide.
+    """Deterministic HERO + alternating PAIR / SINGLE zigzag layout.
 
-    Algorithm (matches the reference poster at
-    ``output/uploads/fish poster.jpeg``):
+    Matches the reference poster at ``output/uploads/fish poster.jpeg``:
+    a single hero fish centered under the title, followed by alternating
+    rows of paired (L/R edge) fish and a single centered fish positioned
+    at a half-step between adjacent pair rows.
 
-    1. Sort species largest-first by ``relative_scale_index``.
-    2. Carve the canvas: top 12% for the title block, bottom 3% for any
-       tag/mark, the middle 85% is the body the bands live in.
-    3. Greedy band packing — walk the sorted species and open a new band
-       when adding the next fish would exceed 85% of canvas width minus
-       per-fish gaps. Aim for ~2 fish per band on average; allow 1-3.
-    4. Each band's height is the tallest fish in the band. Stack bands
-       top-to-bottom with a 1.2% canvas-height inter-band gap and reserve
-       2.5% canvas-height per band for the renderer-drawn label.
-    5. Center each band horizontally so the row composition reads as a
-       deliberate line break, not left-aligned packing.
-    6. Honest-scale floor: clamp ``relative_scale_index`` at ``min_idx``
-       (default 0.4) so smallest fish (e.g. bluegill) stay visible next to
-       a Northern Pike — but the relative-size relationship is preserved
-       (pike still ~6× bluegill body length, not equal).
-    7. Total-shrink pass: if the computed band-stack overflows the body
-       region, scale every band's draw size by the same overflow ratio so
-       relative sizes stay correct.
+    Layout per N fish (sorted largest-first by relative_scale_index)::
+
+        Row 0   — HERO: largest fish, centered, ~hero_target_w_fraction wide
+        Row 1   — PAIR: 2 fish at LEFT and RIGHT edges
+        Row 1.5 — SINGLE: 1 fish centered, vertically between row 1 and row 2
+        Row 2   — PAIR
+        Row 2.5 — SINGLE
+        ...
+        Row k   — PAIR (no trailing single)
+
+    Slot assignment alternates pair → single → pair → single ... over the
+    N-1 non-hero fish. The largest non-hero fish go into pair slots
+    (matching the reference where the centered between-fish are typically
+    smaller than the L/R edge fish).
 
     Pairs with :class:`EditorialMultiRenderer` rendering with the
     "field_guide" :class:`StyleProfile` (cream paper, two-line title,
@@ -2379,57 +2377,53 @@ class FieldGuideBandsEngine(LayoutEngine):
 
     def __init__(
         self,
+        # Top reserved for the title block.
         title_band_fraction: float = 0.20,
-        # Bumped 0.03 → 0.06 (Change 2): symmetric inner buffer. The
-        # outer border sits 3% inset from the canvas edge (renderer
-        # _draw_inner_border default ``inset_frac=0.030``). The user
-        # wants the gap INSIDE the border (border line → first fish) to
-        # equal the gap OUTSIDE (border line → canvas edge). 6% total =
-        # 3% outside + 3% inside.
-        bottom_margin_fraction: float = 0.06,
-        # Same logic for sides — bumped 0.075 → 0.06 (3% outside +
-        # 3% inside). The previous 0.075 actually OVER-budgeted the
-        # inside (4.5% inside vs the 3% outside) — the new value brings
-        # them into symmetry.
+        # Bottom margin. Symmetric with the outer border (3% inset).
+        bottom_margin_fraction: float = 0.04,
+        # Side gutter. Hugs the L/R edge fish in pair rows.
         side_margin_fraction: float = 0.060,
-        inter_fish_gap_fraction: float = 0.07,
-        inter_band_gap_fraction: float = 0.020,
-        # Bumped 0.030 → 0.045 (Change 1): the field-guide caption is
-        # now TWO lines (tracked common + italic Latin) so each band needs
-        # ~50% more vertical reserve to accommodate the second line +
-        # line gap without colliding with the next band's fish.
-        label_band_fraction: float = 0.045,
+        # Honest-scale floor so the smallest fish remain substantial.
         min_idx_floor: float = 0.4,
-        # Compress the relative_scale_index range via power. Pure 1.0 keeps
-        # honest ratios (pike 2.5 vs bluegill 0.5 = 5x). 0.65 maps that to
-        # ~3x — matching the reference fish poster's tighter visual range
-        # where the smallest fish is still substantial. Drop to 1.0 to
-        # restore raw honest scale.
+        # Compress the relative_scale_index range via power. 1.0 = honest;
+        # 0.65 maps a 5:1 raw range to ~3:1 visual range (matches reference).
         scale_compression: float = 0.65,
-        target_fish_per_band: int = 2,
-        max_fish_per_band: int = 5,
-        title_breathing_fraction: float = 0.015,
-        target_band_width_fraction: float = 0.75,
-        max_inter_fish_gap_fraction: float = 0.10,
-        # Per-fish minimum horizontal spacing must accommodate label width.
-        # Label font size ≈ canvas_h * 0.011, average tracked common name ≈
-        # 14 chars * (label_size * 0.65) → ~10% canvas_h ≈ ~7.5% canvas_w
-        # at 3:4 aspect. We measure exactly during packing.
-        min_label_pad_fraction: float = 0.014,  # ≈50px on a 3600px canvas — sized to keep adjacent labels separated at the 0.010 label-size
+        # Hero fish target draw-width as a fraction of canvas_w.
+        hero_target_w_fraction: float = 0.45,
+        # Gap (canvas-fraction) between L/R fish in a pair row. Larger =
+        # bigger gap, smaller fish.
+        pair_separation_fraction: float = 0.45,
+        # Where a single fish sits vertically between two adjacent pair rows.
+        # 0.5 = exactly halfway, <0.5 = nearer the upper pair.
+        single_y_offset_fraction: float = 0.50,
+        # ---- Back-compat (accepted, silently unused by the new layout) ----
+        target_fish_per_band: int | None = None,
+        max_fish_per_band: int | None = None,
+        max_inter_fish_gap_fraction: float | None = None,
+        target_band_width_fraction: float | None = None,
+        label_band_fraction: float | None = None,
+        inter_band_gap_fraction: float | None = None,
+        inter_fish_gap_fraction: float | None = None,
+        title_breathing_fraction: float | None = None,
+        min_label_pad_fraction: float | None = None,
     ) -> None:
         self.title_band_fraction = title_band_fraction
         self.bottom_margin_fraction = bottom_margin_fraction
         self.side_margin_fraction = side_margin_fraction
-        self.inter_fish_gap_fraction = inter_fish_gap_fraction
-        self.inter_band_gap_fraction = inter_band_gap_fraction
-        self.label_band_fraction = label_band_fraction
         self.min_idx_floor = min_idx_floor
         self.scale_compression = scale_compression
+        self.hero_target_w_fraction = hero_target_w_fraction
+        self.pair_separation_fraction = pair_separation_fraction
+        self.single_y_offset_fraction = single_y_offset_fraction
+        # Back-compat — surface kept for older callers.
         self.target_fish_per_band = target_fish_per_band
         self.max_fish_per_band = max_fish_per_band
-        self.title_breathing_fraction = title_breathing_fraction
-        self.target_band_width_fraction = target_band_width_fraction
         self.max_inter_fish_gap_fraction = max_inter_fish_gap_fraction
+        self.target_band_width_fraction = target_band_width_fraction
+        self.label_band_fraction = label_band_fraction
+        self.inter_band_gap_fraction = inter_band_gap_fraction
+        self.inter_fish_gap_fraction = inter_fish_gap_fraction
+        self.title_breathing_fraction = title_breathing_fraction
         self.min_label_pad_fraction = min_label_pad_fraction
 
     def layout(
@@ -2449,7 +2443,7 @@ class FieldGuideBandsEngine(LayoutEngine):
             warnings.append("FieldGuideBandsEngine: no masters available.")
             return LayoutResult(poster=spec, placements=[], warnings=warnings)
 
-        # 1. Sort largest-first.
+        # 1. Sort largest-first by relative_scale_index.
         pairs_sorted = sorted(
             pairs,
             key=lambda pr: pr[0].relative_scale_index,
@@ -2459,976 +2453,394 @@ class FieldGuideBandsEngine(LayoutEngine):
         canvas_w = spec.canvas_width
         canvas_h = spec.canvas_height
 
-        # 2. Carve regions. Title block is reserved 20% by default to give
-        # the auto-shrunk title + bottom rule clearance from the hero fish
-        # (Bug 1 fix: long lake names like "Lake Champlain" have descenders
-        # that crash into the pike's dorsal fin without this padding).
+        # 2. Carve regions.
         title_h = int(round(canvas_h * self.title_band_fraction))
-        bottom_h = int(round(canvas_h * self.bottom_margin_fraction))
-        # Small breathing-room buffer below the title's bottom rule before
-        # the first band starts.
-        breathing_px = int(round(canvas_h * self.title_breathing_fraction))
-        body_top = title_h + breathing_px
-        body_h = max(1, canvas_h - body_top - bottom_h)
+        bottom_margin = int(round(canvas_h * self.bottom_margin_fraction))
+        body_top = title_h
+        body_bottom = canvas_h - bottom_margin
+        body_h = max(1, body_bottom - body_top)
 
         side_margin = int(round(canvas_w * self.side_margin_fraction))
-        usable_w = max(1, canvas_w - 2 * side_margin)
-        gap_px = int(round(canvas_w * self.inter_fish_gap_fraction))
-        min_label_pad_px = int(round(canvas_w * self.min_label_pad_fraction))
 
-        # Estimate tracked-label width using same metrics as the renderer's
-        # _draw_compact_caption_only (font_size = canvas_h * 0.010, tracking
-        # = font_size * 0.18). Per-char advance for uppercase serif ≈ 0.72
-        # of font size — empirical (measured against the actual editorial
-        # font: SMALLMOUTH BASS at 53px → 0.71, YELLOW PERCH → 0.72). We
-        # err slightly wide so we never under-allocate. Used by the packing
-        # loop to enforce that adjacent labels won't collide horizontally.
-        # KEEP IN SYNC with renderer.py:_draw_compact_caption_only's
-        # common_size formula — change them together or labels collide.
-        label_font_size = max(20, int(round(canvas_h * 0.010)))
-        label_tracking = max(2, int(round(label_font_size * 0.18)))
-
-        def label_width_for(ref: SpeciesRef) -> int:
-            text = (ref.common_name or "").upper()
-            if not text:
-                return 0
-            char_advance = label_font_size * 0.72
-            return int(round(
-                len(text) * char_advance + label_tracking * max(0, len(text) - 1)
-            ))
-
-        # 6. Honest-scale floor on the index.
-        # Apply scale_compression as a power: compressed_idx = idx**c.
-        # c=1.0 → honest scale; c<1.0 → range narrows (small fish grow
-        # toward median, big fish shrink toward median). The reference
-        # poster reads as ~3:1 range; honest ratios on our species data
-        # would be 5:1, so default c=0.65 hits the sweet spot.
+        # 3. Compressed honest scale.
         _c = max(0.1, min(1.0, self.scale_compression))
         idx_for = lambda ref: max(self.min_idx_floor, ref.relative_scale_index) ** _c
 
-        # Pick a reference index for sizing. The hero target is COUNT-AWARE:
-        # more species → smaller hero so everyone fits without dropping
-        # anyone. Honest scale (relative_scale_index ratios) is preserved
-        # across all fish via a single unit_w. Tiers were chosen so that the
-        # natural pre-shrink stack height roughly matches body_h on a 3:4
-        # canvas, minimising how much the total-shrink pass has to do.
-        n_species = len(pairs_sorted)
-        if n_species <= 5:
-            hero_target_fraction = 0.60
-        elif n_species <= 10:
-            hero_target_fraction = 0.45
-        elif n_species <= 15:
-            hero_target_fraction = 0.35
-        elif n_species <= 20:
-            hero_target_fraction = 0.28
-        else:
-            hero_target_fraction = 0.22
-        largest_idx = idx_for(pairs_sorted[0][0])
-        target_largest_w = canvas_w * hero_target_fraction
-        unit_w = target_largest_w / max(1e-6, largest_idx)
+        # 4. Slot assignment for the N-1 non-hero fish: alternating
+        # pair_L, pair_R, single, pair_L, pair_R, single, ...
+        N = len(pairs_sorted)
 
-        # Helper: candidate draw width at the per-species scale.
-        def draw_w_for(ref: SpeciesRef) -> float:
-            return idx_for(ref) * unit_w
-
-        # 3-5. Greedy band packing — packing-aware of label widths.
-        # Each band is a list of (ref, master, candidate_w, candidate_h,
-        # label_w). When projecting whether a fish fits, we use the WIDER
-        # of (fish_width, label_width) plus the label-padding gap to ensure
-        # adjacent labels don't horizontally collide (Bug 2 fix). This
-        # gives uniform label sizing across all bands at the cost of
-        # occasionally pushing a fish to a new band.
-        bands: list[list[tuple[SpeciesRef, MasterImage, float, float, int]]] = []
-        cur_band: list[tuple[SpeciesRef, MasterImage, float, float, int]] = []
-        cur_band_slot_w = 0.0  # sum of max(fish_w, label_w) per item
-        for ref, master in pairs_sorted:
-            cand_w = draw_w_for(ref)
-            # Use alpha-bbox dimensions (the tight fish silhouette) rather
-            # than the master canvas dimensions. Without this, every fish
-            # gets sized as if it were the master's 1.5:1 box — pike (true
-            # 3.4:1) renders short with huge transparent vertical padding,
-            # making "10 fish on a 4:5 canvas" look like "tiny fish floating
-            # in a sea of whitespace". Bug B fix.
-            src_w = max(1, master.bbox_width_px)
-            src_h = max(1, master.bbox_height_px)
-            cand_h = cand_w * src_h / src_w
-            label_w = label_width_for(ref)
-            # Each item's horizontal "slot" must be at least as wide as
-            # its label so labels never overlap their neighbors. Use the
-            # max of fish-draw-width and label-width.
-            item_slot_w = max(cand_w, float(label_w))
-            # Inter-item gap for PACKING decisions: use only the label
-            # padding minimum (~24px), not the larger cosmetic gap_px
-            # (~252px). The cosmetic gap is enforced later during band
-            # spreading; using it here would prevent fish that comfortably
-            # fit at render-time from packing into the same band.
-            extra_gap = min_label_pad_px if cur_band else 0
-            projected_w = cur_band_slot_w + extra_gap + item_slot_w
-            band_full = (
-                len(cur_band) >= self.max_fish_per_band
-                or projected_w > usable_w
-            )
-            if band_full and cur_band:
-                bands.append(cur_band)
-                cur_band = [(ref, master, cand_w, cand_h, label_w)]
-                cur_band_slot_w = item_slot_w
-            else:
-                cur_band.append((ref, master, cand_w, cand_h, label_w))
-                cur_band_slot_w = projected_w
-        if cur_band:
-            bands.append(cur_band)
-
-        # 5. Compute total stack height (item[3] = candidate_h).
-        label_reserve_px = int(round(canvas_h * self.label_band_fraction))
-        inter_band_px = int(round(canvas_h * self.inter_band_gap_fraction))
-
-        def _stack_h(_bands: list) -> tuple[float, list[float]]:
-            heights = [
-                max((it[3] for it in band), default=0.0) for band in _bands
-            ]
-            return (
-                sum(heights)
-                + label_reserve_px * len(_bands)
-                + inter_band_px * max(0, len(_bands) - 1),
-                heights,
-            )
-
-        # 7a. Band-merging pass (pre-shrink): rather than shrink everything
-        # uniformly when bands don't fit, try to merge adjacent SMALL bands
-        # whose combined slot widths still fit ``usable_w``. This preserves
-        # the hero's full size while increasing packing density of the
-        # smaller fish — exactly what the field-guide reference does
-        # (Bug 3 fix). Hero (band 0) is always preserved as solo.
-        def _band_slot_width(band: list) -> float:
-            slot = sum(max(it[2], float(it[4])) for it in band)
-            n = len(band)
-            if n > 1:
-                # Use the label-pad minimum for packing-fit decisions;
-                # cosmetic gap_px is only enforced during render-time band
-                # spreading, where there's slack to absorb it.
-                slot += min_label_pad_px * (n - 1)
-            return slot
-
-        max_per_band = self.max_fish_per_band
-        # Iteratively merge: pick the two smallest-cumulative-height
-        # adjacent bands (excluding the hero band 0) whose combined slot
-        # width still fits, until either the stack fits or no merges remain.
-        for _safety in range(50):
-            cur_total, _heights = _stack_h(bands)
-            if cur_total <= body_h:
-                break
-            best_merge: tuple[int, float] | None = None  # (i, combined_h)
-            for i in range(1, len(bands) - 1):
-                # Skip merges that involve the hero (i.e. always keep band 0
-                # as a solo band).
-                a, b = bands[i], bands[i + 1]
-                if len(a) + len(b) > max_per_band:
-                    continue
-                merged_slot = _band_slot_width(a + b)
-                if merged_slot > usable_w:
-                    continue
-                # Prefer merging the two with the SMALLEST max-height (so we
-                # don't accidentally make a band twice as tall by merging a
-                # tall one with another tall one).
-                merged_h = max(
-                    max((it[3] for it in a), default=0.0),
-                    max((it[3] for it in b), default=0.0),
-                )
-                if best_merge is None or merged_h < best_merge[1]:
-                    best_merge = (i, merged_h)
-            if best_merge is None:
-                break
-            i = best_merge[0]
-            bands[i] = bands[i] + bands[i + 1]
-            del bands[i + 1]
-
-        total_h, band_heights = _stack_h(bands)
-
-        # 7b-pre. Total-GROW pass: with alpha-bbox aspect (Bug B), fish are
-        # MUCH shorter than they used to be (master canvas was 1.5:1, real
-        # fish are 1.6–3.4:1) so the natural stack is now far shorter than
-        # body_h. Grow fish uniformly until either:
-        #   (a) the stack height matches body_h, or
-        #   (b) any band's slot width hits 85% of usable_w (cosmetic ceiling
-        #       so fish don't crash into the side margins).
-        # Then absorb any remaining vertical slack into inter-band gaps so
-        # the stack visually centers in the body rather than bunching up.
-        # This keeps honest-scale relations intact while filling the body.
-        if total_h < body_h * 0.95 and bands:
-            scalable_h = sum(band_heights) + label_reserve_px * len(bands)
-            constant = inter_band_px * max(0, len(bands) - 1)
-            available = max(1, body_h - constant)
-            if scalable_h > 0:
-                grow_height = available / scalable_h
-            else:
-                grow_height = 1.0
-            # Width ceiling: NO band's combined slot width may exceed 85%
-            # of usable_w after grow (else fish crash into side margins).
-            # Check every band, not just the hero — body bands of 3-4 small
-            # fish can collectively be wider than the hero.
-            max_band_slot = 0.0
-            for band in bands:
-                slot = sum(max(it[2], float(it[4])) for it in band)
-                if len(band) > 1:
-                    slot += min_label_pad_px * (len(band) - 1)
-                max_band_slot = max(max_band_slot, slot)
-            if max_band_slot > 0:
-                grow_width = (usable_w * 0.85) / max_band_slot
-            else:
-                grow_width = grow_height
-            grow = min(grow_height, grow_width)
-            if grow > 1.0:
-                # Apply uniform grow factor by inflating unit_w and
-                # recomputing all per-fish dims. This rebuilds the
-                # band_heights since cand_h scales linearly.
-                unit_w *= grow
-                # Rebuild bands' tuples with grown widths/heights.
-                new_bands: list[
-                    list[tuple[SpeciesRef, MasterImage, float, float, int]]
-                ] = []
-                for band in bands:
-                    new_band = []
-                    for (ref, master, cand_w, cand_h, label_w) in band:
-                        new_band.append(
-                            (ref, master, cand_w * grow, cand_h * grow, label_w)
-                        )
-                    new_bands.append(new_band)
-                bands = new_bands
-                total_h, band_heights = _stack_h(bands)
-
-        # 7b. Total-shrink pass: if STILL overflowing, scale uniformly.
-        # NEVER drop species — the customer selected them all, every one
-        # must appear. The hero target is already count-aware (see step 6),
-        # so by this point the overflow should be modest and a uniform
-        # shrink keeps relative scale intact across the whole poster.
-        shrink = 1.0
-        if total_h > body_h:
-            # Solve: shrink * (sum_band_h + labels) + gaps == body_h.
-            # We shrink the band heights AND label reserve uniformly; gaps
-            # stay constant since they're cosmetic.
-            scalable = sum(band_heights) + label_reserve_px * len(bands)
-            constant = inter_band_px * max(0, len(bands) - 1)
-            avail = max(1, body_h - constant)
-            if scalable > 0:
-                shrink = min(1.0, avail / scalable)
-            warnings.append(
-                f"FieldGuideBandsEngine: stack height {int(total_h)}px > body "
-                f"{body_h}px; shrinking everything to {shrink:.0%} of native size."
-            )
-
-        scaled_band_heights = [bh * shrink for bh in band_heights]
-        scaled_label_reserve = label_reserve_px * shrink
-
-        # Hero post-scale (Bug 3 final touch): if shrink left the hero
-        # below the count-aware hero target, scale up JUST the hero —
-        # proportionally — toward that target. We only do this when the
-        # hero is solo (band[0] has 1 fish), and we cap the rescale so it
-        # never exceeds the original natural cand_w (preserves honest-scale
-        # relative to the body fish in the uncrowded case where
-        # shrink == 1.0).
-        #
-        # The hero floor is a SOFT preference: if the body re-shrink that
-        # would be required to grow the hero pushes body fish below a
-        # readability floor, we skip the rescale. Species are never
-        # dropped here — the count-aware hero target (step 6) already
-        # ensures the natural sizing fits.
-        #
-        # When the hero rescale grows band[0]'s height, we MUST re-shrink
-        # the body bands to keep total stack height within body_h (so the
-        # bottom row doesn't fall off the canvas).
-        hero_scale_override: float | None = None
-        if bands and len(bands[0]) == 1:
-            hero_cand_w_native = bands[0][0][2]
-            hero_w_after_shrink = hero_cand_w_native * shrink
-            hero_floor = canvas_w * hero_target_fraction
-            if hero_w_after_shrink < hero_floor:
-                target_hero_w = min(hero_floor, hero_cand_w_native)
-                if hero_w_after_shrink > 0:
-                    hero_scale_override = target_hero_w / hero_w_after_shrink
-                    # New hero band height after rescale.
-                    new_hero_h = scaled_band_heights[0] * hero_scale_override
-                    # Body budget = body_h minus hero band, hero label,
-                    # and inter-band gaps.
-                    constant = (
-                        new_hero_h
-                        + scaled_label_reserve  # hero's own label
-                        + inter_band_px * max(0, len(bands) - 1)
-                    )
-                    body_budget = max(1.0, body_h - constant)
-                    body_band_h_sum = sum(scaled_band_heights[1:])
-                    body_label_sum = scaled_label_reserve * (len(bands) - 1)
-                    body_scalable = body_band_h_sum + body_label_sum
-                    if body_scalable > body_budget and body_scalable > 0:
-                        body_reshrink = body_budget / body_scalable
-                        # Apply re-shrink to body bands' heights AND
-                        # widths (so honest scale within body is kept).
-                        for j in range(1, len(scaled_band_heights)):
-                            scaled_band_heights[j] *= body_reshrink
-                        # Track the body re-shrink so placement loop uses it.
-                        body_shrink_factor = body_reshrink
+        def assign_slots(n_total: int) -> list[str]:
+            """Return slot type for each non-hero fish."""
+            remaining = n_total - 1
+            slots: list[str] = []
+            next_kind = "pair"
+            while remaining > 0:
+                if next_kind == "pair":
+                    if remaining >= 2:
+                        slots.append("pair_L")
+                        slots.append("pair_R")
+                        remaining -= 2
                     else:
-                        body_shrink_factor = 1.0
-                    # Update hero band height.
-                    scaled_band_heights[0] = new_hero_h
+                        slots.append("single")
+                        remaining -= 1
+                    next_kind = "single"
                 else:
-                    body_shrink_factor = 1.0
-            else:
-                body_shrink_factor = 1.0
+                    slots.append("single")
+                    remaining -= 1
+                    next_kind = "pair"
+            return slots
+
+        if N == 1:
+            # Degenerate: single hero fish only.
+            slots: list[str] = []
         else:
-            body_shrink_factor = 1.0
+            slots = assign_slots(N)
 
-        # 7c. Absorb leftover vertical slack into inter-band gaps so bands
-        # are evenly distributed in the body region rather than bunched at
-        # the top with empty space below. This is a pure cosmetic adjustment
-        # — fish sizes don't change, just the gap between rows. Triggered
-        # when the natural stack (after grow + shrink) is shorter than the
-        # body height by more than 5%.
-        used_h = (
-            sum(scaled_band_heights)
-            + scaled_label_reserve * len(bands)
-            + inter_band_px * max(0, len(bands) - 1)
-        )
-        slack = body_h - used_h
-        # Distribute as additional gap between bands (not above hero, not
-        # below last band — that would just push the whole stack up/down).
-        gap_count = max(1, len(bands) - 1)
-        if slack > body_h * 0.05 and gap_count > 0:
-            extra_per_gap = slack / gap_count
-            inter_band_px = int(round(inter_band_px + extra_per_gap))
+        # Group slots into rows. Each pair contributes one "pair row"
+        # (containing two fish). Each single contributes one "single row".
+        # We walk slots in order: 'pair_L' starts a pair row, 'pair_R'
+        # completes it, 'single' is its own row.
+        rows: list[dict] = []  # each row: {"kind": "pair"|"single", "fish": [...]}
+        i = 0
+        while i < len(slots):
+            if slots[i] == "pair_L":
+                rows.append({"kind": "pair", "fish": [None, None]})
+                i += 1  # next is pair_R
+                if i < len(slots) and slots[i] == "pair_R":
+                    i += 1
+            else:
+                rows.append({"kind": "single", "fish": [None]})
+                i += 1
 
-        # 6. Spread each band horizontally to ~75% of canvas width, stack
-        # vertically, emit placements (Bug 3 fix).
-        #
-        # After packing fish tight, EXPAND inter-fish gaps so each multi-
-        # fish band stretches to roughly the target band width. Caps the
-        # inter-fish gap at max_inter_fish_gap_fraction of canvas width so
-        # bands of 2 small fish don't fly to opposite edges.
-        target_band_w = canvas_w * self.target_band_width_fraction
-        max_gap_px = int(round(canvas_w * self.max_inter_fish_gap_fraction))
-        placements: list[PlacedItem] = []
-        # Track which band each placement belongs to so the stagger pass
-        # can compute prior-band silhouettes. Index parallel to ``placements``.
-        placement_band_idx: list[int] = []
-        # Track per-band baseline_y and cursor_y for the stagger pass —
-        # baseline_y is fish.draw_height-relative, cursor_y is the band's
-        # top-y in canvas coords. The pre-stagger area is captured for the
-        # acceptance-criteria density-improvement metric (logged in warnings).
-        cursor_y = float(body_top)
-        for band_idx, (band, band_h) in enumerate(zip(bands, scaled_band_heights)):
-            n = len(band)
-            # Apply hero post-rescale only to the hero band (idx 0, single
-            # fish). Body bands use shrink * body_shrink_factor (the
-            # additional shrink applied to compensate for hero growth).
-            if band_idx == 0 and hero_scale_override is not None:
-                effective_shrink = shrink * hero_scale_override
+        # Map (hero + non-hero) fish into the slots in sorted order.
+        hero_ref, hero_master = pairs_sorted[0]
+        non_hero_pairs = pairs_sorted[1:]
+
+        # Assign non-hero fish to slot positions in order. We walk the
+        # slots list (length N-1) and pair each slot with the next fish.
+        # We then thread them into the rows[].
+        slot_idx_to_fish: list[tuple[SpeciesRef, MasterImage]] = list(non_hero_pairs)
+
+        # Re-walk slots and rows in sync to populate rows[].fish[].
+        fi = 0  # fish index into slot_idx_to_fish
+        row_idx = 0
+        i = 0
+        while i < len(slots):
+            row = rows[row_idx]
+            if slots[i] == "pair_L":
+                row["fish"][0] = slot_idx_to_fish[fi]
+                fi += 1
+                i += 1
+                if i < len(slots) and slots[i] == "pair_R":
+                    row["fish"][1] = slot_idx_to_fish[fi]
+                    fi += 1
+                    i += 1
+                else:
+                    # Odd count edge case (shouldn't happen here)
+                    pass
+                row_idx += 1
             else:
-                effective_shrink = shrink * body_shrink_factor
-            scaled_fish_widths = [it[2] * effective_shrink for it in band]
-            label_widths = [it[4] for it in band]
-            scaled_fish_total = sum(scaled_fish_widths)
-            if n >= 2:
-                # Expand to target band width but respect the cap, and
-                # never go below the original cosmetic fish gap (or label
-                # pad, whichever is wider).
-                min_gap_floor = max(gap_px, min_label_pad_px)
-                # Hard floor for label non-collision: between adjacent
-                # fish, gap must be at least the sum of label half-widths
-                # exceeding fish half-widths plus min label pad. We use the
-                # tightest pair as the band-wide floor (Bug 2 fix —
-                # ensures no two adjacent labels overlap regardless of
-                # which pair is densest).
-                label_collision_floor = 0.0
-                for i in range(n - 1):
-                    lw_i, lw_n = label_widths[i], label_widths[i + 1]
-                    fw_i, fw_n = scaled_fish_widths[i], scaled_fish_widths[i + 1]
-                    needed = (lw_i + lw_n) / 2.0 + min_label_pad_px - (fw_i + fw_n) / 2.0
-                    label_collision_floor = max(label_collision_floor, needed)
-                min_gap = max(float(min_gap_floor), label_collision_floor)
-                desired_remaining = max(0.0, target_band_w - scaled_fish_total)
-                inter_gap = desired_remaining / (n - 1)
-                inter_gap = min(inter_gap, float(max_gap_px))
-                # Label non-collision overrides the cosmetic cap.
-                inter_gap = max(inter_gap, min_gap)
-                total_band_w = scaled_fish_total + inter_gap * (n - 1)
-            else:
-                inter_gap = 0.0
-                total_band_w = scaled_fish_total
-            # Hard band-overflow guard: if the band's total horizontal
-            # extent exceeds usable_w, shrink the fish (and proportionally
-            # the gap) uniformly within this band so we respect the inner
-            # buffer. Without this, wide multi-fish bands push fish all the
-            # way to canvas_w*0.030 (right up against the inner border) —
-            # violating the symmetric inner-buffer contract from Change 2.
-            if total_band_w > usable_w and total_band_w > 0:
-                band_shrink = usable_w / total_band_w
-                scaled_fish_widths = [w * band_shrink for w in scaled_fish_widths]
-                scaled_fish_total *= band_shrink
-                inter_gap *= band_shrink
-                total_band_w = usable_w
-                # Mark per-fish effective_shrink to also apply to heights —
-                # we accumulate a per-band height-shrink factor instead of
-                # rebuilding the band tuples (band_h was already computed).
-                band_h_shrink = band_shrink
-            else:
-                band_h_shrink = 1.0
-            x_cursor = (canvas_w - total_band_w) / 2.0
-            # Baseline-align the band: fish bottoms rest on a shared visual
-            # ground line, the way a field guide typesets specimens. This
-            # gives taller fish (pike, gar) more vertical extent above the
-            # baseline while shorter fat fish (sunfish, crappie) sit
-            # neatly on the line. Baseline at 95% of band height — leaves a
-            # tiny breathing margin so the absolute tallest fish in the
-            # band still has room above it. Bug C fix.
-            band_baseline_y = band_h * 0.95
-            # Apply band_h_shrink to the per-fish dimensions so widths and
-            # heights stay proportional (preserves fish aspect ratio).
-            fish_effective_shrink = effective_shrink * band_h_shrink
-            for (ref, master, cand_w, cand_h, _label_w) in band:
-                draw_w = max(1, int(round(cand_w * fish_effective_shrink)))
-                draw_h = max(1, int(round(cand_h * fish_effective_shrink)))
-                # Anchor each fish's BOTTOM to the band baseline.
-                y_offset = band_baseline_y - draw_h
+                row["fish"][0] = slot_idx_to_fish[fi]
+                fi += 1
+                i += 1
+                row_idx += 1
+
+        # 5. Size every fish. unit_w is chosen so the HERO renders at
+        # hero_target_w_fraction × canvas_w. Aspect uses master alpha-bbox.
+        largest_idx = idx_for(hero_ref)
+        target_hero_w = canvas_w * self.hero_target_w_fraction
+        unit_w = target_hero_w / max(1e-6, largest_idx)
+
+        def fish_dims(ref: SpeciesRef, master: MasterImage) -> tuple[float, float]:
+            bw = max(1, master.bbox_width_px)
+            bh = max(1, master.bbox_height_px)
+            aspect = bw / bh  # width / height
+            draw_w = unit_w * idx_for(ref)
+            draw_h = draw_w / max(1e-6, aspect)
+            return draw_w, draw_h
+
+        # Pre-compute dimensions for hero + all rows.
+        hero_w, hero_h = fish_dims(hero_ref, hero_master)
+        for row in rows:
+            dims = []
+            for entry in row["fish"]:
+                if entry is None:
+                    dims.append((0.0, 0.0))
+                else:
+                    dims.append(fish_dims(*entry))
+            row["dims"] = dims
+            row["max_h"] = max((d[1] for d in dims), default=0.0)
+
+        # 6. Compute vertical layout. Hero sits near the top; pairs fill
+        # the remaining body region; singles sit at half-steps between
+        # pair rows. We compute Y centers, then verify total fit.
+
+        pair_rows = [r for r in rows if r["kind"] == "pair"]
+        single_rows = [r for r in rows if r["kind"] == "single"]
+        P = len(pair_rows)
+
+        # Hero Y-center: positioned near the top of the body region with
+        # a little breathing room.
+        hero_yc = body_top + hero_h * 0.55 + body_h * 0.02
+
+        if P == 0:
+            # Just hero, or hero + a single (rare). Place any single below
+            # the hero with reasonable spacing.
+            placements: list[PlacedItem] = []
+            hero_x = int(round((canvas_w - hero_w) / 2.0))
+            hero_y = int(round(hero_yc - hero_h / 2.0))
+            placements.append(
+                PlacedItem(
+                    species_ref=hero_ref,
+                    master=hero_master,
+                    x=hero_x,
+                    y=hero_y,
+                    draw_width=int(round(hero_w)),
+                    draw_height=int(round(hero_h)),
+                )
+            )
+            cur_y = hero_y + int(round(hero_h)) + int(round(body_h * 0.05))
+            for row in rows:
+                ref, master = row["fish"][0]
+                dw, dh = row["dims"][0]
+                x = int(round((canvas_w - dw) / 2.0))
                 placements.append(
                     PlacedItem(
                         species_ref=ref,
                         master=master,
-                        x=int(round(x_cursor)),
-                        y=int(round(cursor_y + y_offset)),
-                        draw_width=draw_w,
-                        draw_height=draw_h,
+                        x=x,
+                        y=cur_y,
+                        draw_width=int(round(dw)),
+                        draw_height=int(round(dh)),
                     )
                 )
-                placement_band_idx.append(band_idx)
-                x_cursor += cand_w * fish_effective_shrink + inter_gap
-            cursor_y += band_h + scaled_label_reserve + inter_band_px
+                cur_y += int(round(dh)) + int(round(body_h * 0.04))
+            return LayoutResult(poster=spec, placements=placements, warnings=warnings)
 
-        # ---- Stagger pass (Change 3) -------------------------------------
-        # Today bands are rigidly horizontal: every fish in a band sits on
-        # the same baseline. When a small fish lives below a band whose
-        # tallest fish is much taller, there's empty whitespace above the
-        # small fish (between its head and the prior band's baseline). Let
-        # smaller fish RISE into that whitespace — like Tetris.
-        #
-        # Algorithm:
-        #   1. Build a per-band horizontal silhouette: for each x in the
-        #      canvas, the LOWEST y still occupied by any fish in band B
-        #      (treating each fish as its bbox + label clearance below).
-        #   2. For each fish F in band N (N > 0), compute the highest y it
-        #      could rise to without overlapping band N-1's silhouette
-        #      (including label clearance). If max_rise >= ~2% canvas_h,
-        #      apply it.
-        # The pass preserves the band sort order — fish never jump bands,
-        # they just slide upward into empty space ABOVE their original y.
-        if len(placements) > 1 and bands:
-            # Pre-stagger metric for the acceptance log.
-            pre_area = sum(p.draw_width * p.draw_height for p in placements)
+        # Detect whether the layout ends on a trailing single (the slot
+        # pattern can end with either pair_R or single). If it ends on a
+        # single, we need to reserve y-space below the last pair for it.
+        trailing_single_h = 0.0
+        if rows and rows[-1]["kind"] == "single":
+            trailing_single_h = rows[-1]["dims"][0][1]
 
-            # Label clearance per fish: same metric the renderer uses for
-            # the new tracked-common-plus-italic-latin caption — common
-            # font + line gap + italic Latin font, all in canvas-h pixels.
-            common_size = max(20, int(round(canvas_h * 0.010)))
-            latin_size = max(16, int(round(canvas_h * 0.0075)))
-            line_gap = max(4, int(round(canvas_h * 0.003)))
-            label_h = common_size + line_gap + latin_size + max(8, int(round(canvas_h * 0.006)))
-            # Tiny inter-band breathing space so the rising fish don't
-            # actually TOUCH the prior band's labels.
-            label_breathing = max(4, int(round(canvas_h * 0.006)))
-            # AGGRESSIVE HALF-ROW STAGGER: any visible rise is welcome. A
-            # fish should be able to sit visually halfway between the row
-            # above and its own row whenever it has clear horizontal sky.
-            min_useful_rise = canvas_h * 0.003
+        # Helper: compute row y-centers given current dims. Returns
+        # (hero_yc, row_y_centers, pair_ys) so the caller can inspect
+        # whether the stack fits and re-run after shrinking.
+        def compute_y_centers(
+            local_hero_h: float,
+            local_rows: list[dict],
+            local_pair_rows: list[dict],
+            local_trailing_single_h: float,
+        ) -> tuple[float, list[float], list[float]]:
+            h_yc = body_top + local_hero_h * 0.55 + body_h * 0.02
+            P_local = len(local_pair_rows)
+            if P_local == 0:
+                return h_yc, [], []
 
-            # Group placement indices by band.
-            by_band: dict[int, list[int]] = {}
-            for idx, b_idx in enumerate(placement_band_idx):
-                by_band.setdefault(b_idx, []).append(idx)
-            sorted_band_indices = sorted(by_band.keys())
+            # First pair y-center must clear hero by half the pair's tallest
+            # fish height (so the top of the first pair fish sits below the
+            # bottom of the hero).
+            first_pair_max_h = local_pair_rows[0]["max_h"]
+            pair_top = (
+                h_yc + local_hero_h / 2.0
+                + body_h * 0.03
+                + first_pair_max_h / 2.0
+            )
+            last_pair_max_h = local_pair_rows[-1]["max_h"]
+            # Reserve y-space below the last pair if there's a trailing
+            # single fish. We give it half the inter-pair gap.
+            reserve_below = 0.0
+            if local_trailing_single_h > 0:
+                reserve_below = local_trailing_single_h * 0.5 + body_h * 0.025
+            pair_bot = body_bottom - last_pair_max_h / 2.0 - body_h * 0.01 - reserve_below
+            if P_local == 1:
+                pys = [(pair_top + pair_bot) / 2.0]
+            else:
+                step = (pair_bot - pair_top) / (P_local - 1)
+                pys = [pair_top + i * step for i in range(P_local)]
 
-            # ---- Gap-aim pre-pass ----------------------------------------
-            # The half-row stagger only fires when a band-N fish has clear
-            # SKY above (no x-overlap with any band-(N-1) fish). If every
-            # band-N fish overlaps some prior-band fish, no half-row rise
-            # is possible. The default band-spread logic spreads each band
-            # evenly across the canvas — which means consecutive bands
-            # tend to hit the same x-positions, blocking the stagger.
-            #
-            # This pre-pass does TWO things for each band N (N >= 1):
-            #   1. CONSOLIDATE band N-1 horizontally so its fish move
-            #      toward canvas center, opening up wide gaps at the
-            #      sides for band-N fish to rise into.
-            #   2. Shift band N's SMALLEST fish to land in the LARGEST
-            #      resulting gap in band N-1, then re-distribute band-N's
-            #      remaining fish around the anchor.
-            # Result: at least one fish per band (after the first) gets a
-            # clear sky lane to rise into.
-            #
-            # Consolidation factor: scale each band-N-1 fish's x-offset
-            # from band center by this fraction. 0.78 means each fish
-            # moves 22% closer to center, opening up genuine "sky" on the
-            # sides for band-N fish to rise into. Tuned for visually
-            # obvious half-row staggering without the prior band's fish
-            # crashing into each other.
-            consolidation_factor = 0.78
-            # Allow consolidation to pack fish much tighter than the
-            # default band gap — the goal is to OPEN UP sky on the sides.
-            # Use a fraction of the original gap_px so labels of adjacent
-            # fish (centered under each fish) don't collide.
-            min_inter_gap = max(int(round(gap_px * 0.55)), min_label_pad_px * 2)
-            for b_idx in sorted_band_indices:
-                if b_idx == sorted_band_indices[0]:
-                    continue
-                prior_indices = by_band.get(b_idx - 1, [])
-                if len(prior_indices) < 2:
-                    continue
-                # Compute the band's current center-of-mass x.
-                prior_sorted = sorted(prior_indices, key=lambda i: placements[i].x)
-                prior_xs = [placements[i].x + placements[i].draw_width / 2 for i in prior_sorted]
-                band_cx = sum(prior_xs) / len(prior_xs)
-                proposed: list[tuple[int, int]] = []  # (pi, new_x)
-                for pi in prior_sorted:
-                    p = placements[pi]
-                    fx_cx = p.x + p.draw_width / 2
-                    new_cx = band_cx + (fx_cx - band_cx) * consolidation_factor
-                    new_x = int(round(new_cx - p.draw_width / 2))
-                    new_x = max(int(side_margin), new_x)
-                    new_x = min(int(canvas_w - side_margin - p.draw_width), new_x)
-                    proposed.append((pi, new_x))
-                # Resolve adjacency overlaps: walk left-to-right, push each
-                # subsequent fish RIGHT if it would overlap (or come within
-                # min_inter_gap of) the prior fish. Then center the
-                # resolved cluster horizontally on canvas center, so the
-                # consolidation looks symmetric rather than left-anchored.
-                resolved_xs: list[int] = []
-                prev_right = -1
-                for k, (pi, new_x) in enumerate(proposed):
-                    w = placements[pi].draw_width
-                    if prev_right >= 0 and new_x < prev_right + min_inter_gap:
-                        new_x = prev_right + min_inter_gap
-                    resolved_xs.append(new_x)
-                    prev_right = new_x + w
-                # Re-center the resolved cluster on canvas center.
-                cluster_left = resolved_xs[0]
-                cluster_right = resolved_xs[-1] + placements[proposed[-1][0]].draw_width
-                cluster_w = cluster_right - cluster_left
-                if cluster_w >= canvas_w - 2 * side_margin:
-                    # Cluster exceeds usable width — give up on this band.
-                    continue
-                target_left = (canvas_w - cluster_w) // 2
-                shift = target_left - cluster_left
-                resolved_xs = [x + shift for x in resolved_xs]
-                # Clamp to inner buffer.
-                resolved_xs = [
-                    max(int(side_margin), min(int(canvas_w - side_margin - placements[proposed[i][0]].draw_width), x))
-                    for i, x in enumerate(resolved_xs)
-                ]
-                for (pi, _), new_x in zip(proposed, resolved_xs):
-                    p = placements[pi]
-                    placements[pi] = PlacedItem(
-                        species_ref=p.species_ref,
-                        master=p.master,
-                        x=new_x,
-                        y=p.y,
-                        draw_width=p.draw_width,
-                        draw_height=p.draw_height,
-                    )
-            for b_idx in sorted_band_indices:
-                if b_idx == sorted_band_indices[0]:
-                    continue
-                prior_indices = by_band.get(b_idx - 1, [])
-                cur_indices = by_band.get(b_idx, [])
-                if not prior_indices or len(cur_indices) < 1:
-                    continue
-                # Find the LARGEST horizontal gap in the prior band
-                # (including the gaps at the sides between the band's
-                # leftmost/rightmost fish and the inner-buffer margin).
-                prior_sorted = sorted(prior_indices, key=lambda i: placements[i].x)
-                gaps: list[tuple[float, int, int]] = []  # (gap_w, x_start, x_end)
-                left_edge = float(side_margin)
-                right_edge = float(canvas_w - side_margin)
-                # Left-side gap.
-                leftmost = placements[prior_sorted[0]]
-                if leftmost.x > left_edge + 1:
-                    gaps.append((leftmost.x - left_edge, int(left_edge), leftmost.x))
-                # Inter-fish gaps.
-                for k in range(len(prior_sorted) - 1):
-                    a = placements[prior_sorted[k]]
-                    b = placements[prior_sorted[k + 1]]
-                    a_end = a.x + a.draw_width
-                    if b.x > a_end + 1:
-                        gaps.append((float(b.x - a_end), int(a_end), int(b.x)))
-                # Right-side gap.
-                rightmost = placements[prior_sorted[-1]]
-                r_end = rightmost.x + rightmost.draw_width
-                if right_edge > r_end + 1:
-                    gaps.append((right_edge - r_end, int(r_end), int(right_edge)))
-                if not gaps:
-                    continue
-                gaps.sort(key=lambda g: g[0], reverse=True)
-                # Find the SMALLEST fish in current band that FITS in the
-                # largest gap (its draw_width must fit with a tiny margin).
-                cur_sorted_by_w = sorted(cur_indices, key=lambda i: placements[i].draw_width)
-                anchor_fi = None
-                anchor_gap = None
-                for gap_w, gx0, gx1 in gaps:
-                    for fi in cur_sorted_by_w:
-                        fw = placements[fi].draw_width
-                        if fw + 2 * max(8, gap_px // 2) <= gap_w:
-                            anchor_fi = fi
-                            anchor_gap = (gx0, gx1)
-                            break
-                    if anchor_fi is not None:
-                        break
-                if anchor_fi is None:
-                    continue
-                # Move the anchor fish to gap center.
-                gx0, gx1 = anchor_gap
-                anchor_p = placements[anchor_fi]
-                gap_center = (gx0 + gx1) // 2
-                new_anchor_x = gap_center - anchor_p.draw_width // 2
-                # Clamp to inner-buffer.
-                new_anchor_x = max(int(side_margin), new_anchor_x)
-                new_anchor_x = min(int(canvas_w - side_margin - anchor_p.draw_width), new_anchor_x)
-                placements[anchor_fi] = PlacedItem(
-                    species_ref=anchor_p.species_ref,
-                    master=anchor_p.master,
-                    x=new_anchor_x,
-                    y=anchor_p.y,
-                    draw_width=anchor_p.draw_width,
-                    draw_height=anchor_p.draw_height,
-                )
-                # Redistribute the REMAINING current-band fish around the
-                # anchor: split into left-of-anchor and right-of-anchor,
-                # spread each side using the original band gap rules.
-                others_sorted = sorted(
-                    [i for i in cur_indices if i != anchor_fi],
-                    key=lambda i: placements[i].x,
-                )
-                left_pool = others_sorted[: len(others_sorted) // 2]
-                right_pool = others_sorted[len(others_sorted) // 2 :]
-                # Rebalance based on anchor's horizontal position.
-                anchor_left_edge = new_anchor_x
-                anchor_right_edge = new_anchor_x + anchor_p.draw_width
-                # Pack left_pool RIGHT-to-LEFT starting at
-                # (anchor_left_edge - gap_px).
-                cursor = anchor_left_edge - max(gap_px, min_label_pad_px)
-                for fi in reversed(left_pool):
-                    p = placements[fi]
-                    new_x = int(cursor - p.draw_width)
-                    new_x = max(int(side_margin), new_x)
-                    placements[fi] = PlacedItem(
-                        species_ref=p.species_ref,
-                        master=p.master,
-                        x=new_x,
-                        y=p.y,
-                        draw_width=p.draw_width,
-                        draw_height=p.draw_height,
-                    )
-                    cursor = new_x - max(gap_px, min_label_pad_px)
-                # Pack right_pool LEFT-to-RIGHT starting at
-                # (anchor_right_edge + gap_px).
-                cursor = anchor_right_edge + max(gap_px, min_label_pad_px)
-                for fi in right_pool:
-                    p = placements[fi]
-                    new_x = int(cursor)
-                    new_x = min(int(canvas_w - side_margin - p.draw_width), new_x)
-                    placements[fi] = PlacedItem(
-                        species_ref=p.species_ref,
-                        master=p.master,
-                        x=new_x,
-                        y=p.y,
-                        draw_width=p.draw_width,
-                        draw_height=p.draw_height,
-                    )
-                    cursor = new_x + p.draw_width + max(gap_px, min_label_pad_px)
-
-            # Iterate in band order so each band's silhouette reflects the
-            # CURRENT (post-rise) y of its fish — bands rise into the
-            # adjusted silhouette of the prior band.
-            for b_idx in sorted_band_indices:
-                if b_idx == sorted_band_indices[0]:
-                    continue  # first band has nothing to rise into
-                prior_b = b_idx - 1
-                prior_indices = by_band.get(prior_b, [])
-                if not prior_indices:
-                    continue
-                # Build the prior-band silhouette. Each prior fish
-                # occupies x in [p.x, p.x + p.draw_width); below it sits
-                # its rendered label (drawn by the renderer just below
-                # draw_height). A rising fish that overlaps in x must
-                # clear BOTH body AND label or its body will collide with
-                # the prior label region (the renderer draws labels after
-                # fish, so a rising fish in the label band would paint
-                # over the label and then the label would paint on top of
-                # the rising fish — a visual mess either way).
-                #
-                # The half-row stagger comes from fish whose x-range does
-                # NOT overlap any prior fish — those fish can rise all the
-                # way to body_top, sitting in the air above their band and
-                # filling the gap left by the prior band's horizontal
-                # spacing. That's the visual "half-row" effect.
-                prior_intervals: list[tuple[int, int, float]] = []
-                for pi in prior_indices:
-                    p = placements[pi]
-                    full_low_y = float(p.y + p.draw_height + label_h + label_breathing)
-                    prior_intervals.append((p.x, p.x + p.draw_width, full_low_y))
-
-                # Small buffer at the top: never rise above body_top (the
-                # title region). A tiny gap below body_top keeps a hairline
-                # of paper above the highest fish.
-                top_buffer = max(4, int(round(canvas_h * 0.004)))
-
-                for fi in by_band[b_idx]:
-                    f = placements[fi]
-                    f_x0, f_x1 = f.x, f.x + f.draw_width
-                    # Lowest legal y for this fish's TOP.
-                    #
-                    # For x where rising fish's x-range OVERLAPS a prior
-                    # fish: must clear that fish's body (+ tiny breathing),
-                    # NOT its full label region. Body-body overlap is what
-                    # we forbid; the rising fish's own body can sit
-                    # alongside the prior fish's label without collision.
-                    #
-                    # For x where rising fish does NOT overlap any prior
-                    # fish: NO constraint from the prior band at all. The
-                    # rising fish can rise all the way to body_top —
-                    # filling the gap between the two bands.
-                    constraint_top_y = float(body_top) + top_buffer
-                    for (x0, x1, full_low_y) in prior_intervals:
-                        if x1 <= f_x0 or x0 >= f_x1:
-                            continue  # no x-overlap with this prior fish
-                        if full_low_y > constraint_top_y:
-                            constraint_top_y = full_low_y
-                    max_rise = f.y - constraint_top_y
-                    if max_rise >= min_useful_rise:
-                        new_y = int(round(f.y - max_rise))
-                        # Defensive: never rise above body_top.
-                        new_y = max(int(body_top) + top_buffer, new_y)
-                        placements[fi] = PlacedItem(
-                            species_ref=f.species_ref,
-                            master=f.master,
-                            x=f.x,
-                            y=new_y,
-                            draw_width=f.draw_width,
-                            draw_height=f.draw_height,
-                        )
-
-            # ---- Inward consolidation pass --------------------------------
-            # For each band with at least one significantly-risen fish,
-            # the remaining (non-risen) fish slide horizontally INWARD to
-            # fill the gap the riser left behind. The risen fish itself
-            # keeps its x — visually it now occupies inter-band air, the
-            # band's residual fish snap into the freed horizontal slot.
-            rise_threshold = canvas_h * 0.05  # ">5% above baseline = risen"
-            for b_idx in sorted_band_indices:
-                indices = by_band.get(b_idx, [])
-                if len(indices) < 2:
-                    continue
-                # Band's "settled" y = the y a non-risen fish would have.
-                # Use the max y among the band's placements (risen fish
-                # have smaller y; non-risen sit at the band baseline).
-                band_settled_y = max(placements[i].y for i in indices)
-                risen_ids = [
-                    i for i in indices
-                    if band_settled_y - placements[i].y > rise_threshold
-                ]
-                if not risen_ids:
-                    continue
-                remaining_ids = [i for i in indices if i not in risen_ids]
-                if not remaining_ids:
-                    continue
-                # Recompute horizontal placement for the remaining fish
-                # using the same band-spread logic, with the smaller
-                # fish-count.
-                rem_sorted = sorted(remaining_ids, key=lambda i: placements[i].x)
-                n_rem = len(rem_sorted)
-                rem_widths = [placements[i].draw_width for i in rem_sorted]
-                rem_total_fish_w = sum(rem_widths)
-                if n_rem >= 2:
-                    desired_remaining_w = max(0.0, target_band_w - rem_total_fish_w)
-                    rem_inter_gap = desired_remaining_w / (n_rem - 1)
-                    rem_inter_gap = min(rem_inter_gap, float(max_gap_px))
-                    rem_inter_gap = max(rem_inter_gap, float(gap_px))
-                    new_band_w = rem_total_fish_w + rem_inter_gap * (n_rem - 1)
-                    # Cap at usable width.
-                    if new_band_w > usable_w and new_band_w > 0:
-                        scale = usable_w / new_band_w
-                        rem_inter_gap *= scale
-                        new_band_w = rem_total_fish_w + rem_inter_gap * (n_rem - 1)
+            yc_list: list[float] = []
+            pair_i = 0
+            for row in local_rows:
+                if row["kind"] == "pair":
+                    yc_list.append(pys[pair_i])
+                    pair_i += 1
                 else:
-                    rem_inter_gap = 0.0
-                    new_band_w = rem_total_fish_w
-                x_cursor = (canvas_w - new_band_w) / 2.0
-                for idx, pi in enumerate(rem_sorted):
-                    p = placements[pi]
-                    placements[pi] = PlacedItem(
-                        species_ref=p.species_ref,
-                        master=p.master,
-                        x=int(round(x_cursor)),
-                        y=p.y,
-                        draw_width=p.draw_width,
-                        draw_height=p.draw_height,
-                    )
-                    x_cursor += rem_widths[idx] + rem_inter_gap
+                    if 1 <= pair_i < len(pys):
+                        # Between pair_i-1 and pair_i.
+                        y_upper = pys[pair_i - 1]
+                        y_lower = pys[pair_i]
+                        yc = y_upper + (y_lower - y_upper) * self.single_y_offset_fraction
+                    elif pair_i >= len(pys):
+                        # Trailing single after the last pair. Place it
+                        # below the last pair by half the inter-pair gap,
+                        # clipped so it stays inside body_bottom.
+                        if P_local > 1:
+                            inter_gap = pys[-1] - pys[-2]
+                        else:
+                            inter_gap = body_h * 0.12
+                        yc = pys[-1] + inter_gap * 0.5
+                        # Clamp so the single's bottom fits within body.
+                        single_h = row["dims"][0][1]
+                        yc = min(yc, body_bottom - single_h / 2.0 - body_h * 0.005)
+                    else:
+                        # Leading single (no pairs before it). Place
+                        # between hero and first pair.
+                        yc = (h_yc + pys[0]) / 2.0 if pys else h_yc
+                    yc_list.append(yc)
+            return h_yc, yc_list, pys
 
-            # Acceptance-criteria #6: log fish-bbox area before/after the
-            # stagger pass. Area itself doesn't change (we don't grow), but
-            # we report the rise summary so the criterion can be inspected.
-            risen_count = 0
-            total_rise_px = 0
-            for idx, b_idx in enumerate(placement_band_idx):
-                if b_idx == sorted_band_indices[0]:
-                    continue
-                # Compare to original baseline-y of the band: which is
-                # the band's cursor_y + (band_h * 0.95 - draw_h). We don't
-                # have cursor_y per band stored, so just count placements
-                # whose y is now noticeably ABOVE the median y in their
-                # band — that's a proxy for "risen".
-            # Simpler: count how many placements have y < their band's max-y.
-            band_max_y: dict[int, int] = {}
-            for idx, b_idx in enumerate(placement_band_idx):
-                py = placements[idx].y
-                if b_idx not in band_max_y or py > band_max_y[b_idx]:
-                    band_max_y[b_idx] = py
-            for idx, b_idx in enumerate(placement_band_idx):
-                if placements[idx].y < band_max_y[b_idx] - int(canvas_h * 0.010):
-                    risen_count += 1
-                    total_rise_px += band_max_y[b_idx] - placements[idx].y
-            # ---- Post-stagger total-grow pass --------------------------
-            # After stagger, the compacted stack may end well above
-            # body_bottom (because fish rose into prior whitespace, freeing
-            # vertical space at the tail). Scale every fish UNIFORMLY about
-            # its CURRENT center until either: (a) the lowest fish reaches
-            # body_bottom, or (b) a fish would crash into its prior-band
-            # neighbor (the silhouette constraint from the stagger pass).
-            # This is the "Tetris compaction frees space — use it" step.
-            #
-            # We compute the grow factor in two ways and take the min:
-            #   - vertical: body_bottom / current_max_bottom
-            #   - horizontal: target band width ceiling — each band's total
-            #     width (sum of fish widths + gaps) must stay within
-            #     usable_w * 0.85 (the same width ceiling used elsewhere).
-            current_min_y = min(p.y for p in placements)
-            current_max_bottom = max(p.y + p.draw_height for p in placements)
-            current_stack_h = current_max_bottom - current_min_y
-            available_stack_h = (body_h + body_top) - current_min_y
-            # Also reserve label_h for the BOTTOM band's labels.
-            available_stack_h -= label_h
-            if current_stack_h > 0 and available_stack_h > current_stack_h:
-                vgrow = available_stack_h / current_stack_h
-                # Horizontal ceiling: don't let any band exceed 85% of
-                # usable width.
-                hgrow = float("inf")
-                # Approximate per-band width by grouping placements again.
-                by_band_now: dict[int, list[int]] = {}
-                for idx, b_idx in enumerate(placement_band_idx):
-                    by_band_now.setdefault(b_idx, []).append(idx)
-                # 95% width ceiling — relaxed from the 85% used in
-                # 7b-pre (which guards adjacency-collision-prone packing).
-                # By the post-stagger pass, all collisions are already
-                # avoided; we just want to use the available width up to
-                # the inner buffer (side_margin already reserves 6%).
-                width_ceiling = usable_w * 0.95
-                for indices in by_band_now.values():
-                    if len(indices) < 2:
-                        for i in indices:
-                            if placements[i].draw_width > 0:
-                                hgrow = min(hgrow, width_ceiling / placements[i].draw_width)
-                        continue
-                    xs = sorted(indices, key=lambda i: placements[i].x)
-                    left = placements[xs[0]].x
-                    right = placements[xs[-1]].x + placements[xs[-1]].draw_width
-                    band_w = right - left
-                    if band_w > 0:
-                        hgrow = min(hgrow, width_ceiling / band_w)
-                # If hgrow < 1.0 some band is already at/over the width
-                # ceiling — uniform-scaling beyond that would crash into
-                # the inner-buffer margin. In that case, fall back to a
-                # PURELY VERTICAL redistribution: spread the bands further
-                # apart so the staggered stack fills the body region. This
-                # preserves stagger structure AND fish sizes (just adds
-                # inter-band breathing room).
-                hgrow_clamped = max(hgrow, 1.0)
-                grow = min(vgrow, hgrow_clamped, 1.5)
-                if grow > 1.05:
-                    # Uniform-scale path: enough horizontal slack to grow
-                    # in both dimensions. Scale each fish about its current
-                    # x-center; y grows downward from current top.
-                    new_placements: list[PlacedItem] = []
-                    for p in placements:
-                        new_w = max(1, int(round(p.draw_width * grow)))
-                        new_h = max(1, int(round(p.draw_height * grow)))
-                        cx = p.x + p.draw_width // 2
-                        new_x = int(round(cx - new_w / 2))
-                        new_x = max(int(side_margin), new_x)
-                        new_x = min(int(canvas_w - side_margin - new_w), new_x)
-                        new_placements.append(
-                            PlacedItem(
-                                species_ref=p.species_ref,
-                                master=p.master,
-                                x=new_x,
-                                y=p.y,  # grow downward from current top
-                                draw_width=new_w,
-                                draw_height=new_h,
-                            )
-                        )
-                    placements = new_placements
-                    warnings.append(
-                        f"FieldGuideBandsEngine post-stagger grow: x{grow:.3f}"
-                    )
-                # After uniform grow (or if grow was too small), the stack
-                # may STILL leave significant slack at the bottom — uniform
-                # grow caps at hgrow (some band hit the width ceiling), but
-                # vertical redistribution can finish filling the body.
-                # Recompute current stack bottom for the redistribute path.
-                cur_bottom_now = max(p.y + p.draw_height for p in placements)
-                cur_top_now = min(p.y for p in placements)
-                target_bottom_now = body_top + body_h - label_h
-                remaining_slack = target_bottom_now - cur_bottom_now
-                if remaining_slack > canvas_h * 0.05:
-                    # Vertical-redistribute path: spread the staggered
-                    # bands further apart so the stack fills the body
-                    # region. Critically, we redistribute by SHIFTING each
-                    # band by its band-index — which preserves the
-                    # half-row stagger (a risen fish in band N gets band
-                    # N's shift, same as the band's non-risen fish). The
-                    # inter-band air opens up uniformly.
-                    by_band_y: dict[int, list[int]] = {}
-                    for idx, b_idx in enumerate(placement_band_idx):
-                        by_band_y.setdefault(b_idx, []).append(idx)
-                    sorted_bands = sorted(by_band_y.keys())
-                    target_bottom = target_bottom_now
-                    slack = remaining_slack
-                    if slack > canvas_h * 0.02 and len(sorted_bands) > 1:
-                        per_gap = slack / (len(sorted_bands) - 1)
-                        # Cumulative shift: band[0] no shift, band[k] shifts
-                        # by k * per_gap.
-                        shift_for_band = {sorted_bands[k]: int(round(k * per_gap)) for k in range(len(sorted_bands))}
-                        new_placements: list[PlacedItem] = []
-                        for idx, p in enumerate(placements):
-                            shift = shift_for_band[placement_band_idx[idx]]
-                            new_placements.append(
-                                PlacedItem(
-                                    species_ref=p.species_ref,
-                                    master=p.master,
-                                    x=p.x,
-                                    y=p.y + shift,
-                                    draw_width=p.draw_width,
-                                    draw_height=p.draw_height,
-                                )
-                            )
-                        placements = new_placements
-                        warnings.append(
-                            f"FieldGuideBandsEngine post-stagger vert-redistribute: "
-                            f"slack={slack}px across {len(sorted_bands)-1} gaps."
-                        )
+        # 7. Determine whether stack fits. If not, iterative uniform shrink.
+        def stack_fits(
+            local_hero_h: float,
+            local_rows: list[dict],
+            local_pair_rows: list[dict],
+            local_trailing_single_h: float,
+        ) -> bool:
+            h_yc, yc_list, pys = compute_y_centers(
+                local_hero_h, local_rows, local_pair_rows, local_trailing_single_h
+            )
+            P_local = len(local_pair_rows)
+            if P_local == 0:
+                return True
+            # Pair rows must be in order (top y-center monotonic).
+            if any(pys[i + 1] <= pys[i] for i in range(len(pys) - 1)):
+                return False
+            # Top of hero inside body.
+            if h_yc - local_hero_h / 2.0 < body_top - 1:
+                return False
+            # Every row bottom inside body and every row top inside body.
+            for row, yc in zip(local_rows, yc_list):
+                if row["kind"] == "pair":
+                    row_h = row["max_h"]
+                else:
+                    row_h = row["dims"][0][1]
+                if yc + row_h / 2.0 > body_bottom + 1:
+                    return False
+                if yc - row_h / 2.0 < body_top - 1:
+                    return False
+            # Adjacent rows must not vertically overlap (the centered single
+            # has free horizontal space, but if its bbox extends past the
+            # neighbouring pair's fish bbox vertically AND the single's x
+            # overlaps a pair-fish's x, they'd collide. The centered single
+            # sits at canvas center while pair fish hug L/R edges — they
+            # don't horizontally overlap UNLESS a pair fish is so wide it
+            # crosses the centerline. We assume pairs don't cross center.)
+            # We still enforce row_i bottom <= row_{i+1} top + small slack
+            # to keep vertical reading rhythm clean.
+            for i in range(len(local_rows) - 1):
+                ya = yc_list[i]
+                yb = yc_list[i + 1]
+                ha = local_rows[i]["max_h"] if local_rows[i]["kind"] == "pair" else local_rows[i]["dims"][0][1]
+                hb = local_rows[i + 1]["max_h"] if local_rows[i + 1]["kind"] == "pair" else local_rows[i + 1]["dims"][0][1]
+                a_bot = ya + ha / 2.0
+                b_top = yb - hb / 2.0
+                # Pair-fish hug L/R edges; singles are centered. A
+                # centered-single's bbox CAN vertically overlap an adjacent
+                # pair if the single is narrow enough that its x-range
+                # doesn't reach the pair fish — but we conservatively
+                # forbid vertical overlap of the boxes to keep the design
+                # clean (singles never tuck behind pair fish).
+                if a_bot > b_top + 1:
+                    return False
+            return True
 
-            post_area = sum(p.draw_width * p.draw_height for p in placements)
+        scale = 1.0
+        for _ in range(60):
+            if stack_fits(hero_h, rows, pair_rows, trailing_single_h):
+                break
+            scale *= 0.94
+            hero_h *= 0.94
+            hero_w *= 0.94
+            trailing_single_h *= 0.94
+            for row in rows:
+                row["dims"] = [(w * 0.94, h * 0.94) for (w, h) in row["dims"]]
+                row["max_h"] *= 0.94
+            if scale < 0.25:
+                break
+
+        if scale < 1.0:
             warnings.append(
-                f"FieldGuideBandsEngine stagger: {risen_count} fish rose, "
-                f"total_rise={total_rise_px}px, area_pre={pre_area}, area_post={post_area}."
+                f"FieldGuideBandsEngine: applied uniform shrink scale={scale:.3f} to fit body."
             )
 
+        hero_yc, row_y_centers, pair_ys = compute_y_centers(
+            hero_h, rows, pair_rows, trailing_single_h
+        )
+
+        # 8. Emit placements.
+        placements = []
+        # Hero placement.
+        hero_x = int(round((canvas_w - hero_w) / 2.0))
+        hero_y_int = int(round(hero_yc - hero_h / 2.0))
+        placements.append(
+            PlacedItem(
+                species_ref=hero_ref,
+                master=hero_master,
+                x=hero_x,
+                y=hero_y_int,
+                draw_width=int(round(hero_w)),
+                draw_height=int(round(hero_h)),
+            )
+        )
+
+        for row, yc in zip(rows, row_y_centers):
+            if row["kind"] == "pair":
+                left_entry = row["fish"][0]
+                right_entry = row["fish"][1]
+                (lw, lh) = row["dims"][0]
+                if left_entry is not None:
+                    lref, lmaster = left_entry
+                    lx = side_margin
+                    ly = int(round(yc - lh / 2.0))
+                    placements.append(
+                        PlacedItem(
+                            species_ref=lref,
+                            master=lmaster,
+                            x=lx,
+                            y=ly,
+                            draw_width=int(round(lw)),
+                            draw_height=int(round(lh)),
+                        )
+                    )
+                if right_entry is not None:
+                    (rw, rh) = row["dims"][1]
+                    rref, rmaster = right_entry
+                    rx = canvas_w - side_margin - int(round(rw))
+                    ry = int(round(yc - rh / 2.0))
+                    placements.append(
+                        PlacedItem(
+                            species_ref=rref,
+                            master=rmaster,
+                            x=rx,
+                            y=ry,
+                            draw_width=int(round(rw)),
+                            draw_height=int(round(rh)),
+                        )
+                    )
+            else:
+                entry = row["fish"][0]
+                if entry is None:
+                    continue
+                ref, master = entry
+                (dw, dh) = row["dims"][0]
+                x = int(round((canvas_w - dw) / 2.0))
+                y = int(round(yc - dh / 2.0))
+                placements.append(
+                    PlacedItem(
+                        species_ref=ref,
+                        master=master,
+                        x=x,
+                        y=y,
+                        draw_width=int(round(dw)),
+                        draw_height=int(round(dh)),
+                    )
+                )
+
         return LayoutResult(poster=spec, placements=placements, warnings=warnings)
+
 
 
 # --- VintageCatalogEngine ----------------------------------------------------
