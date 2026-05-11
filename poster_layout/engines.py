@@ -2512,10 +2512,16 @@ class FieldGuideBandsEngine(LayoutEngine):
 
         # 4. Size every fish first so we can classify "small" by draw_width.
         # unit_w is chosen so the HERO renders at hero_target_w_fraction × canvas_w.
+        # Apply the global 1.5x fish-size bump (per user request) HERE,
+        # at the start of the sizing math, so the engine's vertical
+        # stacking / shrink-to-fit / grow-to-fill all see the FINAL
+        # rendered dimensions. The clamped multiplier at emit time has
+        # been removed; sizes flow through layout naturally.
+        _GLOBAL_FISH_BUMP = 1.5
         N = len(pairs_sorted)
         hero_ref, hero_master = pairs_sorted[0]
         largest_idx = idx_for(hero_ref)
-        target_hero_w = canvas_w * self.hero_target_w_fraction
+        target_hero_w = canvas_w * self.hero_target_w_fraction * _GLOBAL_FISH_BUMP
         unit_w = target_hero_w / max(1e-6, largest_idx)
 
         def fish_dims(ref: SpeciesRef, master: MasterImage) -> tuple[float, float]:
@@ -2784,24 +2790,31 @@ class FieldGuideBandsEngine(LayoutEngine):
                 trailing_stagger_h,
                 local_trailing_single_h,
             )
-            # Reserve below the LAST main row for the trailing stagger
-            # PLUS its own caption clearance.
+            # Reserve below the LAST main row for the trailing stagger.
+            # The trailing fish's OWN caption is reserved separately
+            # (it bottoms out at body_bottom — see pair_bot formula).
+            # We only need room for the trailing fish body + a tiny
+            # breathing gap between the last main and the trailing fish.
             trailing_reserve = 0.0
             if trailing_stagger_h > 0 or local_trailing_single_h > 0:
                 th = max(trailing_stagger_h, local_trailing_single_h)
-                trailing_reserve = th + label_reserve + body_h * 0.01
+                trailing_reserve = th + body_h * 0.005
 
             pair_top = (
                 h_yc + local_hero_h / 2.0
                 + inner_buffer_px
                 + first_h / 2.0
             )
-            # body_bottom - inner_buffer_px = where the bottom-most fish's
-            # caption SHOULD bottom out. The last MAIN row's y-center
-            # leaves room below it for trailing_reserve + label_reserve.
+            # body_bottom already represents the bottom of usable content
+            # (the outer 0.030 inner-border inset + 0.030 inner buffer
+            # were both baked into bottom_margin_fraction = 0.045 on a
+            # 3:4 canvas). So the bottom-most fish's caption-bottom
+            # should sit AT body_bottom — not body_bottom - buffer.
+            # pair_bot = last main yc such that last main's caption,
+            # plus the trailing stagger and its own caption (if any),
+            # bottom out exactly at body_bottom.
             pair_bot = (
                 body_bottom
-                - inner_buffer_px
                 - last_h / 2.0
                 - label_reserve
                 - trailing_reserve
@@ -3036,44 +3049,33 @@ class FieldGuideBandsEngine(LayoutEngine):
             hero_h, rows, pair_rows, trailing_single_h
         )
 
-        # 8. Emit placements.
-        # Global 50% bump on the final draw dimensions, per user request.
-        # Applied AFTER all sizing/shrink/grow logic so the engine's
-        # constraint solving runs as before; the multiplier just enlarges
-        # the rendered output at emission time. Fish are scaled around
-        # their slot's center point so positions don't shift.
-        _FISH_SCALE = 1.5
-
+        # 8. Emit placements. (The global 1.5x bump was baked into
+        # target_hero_w earlier so the layout math saw the FINAL sizes;
+        # no post-emit multiplier here.)
         placements = []
-        # Hero placement.
-        hero_w_s = hero_w * _FISH_SCALE
-        hero_h_s = hero_h * _FISH_SCALE
-        hero_x = int(round((canvas_w - hero_w_s) / 2.0))
-        hero_y_int = int(round(hero_yc - hero_h_s / 2.0))
+        hero_x = int(round((canvas_w - hero_w) / 2.0))
+        hero_y_int = int(round(hero_yc - hero_h / 2.0))
         placements.append(
             PlacedItem(
                 species_ref=hero_ref,
                 master=hero_master,
                 x=hero_x,
                 y=hero_y_int,
-                draw_width=int(round(hero_w_s)),
-                draw_height=int(round(hero_h_s)),
+                draw_width=int(round(hero_w)),
+                draw_height=int(round(hero_h)),
             )
         )
 
         def _emit(entry, dw, dh, x_f, yc_f):
             ref, master = entry
-            dw_s = dw * _FISH_SCALE
-            dh_s = dh * _FISH_SCALE
-            cx = x_f + dw / 2.0
             placements.append(
                 PlacedItem(
                     species_ref=ref,
                     master=master,
-                    x=int(round(cx - dw_s / 2.0)),
-                    y=int(round(yc_f - dh_s / 2.0)),
-                    draw_width=int(round(dw_s)),
-                    draw_height=int(round(dh_s)),
+                    x=int(round(x_f)),
+                    y=int(round(yc_f - dh / 2.0)),
+                    draw_width=int(round(dw)),
+                    draw_height=int(round(dh)),
                 )
             )
 
