@@ -2380,11 +2380,12 @@ class FieldGuideBandsEngine(LayoutEngine):
         self,
         # Top reserved for the title block.
         title_band_fraction: float = 0.20,
-        # Bottom margin. Has to reserve room for the trailing fish's label
-        # AND the inner-border buffer (~3% inset matching the side margin).
-        # Set to 0.08 so a trailing single's label can't overhang the
-        # bottom border. 4% was eating into the border on tall stacks.
-        bottom_margin_fraction: float = 0.08,
+        # Bottom margin. Mirrors the side margin's "inner border inset
+        # + inner buffer" structure (0.030 outer + 0.030 inner buffer
+        # measured in canvas_w units). On a 3:4 portrait canvas
+        # (canvas_h = canvas_w * 1.333) the same pixel buffer becomes
+        # 0.06 / 1.333 = 0.045 of canvas_h.
+        bottom_margin_fraction: float = 0.045,
         # Side gutter. Hugs the L/R edge fish in pair / triple rows.
         side_margin_fraction: float = 0.060,
         # Honest-scale floor so the smallest fish remain substantial.
@@ -2496,6 +2497,14 @@ class FieldGuideBandsEngine(LayoutEngine):
         label_reserve = int(round(canvas_h * 0.026))
 
         side_margin = int(round(canvas_w * self.side_margin_fraction))
+        # Inner-border buffer: equal to the gap between the inner border
+        # line and the canvas edge (0.030 of canvas_w). The user wants
+        # this same buffer between the inner border and the content on
+        # all four sides — so top fish butts against this buffer below
+        # the title, bottom fish + label butts against it above the
+        # inner border, and pair fish respect it horizontally (already
+        # the case since side_margin = 0.060 = 0.030 + 0.030 buffer).
+        inner_buffer_px = int(round(canvas_w * 0.030))
 
         # 3. Compressed honest scale.
         _c = max(0.1, min(1.0, self.scale_compression))
@@ -2731,7 +2740,11 @@ class FieldGuideBandsEngine(LayoutEngine):
             local_pair_rows: list[dict],
             local_trailing_single_h: float,
         ) -> tuple[float, list[float], list[float]]:
-            h_yc = body_top + local_hero_h * 0.55 + body_h * 0.02
+            # Hero anchors with its TOP edge at body_top + inner_buffer_px
+            # (the same buffer as the side margin, per user request).
+            # The top fish butts directly up against this buffer below
+            # the title; no extra breathing.
+            h_yc = body_top + inner_buffer_px + local_hero_h / 2.0
             P_local = len(local_pair_rows)
             if P_local == 0:
                 return h_yc, [], []
@@ -2755,29 +2768,43 @@ class FieldGuideBandsEngine(LayoutEngine):
                             stagger_between[idx_between], row["max_h"]
                         )
 
-            hero_clearance = body_h * 0.03
-
-            # Top edge: hero bottom + clearance + half of first main's
-            # height. Bottom edge: body_bottom - half of last main's
-            # height - label_reserve - trailing stagger reserve (if any).
+            # Top edge of main-stack: directly under the hero, with the
+            # same inner_buffer between them as the side/top/bottom
+            # buffer. First main fish butts up against this buffer.
             first_h = local_pair_rows[0]["max_h"]
             last_h = local_pair_rows[-1]["max_h"]
-            trailing_extra = 0.0
+
+            # Bottom anchor: caption of the BOTTOM-MOST visible fish
+            # (which is the trailing stagger if there is one, else the
+            # last main row) butts against the inner buffer above the
+            # inner border. So caption_bottom = body_bottom - inner_buffer.
             trailing_stagger_h = stagger_between[P_local]
+            last_visible_h = max(
+                last_h,
+                trailing_stagger_h,
+                local_trailing_single_h,
+            )
+            # Reserve below the LAST main row for the trailing stagger
+            # PLUS its own caption clearance.
+            trailing_reserve = 0.0
             if trailing_stagger_h > 0 or local_trailing_single_h > 0:
                 th = max(trailing_stagger_h, local_trailing_single_h)
-                trailing_extra = th + label_reserve + body_h * 0.01
+                trailing_reserve = th + label_reserve + body_h * 0.01
 
             pair_top = (
                 h_yc + local_hero_h / 2.0
-                + hero_clearance
+                + inner_buffer_px
                 + first_h / 2.0
             )
+            # body_bottom - inner_buffer_px = where the bottom-most fish's
+            # caption SHOULD bottom out. The last MAIN row's y-center
+            # leaves room below it for trailing_reserve + label_reserve.
             pair_bot = (
                 body_bottom
+                - inner_buffer_px
                 - last_h / 2.0
                 - label_reserve
-                - trailing_extra
+                - trailing_reserve
             )
 
             if P_local == 1:
