@@ -94,6 +94,7 @@ def _build_species_refs(slugs: list[str]) -> list[Any]:
                     rec.get("relative_scale_index", 1.0) or 1.0
                 ),
                 habitat_tags=list(rec.get("habitat_tags", [])),
+                water_column=rec.get("water_column", "mid"),
             )
         )
     return refs

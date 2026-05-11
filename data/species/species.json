@@ -28,7 +28,8 @@
       "mountain_west"
     ],
     "commonness": 3,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "mid"
   },
   {
     "common_name": "Largemouth Bass",
@@ -56,7 +57,8 @@
       "nationwide"
     ],
     "commonness": 3,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "mid"
   },
   {
     "common_name": "Northern Pike",
@@ -88,7 +90,8 @@
       "alaska"
     ],
     "commonness": 3,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "top"
   },
   {
     "common_name": "Bowfin",
@@ -118,7 +121,8 @@
       "midwest"
     ],
     "commonness": 2,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "top"
   },
   {
     "common_name": "Bluegill",
@@ -146,7 +150,8 @@
       "nationwide"
     ],
     "commonness": 3,
-    "species_scale": 0.8
+    "species_scale": 0.8,
+    "water_column": "mid"
   },
   {
     "common_name": "Black Crappie",
@@ -174,7 +179,8 @@
       "nationwide"
     ],
     "commonness": 3,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "mid"
   },
   {
     "common_name": "Rock Bass",
@@ -203,7 +209,8 @@
       "midwest"
     ],
     "commonness": 3,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "mid"
   },
   {
     "common_name": "Pumpkinseed Sunfish",
@@ -232,7 +239,8 @@
       "midwest"
     ],
     "commonness": 3,
-    "species_scale": 0.8
+    "species_scale": 0.8,
+    "water_column": "mid"
   },
   {
     "common_name": "Yellow Perch",
@@ -262,7 +270,8 @@
       "mountain_west"
     ],
     "commonness": 3,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "mid"
   },
   {
     "common_name": "Channel Catfish",
@@ -291,7 +300,8 @@
       "nationwide"
     ],
     "commonness": 3,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "bottom"
   },
   {
     "common_name": "Bullhead Catfish",
@@ -320,7 +330,8 @@
       "nationwide"
     ],
     "commonness": 3,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "bottom"
   },
   {
     "common_name": "Common Carp",
@@ -348,7 +359,8 @@
       "nationwide"
     ],
     "commonness": 3,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "bottom"
   },
   {
     "common_name": "White Sucker",
@@ -379,7 +391,8 @@
       "mountain_west"
     ],
     "commonness": 3,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "bottom"
   },
   {
     "common_name": "Painted Turtle",
@@ -903,7 +916,8 @@
     "notes": "Spot rows below lateral line distinguish from largemouth.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "mid"
   },
   {
     "common_name": "Striped Bass",
@@ -934,7 +948,8 @@
     "notes": "Landlocked populations in many reservoirs.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "top"
   },
   {
     "common_name": "White Bass",
@@ -965,7 +980,8 @@
     "notes": "Schooling predator; spring spawning runs up tributaries.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top"
   },
   {
     "common_name": "Guadalupe Bass",
@@ -993,7 +1009,8 @@
     "notes": "State fish of Texas; endemic to Edwards Plateau streams.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "mid"
   },
   {
     "common_name": "Redear Sunfish",
@@ -1020,7 +1037,7 @@
       "midwest",
       "southwest"
     ],
-    "notes": "Also called shellcracker; feeds heavily on snails. [DISABLED 2026-05-07: master image missing \u2014 regenerate before re-enabling]",
+    "notes": "Also called shellcracker; feeds heavily on snails. [DISABLED 2026-05-07: master image missing — regenerate before re-enabling]",
     "enabled": false,
     "commonness": 3,
     "species_scale": 1.0
@@ -1054,7 +1071,8 @@
     "notes": "Tolerates poor water quality; large mouth for a sunfish.",
     "enabled": true,
     "commonness": 3,
-    "species_scale": 0.8
+    "species_scale": 0.8,
+    "water_column": "mid"
   },
   {
     "common_name": "Longear Sunfish",
@@ -1084,7 +1102,8 @@
     "notes": "Extremely long opercular flap is diagnostic.",
     "enabled": true,
     "commonness": 3,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "mid"
   },
   {
     "common_name": "Warmouth",
@@ -1114,7 +1133,8 @@
     "notes": "Prefers murky, vegetated waters; tolerates low oxygen.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 0.8
+    "species_scale": 0.8,
+    "water_column": "mid"
   },
   {
     "common_name": "Redbreast Sunfish",
@@ -1143,7 +1163,8 @@
     "notes": "Bright orange breast distinctive in eastern streams.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "mid"
   },
   {
     "common_name": "White Crappie",
@@ -1174,7 +1195,8 @@
     "notes": "Vertical bars distinguish from irregularly spotted black crappie.",
     "enabled": true,
     "commonness": 3,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "mid"
   },
   {
     "common_name": "Blue Catfish",
@@ -1204,7 +1226,8 @@
     "notes": "Largest North American catfish; straight anal fin margin is key.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "bottom"
   },
   {
     "common_name": "Flathead Catfish",
@@ -1234,7 +1257,8 @@
     "notes": "Flat head and squared tail distinguish from channel and blue cats.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "bottom"
   },
   {
     "common_name": "Chain Pickerel",
@@ -1263,7 +1287,8 @@
     "notes": "Chain-link pattern on sides is diagnostic; fully scaled opercle.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top"
   },
   {
     "common_name": "Muskellunge",
@@ -1293,12 +1318,13 @@
     "notes": "Dark markings on light background; opposite of northern pike pattern.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "top"
   },
   {
     "common_name": "Tiger Musky",
     "slug": "tiger_musky",
-    "scientific_name": "Esox masquinongy \u00d7 lucius",
+    "scientific_name": "Esox masquinongy × lucius",
     "category": "fish",
     "habitat_tags": [
       "freshwater",
@@ -1319,10 +1345,11 @@
       "northeast",
       "mountain_west"
     ],
-    "notes": "Sterile hybrid (pike \u00d7 musky); stocked for sport fishing.",
+    "notes": "Sterile hybrid (pike × musky); stocked for sport fishing.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "top"
   },
   {
     "common_name": "Walleye",
@@ -1353,7 +1380,8 @@
     "notes": "Reflective eyes adapted for low-light feeding; prized sport fish.",
     "enabled": true,
     "commonness": 3,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "mid"
   },
   {
     "common_name": "Sauger",
@@ -1383,12 +1411,13 @@
     "notes": "Tolerates more turbid water than walleye; spotted dorsal is key.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "mid"
   },
   {
     "common_name": "Saugeye",
     "slug": "saugeye",
-    "scientific_name": "Sander vitreus \u00d7 canadensis",
+    "scientific_name": "Sander vitreus × canadensis",
     "category": "fish",
     "habitat_tags": [
       "freshwater",
@@ -1412,7 +1441,8 @@
     "notes": "Walleye-sauger hybrid; widely stocked in reservoirs.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "mid"
   },
   {
     "common_name": "Rainbow Trout",
@@ -1444,7 +1474,8 @@
     "notes": "Widely stocked across the US.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top"
   },
   {
     "common_name": "Brown Trout",
@@ -1476,7 +1507,8 @@
     "notes": "European introduction; more tolerant of warm water than other trout.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top"
   },
   {
     "common_name": "Brook Trout",
@@ -1507,7 +1539,8 @@
     "notes": "Actually a char (Salvelinus); needs coldest and cleanest water.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top"
   },
   {
     "common_name": "Lake Trout",
@@ -1537,7 +1570,8 @@
     "notes": "Deep cold lake specialist; largest native char in North America.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top"
   },
   {
     "common_name": "Cutthroat Trout",
@@ -1568,7 +1602,8 @@
     "notes": "Red throat slash marks are diagnostic; many subspecies.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "top"
   },
   {
     "common_name": "Bull Trout",
@@ -1597,7 +1632,9 @@
     "notes": "Threatened species; requires coldest and cleanest habitat.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Apache Trout",
@@ -1625,7 +1662,9 @@
     "notes": "Endangered; endemic to White Mountains of Arizona.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "top",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Chinook Salmon",
@@ -1655,7 +1694,8 @@
     "notes": "Largest Pacific salmon; also called king salmon.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "top"
   },
   {
     "common_name": "Coho Salmon",
@@ -1685,7 +1725,8 @@
     "notes": "Also called silver salmon; spots on upper tail lobe only.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top"
   },
   {
     "common_name": "Sockeye Salmon",
@@ -1714,7 +1755,8 @@
     "notes": "Bright red spawning coloration; lake-rearing juveniles.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top"
   },
   {
     "common_name": "Atlantic Salmon",
@@ -1742,7 +1784,8 @@
     "notes": "Native to NE rivers; can spawn multiple times unlike Pacific salmon.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top"
   },
   {
     "common_name": "Pink Salmon",
@@ -1770,7 +1813,9 @@
     "notes": "Also called humpback salmon; strict two-year life cycle.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "top",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Kokanee",
@@ -1799,7 +1844,8 @@
     "notes": "Landlocked form of sockeye salmon; important forage and sport fish.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "top"
   },
   {
     "common_name": "Lake Sturgeon",
@@ -1828,7 +1874,8 @@
     "notes": "Ancient fish; can live over 100 years. Threatened.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "bottom"
   },
   {
     "common_name": "White Sturgeon",
@@ -1857,7 +1904,8 @@
     "notes": "Largest North American freshwater fish; can exceed 6 meters.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "bottom"
   },
   {
     "common_name": "Atlantic Sturgeon",
@@ -1886,7 +1934,9 @@
     "notes": "Endangered; historically from Maine to Florida.",
     "enabled": true,
     "commonness": 0,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "bottom",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Pallid Sturgeon",
@@ -1915,7 +1965,9 @@
     "notes": "Critically endangered; Missouri and Mississippi river systems.",
     "enabled": true,
     "commonness": 0,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "bottom",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Shovelnose Sturgeon",
@@ -1943,7 +1995,8 @@
     "notes": "Most common large-river sturgeon in the Mississippi basin.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "bottom"
   },
   {
     "common_name": "Paddlefish",
@@ -1972,7 +2025,8 @@
     "notes": "Filter feeder with electroreceptive rostrum; living fossil.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "bottom"
   },
   {
     "common_name": "Longnose Gar",
@@ -2003,7 +2057,8 @@
     "notes": "Longest and most widespread gar species.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "top"
   },
   {
     "common_name": "Shortnose Gar",
@@ -2032,7 +2087,8 @@
     "notes": "Shortest snout of all gars; spots mainly on fins.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top"
   },
   {
     "common_name": "Alligator Gar",
@@ -2061,7 +2117,8 @@
     "notes": "Largest gar; dual rows of upper jaw teeth are diagnostic.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "top"
   },
   {
     "common_name": "Spotted Gar",
@@ -2091,7 +2148,8 @@
     "notes": "Spots on head and body distinguish from other gars.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top"
   },
   {
     "common_name": "Florida Gar",
@@ -2119,7 +2177,8 @@
     "notes": "Endemic to Florida and southern Georgia.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top"
   },
   {
     "common_name": "American Shad",
@@ -2148,7 +2207,9 @@
     "notes": "Largest North American herring; anadromous spawning runs.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "top",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Gizzard Shad",
@@ -2179,7 +2240,9 @@
     "notes": "Important forage fish; elongated dorsal ray is diagnostic.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "top",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Hickory Shad",
@@ -2207,7 +2270,9 @@
     "notes": "Projecting lower jaw distinguishes from American shad.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "top",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Freshwater Drum",
@@ -2238,7 +2303,8 @@
     "notes": "Only North American freshwater member of the drum family.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "mid"
   },
   {
     "common_name": "Longnose Sucker",
@@ -2270,7 +2336,8 @@
     "notes": "Cold-water sucker; longer snout than white sucker.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "bottom"
   },
   {
     "common_name": "Smallmouth Buffalo",
@@ -2300,7 +2367,8 @@
     "notes": "Small downward mouth distinguishes from bigmouth buffalo.",
     "enabled": true,
     "commonness": 1,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "bottom"
   },
   {
     "common_name": "Bigmouth Buffalo",
@@ -2329,7 +2397,8 @@
     "notes": "Forward-facing mouth for filter feeding; can live over 100 years.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.5
+    "species_scale": 1.5,
+    "water_column": "bottom"
   },
   {
     "common_name": "Lake Whitefish",
@@ -2359,7 +2428,8 @@
     "notes": "Important commercial species in the Great Lakes.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top"
   },
   {
     "common_name": "Cisco",
@@ -2388,7 +2458,8 @@
     "notes": "Also called lake herring; important forage fish in deep lakes.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "top"
   },
   {
     "common_name": "Mooneye",
@@ -2417,7 +2488,9 @@
     "notes": "Large eye adapted for clear water; keeled belly.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "top",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Goldeye",
@@ -2446,7 +2519,9 @@
     "notes": "Tolerates turbid water; dorsal fin set farther back than mooneye.",
     "enabled": true,
     "commonness": 2,
-    "species_scale": 1.0
+    "species_scale": 1.0,
+    "water_column": "top",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Green Heron",
@@ -6166,7 +6241,8 @@
       "midwest"
     ],
     "commonness": 1,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "bottom"
   },
   {
     "common_name": "Chum Salmon",
@@ -6195,7 +6271,9 @@
       "pacific_northwest"
     ],
     "commonness": 1,
-    "species_scale": 1.2
+    "species_scale": 1.2,
+    "water_column": "top",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Redfin Pickerel",
@@ -6224,7 +6302,8 @@
       "southeast"
     ],
     "commonness": 2,
-    "species_scale": 0.8
+    "species_scale": 0.8,
+    "water_column": "top"
   },
   {
     "common_name": "Grass Pickerel",
@@ -6254,7 +6333,8 @@
       "southeast"
     ],
     "commonness": 2,
-    "species_scale": 0.8
+    "species_scale": 0.8,
+    "water_column": "top"
   },
   {
     "common_name": "Johnny Darter",
@@ -6284,7 +6364,9 @@
       "southeast"
     ],
     "commonness": 1,
-    "species_scale": 0.7
+    "species_scale": 0.7,
+    "water_column": "bottom",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Rainbow Darter",
@@ -6313,7 +6395,9 @@
       "northeast"
     ],
     "commonness": 1,
-    "species_scale": 0.7
+    "species_scale": 0.7,
+    "water_column": "bottom",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Common Shiner",
@@ -6342,7 +6426,8 @@
       "southeast"
     ],
     "commonness": 3,
-    "species_scale": 0.7
+    "species_scale": 0.7,
+    "water_column": "mid"
   },
   {
     "common_name": "Golden Shiner",
@@ -6370,7 +6455,8 @@
       "nationwide"
     ],
     "commonness": 3,
-    "species_scale": 0.7
+    "species_scale": 0.7,
+    "water_column": "mid"
   },
   {
     "common_name": "Fathead Minnow",
@@ -6398,7 +6484,9 @@
       "nationwide"
     ],
     "commonness": 3,
-    "species_scale": 0.7
+    "species_scale": 0.7,
+    "water_column": "mid",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Banded Killifish",
@@ -6427,7 +6515,9 @@
       "midwest"
     ],
     "commonness": 2,
-    "species_scale": 0.7
+    "species_scale": 0.7,
+    "water_column": "top",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Mummichog",
@@ -6456,7 +6546,9 @@
       "southeast"
     ],
     "commonness": 2,
-    "species_scale": 0.7
+    "species_scale": 0.7,
+    "water_column": "top",
+    "_water_column_inferred": true
   },
   {
     "common_name": "Pickerel Frog",

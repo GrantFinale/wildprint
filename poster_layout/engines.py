@@ -2387,7 +2387,9 @@ class FieldGuideBandsEngine(LayoutEngine):
         # Honest-scale floor so the smallest fish remain substantial.
         min_idx_floor: float = 0.4,
         # Compress the relative_scale_index range via power.
-        scale_compression: float = 0.65,
+        # 0.50 yields a ~2:1 bluegill→pike ratio (tighter than the 0.65
+        # default's ~2.84:1 — closer to the reference poster's even read).
+        scale_compression: float = 0.50,
         # Hero fish target draw-width as a fraction of canvas_w.
         hero_target_w_fraction: float = 0.55,
         # Gap (canvas-fraction) between L/R fish in a pair row. Tightened
@@ -2446,12 +2448,31 @@ class FieldGuideBandsEngine(LayoutEngine):
             warnings.append("FieldGuideBandsEngine: no masters available.")
             return LayoutResult(poster=spec, placements=[], warnings=warnings)
 
-        # 1. Sort largest-first by relative_scale_index.
-        pairs_sorted = sorted(
-            pairs,
-            key=lambda pr: pr[0].relative_scale_index,
-            reverse=True,
+        # 1. Sort by water column (top→mid→bottom), then by size desc within
+        # each tier. This makes the poster read top→bottom of the water
+        # column: surface predators up top, mid-water fish in the middle,
+        # bottom feeders at the foot.
+        #
+        # Hero override: the BIGGEST fish in the entire selection is hoisted
+        # to slot 0 regardless of its water column, so the eye lands on the
+        # poster's most impressive specimen. Everything else is water-column
+        # sorted behind it.
+        WATER_RANK = {"top": 0, "mid": 1, "bottom": 2}
+
+        def _wc_rank(ref: SpeciesRef) -> int:
+            return WATER_RANK.get(getattr(ref, "water_column", "mid"), 1)
+
+        biggest_idx = max(
+            range(len(pairs)),
+            key=lambda i: pairs[i][0].relative_scale_index,
         )
+        hero_pair = pairs[biggest_idx]
+        rest = [p for i, p in enumerate(pairs) if i != biggest_idx]
+        rest_sorted = sorted(
+            rest,
+            key=lambda pr: (_wc_rank(pr[0]), -pr[0].relative_scale_index),
+        )
+        pairs_sorted = [hero_pair] + rest_sorted
 
         canvas_w = spec.canvas_width
         canvas_h = spec.canvas_height
@@ -2824,6 +2845,92 @@ class FieldGuideBandsEngine(LayoutEngine):
             warnings.append(
                 f"FieldGuideBandsEngine: applied uniform shrink scale={scale:.3f} to fit body."
             )
+
+        # 7b. Whitespace fill — symmetric "iterative uniform grow". If the
+        # body region has significant unused vertical space at the bottom
+        # after the shrink convergence, uniformly grow ALL fish to fill it.
+        # Stops when (a) the bottom-most row hits body_bottom, or (b) any
+        # fish would exceed body width (overflow side margins). The last
+        # grow step that violates is reverted.
+        #
+        # We only attempt the grow when scale==1.0 (i.e. we didn't have to
+        # shrink to fit), since growing a layout that already had to shrink
+        # would immediately overflow again.
+        def _stack_bottom(h_yc: float, ycs: list[float], _rows: list[dict]) -> float:
+            """Return the lowest y-coordinate touched by any placement (row
+            or hero). Used to measure unused vertical space at the bottom."""
+            bot = h_yc + hero_h / 2.0
+            for r, yc in zip(_rows, ycs):
+                bot = max(bot, yc + r["max_h"] / 2.0)
+            return bot
+
+        def _max_row_width(_rows: list[dict]) -> float:
+            """Return the widest single fish width across all rows. For
+            pair rows this is L or R fish width; for triple rows it's
+            max of L/C/R; etc. The constraint we enforce is that the
+            widest fish fits within (canvas_w - 2*side_margin)."""
+            max_w = hero_w
+            for r in _rows:
+                for (w, _h) in r["dims"]:
+                    if w > max_w:
+                        max_w = w
+            return max_w
+
+        if scale >= 1.0:
+            usable_w = canvas_w - 2 * side_margin
+            grow_total = 1.0
+            for _ in range(30):
+                _, ycs_now, _ = compute_y_centers(
+                    hero_h, rows, pair_rows, trailing_single_h
+                )
+                bot = _stack_bottom(0.0 if not ycs_now and hero_h == 0
+                                    else (body_top + hero_h * 0.55 + body_h * 0.02),
+                                    ycs_now, rows)
+                unused = body_bottom - bot
+                if unused <= canvas_h * 0.05:
+                    break
+                # Try a 5% grow step.
+                step = 1.05
+                new_hero_w = hero_w * step
+                new_hero_h = hero_h * step
+                new_trailing = trailing_single_h * step
+                new_rows_dims = [
+                    [(w * step, h * step) for (w, h) in r["dims"]]
+                    for r in rows
+                ]
+                new_max_w = max(
+                    [new_hero_w] +
+                    [w for dims in new_rows_dims for (w, _h) in dims]
+                )
+                # Width-bound check: no fish may exceed the body's usable
+                # width. (Pair fish hug L/R edges so we use single-fish
+                # width as the limiter.)
+                if new_max_w > usable_w:
+                    break
+                # Apply the step.
+                hero_w = new_hero_w
+                hero_h = new_hero_h
+                trailing_single_h = new_trailing
+                for r, new_dims in zip(rows, new_rows_dims):
+                    r["dims"] = new_dims
+                    r["max_h"] = max((d[1] for d in new_dims), default=0.0)
+                grow_total *= step
+                # Vertical safety: if the stack now overflows the body,
+                # revert the last step.
+                if not stack_fits(hero_h, rows, pair_rows, trailing_single_h):
+                    hero_w /= step
+                    hero_h /= step
+                    trailing_single_h /= step
+                    for r in rows:
+                        r["dims"] = [(w / step, h / step) for (w, h) in r["dims"]]
+                        r["max_h"] = max((d[1] for d in r["dims"]), default=0.0)
+                    grow_total /= step
+                    break
+            if grow_total > 1.001:
+                warnings.append(
+                    f"FieldGuideBandsEngine: applied uniform grow "
+                    f"scale={grow_total:.3f} to fill body whitespace."
+                )
 
         hero_yc, row_y_centers, pair_ys = compute_y_centers(
             hero_h, rows, pair_rows, trailing_single_h

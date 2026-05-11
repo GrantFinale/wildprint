@@ -92,20 +92,20 @@ def test_all_placements_within_canvas_bounds() -> None:
 def test_pike_visibly_larger_than_bluegill_under_default_compression() -> None:
     """A 2.5-idx pike must read clearly larger than a 0.5-idx bluegill.
 
-    Default scale_compression is 0.65 — that maps the 5x raw idx ratio
-    to ~3x rendered, matching the reference fish poster's tighter range
+    Default scale_compression is 0.50 — that maps the 5x raw idx ratio to
+    ~2.2x rendered, matching the reference fish poster's even-read range
     (the user wants smaller fish to feel substantial, not insignificant).
     Setting scale_compression=1.0 restores the prior 4-5x honest range.
     """
     refs = [_ref("northern_pike", 2.5), _ref("bluegill", 0.5)]
     spec = _spec()
-    # Default compression: assert visible hierarchy, not honest 4x.
+    # Default compression (0.50): assert visible hierarchy, tighter range.
     result = FieldGuideBandsEngine().layout(spec, refs, _StubLoader())
     by_slug = {p.species_ref.slug: p for p in result.placements}
     pike_h = by_slug["northern_pike"].draw_height
     bluegill_h = by_slug["bluegill"].draw_height
-    assert pike_h > 2 * bluegill_h, f"pike={pike_h} bluegill={bluegill_h}"
-    assert pike_h < 4 * bluegill_h, f"compression=0.65 should keep ratio < 4x"
+    assert pike_h > 1.5 * bluegill_h, f"pike={pike_h} bluegill={bluegill_h}"
+    assert pike_h < 2.5 * bluegill_h, f"compression=0.50 should keep ratio < 2.5x"
 
     # Honest scale (compression=1.0) restores the >4x ratio.
     honest = FieldGuideBandsEngine(scale_compression=1.0).layout(spec, refs, _StubLoader())

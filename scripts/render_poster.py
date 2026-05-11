@@ -226,6 +226,7 @@ def _to_species_ref(rec: dict) -> SpeciesRef:
         category=rec.get("category", ""),
         relative_scale_index=float(rec.get("relative_scale_index", 1.0)),
         habitat_tags=list(rec.get("habitat_tags", [])),
+        water_column=rec.get("water_column", "mid"),
     )
 
 

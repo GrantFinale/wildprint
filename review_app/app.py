@@ -2212,6 +2212,7 @@ def api_generate_poster():
                 category=rec.get("category", ""),
                 relative_scale_index=effective,
                 habitat_tags=list(rec.get("habitat_tags", [])),
+                water_column=rec.get("water_column", "mid"),
             )
         )
 
@@ -2407,6 +2408,7 @@ def api_render_framed_preview():
                 category=rec.get("category", ""),
                 relative_scale_index=float(rec.get("relative_scale_index", 1.0) or 1.0),
                 habitat_tags=list(rec.get("habitat_tags", [])),
+                water_column=rec.get("water_column", "mid"),
             )
         )
     if not species_refs:
@@ -2564,6 +2566,7 @@ def api_render_custom():
             category=rec.get("category", ""),
             relative_scale_index=float(rec.get("relative_scale_index", 1.0)),
             habitat_tags=list(rec.get("habitat_tags", [])),
+            water_column=rec.get("water_column", "mid"),
         )
         placed_items.append(PlacedItem(
             species_ref=sp_ref,

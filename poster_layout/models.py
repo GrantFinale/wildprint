@@ -30,6 +30,12 @@ class SpeciesRef:
             can render Northern Pike at ~2.5x the length of Smallmouth Bass
             regardless of the source image's pixel dimensions.
         habitat_tags: Free-form habitat descriptors (e.g. ["lake", "river"]).
+        water_column: Vertical habitat tier — ``"top"`` (surface predators,
+            salmonids), ``"mid"`` (sunfish, basses, perch, walleye), or
+            ``"bottom"`` (catfish, suckers, carps, sturgeon). Used by
+            :class:`FieldGuideBandsEngine` to order fish vertically by
+            water column so the poster reads top→bottom of the water column.
+            Defaults to ``"mid"`` for non-fish species and missing data.
     """
 
     slug: str
@@ -38,6 +44,7 @@ class SpeciesRef:
     category: str
     relative_scale_index: float
     habitat_tags: list[str]
+    water_column: str = "mid"
 
 
 @dataclass(frozen=True)
