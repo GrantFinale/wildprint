@@ -3102,31 +3102,43 @@ class FieldGuideBandsEngine(LayoutEngine):
         )
 
         # 8. Emit placements.
+        # Global 50% bump on the final draw dimensions, per user request.
+        # Applied AFTER all sizing/shrink/grow logic so the engine's
+        # constraint solving runs as before; the multiplier just enlarges
+        # the rendered output at emission time. Fish are scaled around
+        # their slot's center point so positions don't shift.
+        _FISH_SCALE = 1.5
+
         placements = []
         # Hero placement.
-        hero_x = int(round((canvas_w - hero_w) / 2.0))
-        hero_y_int = int(round(hero_yc - hero_h / 2.0))
+        hero_w_s = hero_w * _FISH_SCALE
+        hero_h_s = hero_h * _FISH_SCALE
+        hero_x = int(round((canvas_w - hero_w_s) / 2.0))
+        hero_y_int = int(round(hero_yc - hero_h_s / 2.0))
         placements.append(
             PlacedItem(
                 species_ref=hero_ref,
                 master=hero_master,
                 x=hero_x,
                 y=hero_y_int,
-                draw_width=int(round(hero_w)),
-                draw_height=int(round(hero_h)),
+                draw_width=int(round(hero_w_s)),
+                draw_height=int(round(hero_h_s)),
             )
         )
 
         def _emit(entry, dw, dh, x_f, yc_f):
             ref, master = entry
+            dw_s = dw * _FISH_SCALE
+            dh_s = dh * _FISH_SCALE
+            cx = x_f + dw / 2.0
             placements.append(
                 PlacedItem(
                     species_ref=ref,
                     master=master,
-                    x=int(round(x_f)),
-                    y=int(round(yc_f - dh / 2.0)),
-                    draw_width=int(round(dw)),
-                    draw_height=int(round(dh)),
+                    x=int(round(cx - dw_s / 2.0)),
+                    y=int(round(yc_f - dh_s / 2.0)),
+                    draw_width=int(round(dw_s)),
+                    draw_height=int(round(dh_s)),
                 )
             )
 
