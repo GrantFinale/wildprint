@@ -1,58 +1,58 @@
 [
   {
     "slug": "northern_pike",
-    "x": 1096,
+    "x": 1104,
     "y": 1624,
-    "draw_width": 3200,
-    "draw_height": 816
+    "draw_width": 3184,
+    "draw_height": 808
+  },
+  {
+    "slug": "smallmouth_bass",
+    "x": 1824,
+    "y": 2984,
+    "draw_width": 1552,
+    "draw_height": 576
+  },
+  {
+    "slug": "yellow_perch",
+    "x": 504,
+    "y": 3872,
+    "draw_width": 1280,
+    "draw_height": 520
   },
   {
     "slug": "largemouth_bass",
-    "x": 1848,
-    "y": 2992,
-    "draw_width": 1704,
-    "draw_height": 680
+    "x": 3208,
+    "y": 4040,
+    "draw_width": 1688,
+    "draw_height": 672
+  },
+  {
+    "slug": "rock_bass",
+    "x": 1880,
+    "y": 4664,
+    "draw_width": 1280,
+    "draw_height": 592
   },
   {
     "slug": "black_crappie",
     "x": 504,
-    "y": 3648,
-    "draw_width": 1328,
-    "draw_height": 632
-  },
-  {
-    "slug": "smallmouth_bass",
-    "x": 3336,
-    "y": 4192,
-    "draw_width": 1560,
-    "draw_height": 576
-  },
-  {
-    "slug": "rock_bass",
-    "x": 1856,
-    "y": 4640,
-    "draw_width": 1288,
-    "draw_height": 600
-  },
-  {
-    "slug": "bluegill",
-    "x": 504,
-    "y": 5184,
-    "draw_width": 1256,
-    "draw_height": 664
-  },
-  {
-    "slug": "yellow_perch",
-    "x": 3288,
-    "y": 5320,
-    "draw_width": 1288,
-    "draw_height": 520
+    "y": 5232,
+    "draw_width": 1320,
+    "draw_height": 624
   },
   {
     "slug": "pumpkinseed_sunfish",
-    "x": 1928,
-    "y": 5840,
-    "draw_width": 1256,
+    "x": 3352,
+    "y": 5264,
+    "draw_width": 1240,
+    "draw_height": 664
+  },
+  {
+    "slug": "bluegill",
+    "x": 2008,
+    "y": 5848,
+    "draw_width": 1240,
     "draw_height": 664
   }
 ]

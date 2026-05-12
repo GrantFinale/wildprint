@@ -331,6 +331,70 @@ def test_K_orderings_run1_param_respected(tmp_path: Path) -> None:
 # ---- Tunables --------------------------------------------------------------
 
 
+def test_layout_horizontally_balanced(tmp_path: Path) -> None:
+    """The mass-balancing rule keeps the left/right pixel mass within ~15%.
+
+    For a moderately heterogeneous fish set, the proactive per-fish
+    center_x targeting + balance-aware K-ordering scoring should produce
+    a layout where the LEFT and RIGHT halves of the canvas hold roughly
+    equal bbox area (computed by geometric overlap with each half).
+    """
+    refs = [
+        _ref("hero", 2.5, "top"),
+        _ref("a", 1.5, "mid"),
+        _ref("b", 1.0, "mid"),
+        _ref("c", 0.8, "mid"),
+        _ref("d", 0.7, "bottom"),
+        _ref("e", 0.5, "bottom"),
+        _ref("f", 0.5, "mid"),
+    ]
+    spec = _spec([r.slug for r in refs])
+    result = FieldGuidePackedEngine().layout(spec, refs, _StubLoader(tmp_path, refs))
+    cl = spec.canvas_width / 2.0
+    left_mass = 0.0
+    right_mass = 0.0
+    for p in result.placements:
+        x_right = p.x + p.draw_width
+        left_w = max(0.0, min(cl, x_right) - p.x)
+        right_w = max(0.0, x_right - max(cl, float(p.x)))
+        left_mass += left_w * p.draw_height
+        right_mass += right_w * p.draw_height
+    total = left_mass + right_mass
+    assert total > 0
+    imbalance = abs(left_mass - right_mass) / total
+    assert imbalance < 0.15, (
+        f"layout too imbalanced: left={left_mass/total*100:.1f}% "
+        f"right={right_mass/total*100:.1f}% (want |imbalance| < 15%)"
+    )
+
+
+def test_score_layout_neutral_hero_doesnt_skew(tmp_path: Path) -> None:
+    """A hero spanning the centerline contributes equally to both sides.
+
+    This is the unit-level invariant behind the test above: the score
+    function uses geometric overlap, not the centroid, so a perfectly
+    centered hero is mass-neutral.
+    """
+    from poster_layout.engines_v3 import FieldGuidePackedEngine
+
+    pack_w = 1000
+    # A hero spanning the centerline (x=200, w=600, extends to 800;
+    # center at 500 = pack_w/2). Plus one small fish on the right.
+    placements = [
+        (1.0, 600, 200, 200, 100),  # hero, perfectly centered
+        (1.0, 100, 100, 700, 300),  # small right fish
+    ]
+    score = FieldGuidePackedEngine._score_layout(1.0, placements, pack_w)
+    # Only the small right fish creates imbalance.
+    # left_area = 0 (hero contributes 300×200 = 60000 left and same right
+    # since centered; small fish 100×100 all right).
+    # left = 300×200 (half of hero) = 60000
+    # right = 300×200 (other half of hero) + 100×100 (small fish) = 70000
+    # imbalance = |60000-70000| / 130000 = 0.077
+    # score = 1.0 * (1 - 0.20 * 0.077) ≈ 0.985
+    assert 0.98 < score < 1.0
+
+
 def test_hero1_smaller_means_smaller_hero(tmp_path: Path) -> None:
     """Reducing hero1 shrinks the hero relative to the others."""
     refs = [_ref(f"sp{i}", 2.0 - i * 0.2) for i in range(5)]

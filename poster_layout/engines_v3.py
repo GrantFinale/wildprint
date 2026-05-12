@@ -366,7 +366,7 @@ class FieldGuidePackedEngine(LayoutEngine):
         scale ≥ min_scale.
         """
         orderings = self._orderings(spec, pairs, hero_idx)
-        best_scale = 0.0
+        best_score = float("-inf")
         best_placements: list[tuple[float, int, int, int, int]] | None = None
         for order in orderings:
             scale, placements = self._binary_search_scale(
@@ -381,10 +381,54 @@ class FieldGuidePackedEngine(LayoutEngine):
                 body_top_pack=body_top_pack,
                 body_bot_pack=body_bot_pack,
             )
-            if placements is not None and scale > best_scale:
-                best_scale = scale
+            if placements is None:
+                continue
+            score = self._score_layout(scale, placements, pack_w)
+            if score > best_score:
+                best_score = score
                 best_placements = placements
         return best_placements
+
+    @staticmethod
+    def _score_layout(
+        scale: float,
+        placements: list[tuple[float, int, int, int, int] | None],
+        pack_w: int,
+    ) -> float:
+        """Score a candidate layout for the best-of-K selection.
+
+        Composite of two terms:
+        1. Scale (primary) — bigger fish is better.
+        2. Horizontal balance (tiebreak) — penalize layouts whose
+           total bbox area is heavily skewed left or right of canvas
+           centerline. Penalty caps at 20% of the scale, so balance
+           never overrides a clearly-larger-scale layout, only
+           tiebreaks among near-equal candidates.
+
+        Score = scale * (1 - 0.20 * |imbalance|), where imbalance ∈ [0, 1]
+        is the absolute fraction of total bbox area sitting on the heavier
+        side of the canvas centerline.
+
+        Mass split uses GEOMETRIC overlap with each half-canvas — a fish
+        spanning the centerline contributes proportionally to BOTH sides
+        (a perfectly-centered hero is neutral, not arbitrarily L or R).
+        """
+        center_line = pack_w / 2.0
+        left_area = 0.0
+        right_area = 0.0
+        for pl in placements:
+            if pl is None:
+                continue
+            _scale_used, mw, mh, x, _y = pl
+            x_right = x + mw
+            # Geometric overlap with each half-canvas.
+            left_w = max(0.0, min(center_line, x_right) - x)
+            right_w = max(0.0, x_right - max(center_line, float(x)))
+            left_area += left_w * mh
+            right_area += right_w * mh
+        total = left_area + right_area
+        imbalance = abs(left_area - right_area) / max(1.0, total)  # [0, 1]
+        return scale * (1.0 - 0.20 * imbalance)
 
     def _orderings(
         self,
@@ -512,26 +556,46 @@ class FieldGuidePackedEngine(LayoutEngine):
             if hero_y + hero_mask.shape[0] >= body_bot_pack:
                 return None
 
-            others = order_masks[1:]
-            origins = skyline_packer.pack_all(
-                canvas_shape=(pack_h, pack_w),
-                masks_to_place=others,
-                body_top=body_top_pack,
-                body_bot=body_bot_pack,
-                side_left=side_pack,
-                side_right=pack_w - side_pack,
-                pinned=[(hero_mask, hero_y, hero_x)],
-            )
-            if origins is None:
-                return None
+            # ---- Mass-balancing placement loop ---------------------
+            # For each non-hero fish, target the LIGHTER side of the
+            # canvas so far. This breaks the systematic right-drift you
+            # get when `argmin(|x - center|)` always tie-breaks to the
+            # first valid position. Targeting strength scales with the
+            # current imbalance (max ±0.25 of canvas width off-center)
+            # so a moderately-imbalanced canvas only nudges placements
+            # slightly, while a wildly imbalanced one strongly biases
+            # the next fish toward the empty side.
+            canvas = np.zeros((pack_h, pack_w), dtype=bool)
+            skyline_packer.place_mask(canvas, hero_mask, hero_y, hero_x)
+            center_line = pack_w // 2
 
-            # Build (scale, draw_w_pack, draw_h_pack, x_pack, y_pack)
-            # parallel to pairs (NOT order).
-            placements = [None] * len(pairs)
+            placements: list[tuple[float, int, int, int, int] | None] = [None] * len(pairs)
             placements[order[0]] = (s, hw, hero_mask.shape[0], hero_x, hero_y)
+
             for k, pair_idx in enumerate(order[1:], start=1):
-                y, x = origins[k - 1]
-                mh, mw = order_masks[k].shape
+                m = order_masks[k]
+                # Mass on each half of the canvas right now.
+                left_mass = int(canvas[:, :center_line].sum())
+                right_mass = int(canvas[:, center_line:].sum())
+                total = left_mass + right_mass
+                # imbalance ∈ [-1, 1]: positive = right-heavy.
+                imbalance = (right_mass - left_mass) / max(1, total)
+                # Push the target away from the heavy side, ±25% of canvas.
+                target_center_x = int(pack_w * (0.5 - 0.25 * imbalance))
+                pos = skyline_packer.find_placement(
+                    canvas,
+                    m,
+                    body_top=body_top_pack,
+                    body_bot=body_bot_pack,
+                    side_left=side_pack,
+                    side_right=pack_w - side_pack,
+                    center_x=target_center_x,
+                )
+                if pos is None:
+                    return None
+                y, x = pos
+                skyline_packer.place_mask(canvas, m, y, x)
+                mh, mw = m.shape
                 placements[pair_idx] = (s, mw, mh, x, y)
             return placements  # type: ignore[return-value]
 

@@ -1,79 +1,79 @@
 [
   {
     "slug": "northern_pike",
-    "x": 1336,
+    "x": 1344,
     "y": 1624,
-    "draw_width": 2728,
-    "draw_height": 640
-  },
-  {
-    "slug": "rock_bass",
-    "x": 3824,
-    "y": 2784,
-    "draw_width": 1072,
-    "draw_height": 448
-  },
-  {
-    "slug": "largemouth_bass",
-    "x": 1984,
-    "y": 2816,
-    "draw_width": 1432,
-    "draw_height": 512
-  },
-  {
-    "slug": "smallmouth_bass",
-    "x": 504,
-    "y": 3000,
-    "draw_width": 1312,
-    "draw_height": 432
+    "draw_width": 2704,
+    "draw_height": 624
   },
   {
     "slug": "yellow_perch",
-    "x": 3368,
-    "y": 3784,
-    "draw_width": 1072,
-    "draw_height": 384
+    "x": 3832,
+    "y": 2744,
+    "draw_width": 1064,
+    "draw_height": 376
   },
   {
-    "slug": "pumpkinseed_sunfish",
-    "x": 2112,
-    "y": 3880,
-    "draw_width": 1040,
+    "slug": "channel_catfish",
+    "x": 1784,
+    "y": 2800,
+    "draw_width": 1632,
     "draw_height": 504
   },
   {
     "slug": "bluegill",
-    "x": 856,
-    "y": 3984,
-    "draw_width": 1040,
-    "draw_height": 504
-  },
-  {
-    "slug": "common_carp",
-    "x": 3192,
-    "y": 4728,
-    "draw_width": 1704,
-    "draw_height": 728
-  },
-  {
-    "slug": "channel_catfish",
-    "x": 1216,
-    "y": 5040,
-    "draw_width": 1648,
-    "draw_height": 512
-  },
-  {
-    "slug": "white_sucker",
-    "x": 2768,
-    "y": 6008,
-    "draw_width": 1352,
-    "draw_height": 416
+    "x": 504,
+    "y": 3024,
+    "draw_width": 1024,
+    "draw_height": 496
   },
   {
     "slug": "bullhead_catfish",
-    "x": 1152,
-    "y": 6104,
-    "draw_width": 1264,
+    "x": 3424,
+    "y": 3672,
+    "draw_width": 1256,
+    "draw_height": 400
+  },
+  {
+    "slug": "largemouth_bass",
+    "x": 1784,
+    "y": 3856,
+    "draw_width": 1416,
+    "draw_height": 504
+  },
+  {
+    "slug": "smallmouth_bass",
+    "x": 3264,
+    "y": 4624,
+    "draw_width": 1296,
+    "draw_height": 424
+  },
+  {
+    "slug": "white_sucker",
+    "x": 504,
+    "y": 4808,
+    "draw_width": 1336,
     "draw_height": 408
+  },
+  {
+    "slug": "pumpkinseed_sunfish",
+    "x": 2104,
+    "y": 5104,
+    "draw_width": 1024,
+    "draw_height": 496
+  },
+  {
+    "slug": "rock_bass",
+    "x": 912,
+    "y": 5768,
+    "draw_width": 1064,
+    "draw_height": 440
+  },
+  {
+    "slug": "common_carp",
+    "x": 3208,
+    "y": 5776,
+    "draw_width": 1688,
+    "draw_height": 720
   }
 ]
