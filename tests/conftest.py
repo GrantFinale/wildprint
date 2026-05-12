@@ -43,6 +43,12 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=False,
         help="Run @pytest.mark.integration tests (requires real DB/Redis/network).",
     )
+    parser.addoption(
+        "--regen-goldens",
+        action="store_true",
+        default=False,
+        help="Regenerate visual-regression golden fixtures.",
+    )
 
 
 def pytest_collection_modifyitems(

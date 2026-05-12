@@ -1,0 +1,58 @@
+[
+  {
+    "slug": "northern_pike",
+    "x": 1192,
+    "y": 1624,
+    "draw_width": 3008,
+    "draw_height": 744
+  },
+  {
+    "slug": "black_crappie",
+    "x": 560,
+    "y": 2912,
+    "draw_width": 1240,
+    "draw_height": 568
+  },
+  {
+    "slug": "bluegill",
+    "x": 2112,
+    "y": 2912,
+    "draw_width": 1168,
+    "draw_height": 600
+  },
+  {
+    "slug": "yellow_perch",
+    "x": 3632,
+    "y": 2912,
+    "draw_width": 1200,
+    "draw_height": 464
+  },
+  {
+    "slug": "largemouth_bass",
+    "x": 664,
+    "y": 4032,
+    "draw_width": 1592,
+    "draw_height": 608
+  },
+  {
+    "slug": "channel_catfish",
+    "x": 3072,
+    "y": 4056,
+    "draw_width": 1824,
+    "draw_height": 608
+  },
+  {
+    "slug": "bowfin",
+    "x": 1592,
+    "y": 5192,
+    "draw_width": 1704,
+    "draw_height": 392
+  },
+  {
+    "slug": "smallmouth_bass",
+    "x": 3440,
+    "y": 5680,
+    "draw_width": 1456,
+    "draw_height": 520
+  }
+]
