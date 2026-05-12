@@ -122,6 +122,7 @@ def render_master_image(
         EditorialMultiRenderer,
         FileSystemMasterImageLoader,
         PosterSpec,
+        get_profile,
         select_layout_engine,
     )
 
@@ -165,7 +166,14 @@ def render_master_image(
             f"style={style_slug!r} species={[r.slug for r in present_refs]!r}."
         )
 
-    renderer = EditorialMultiRenderer()
+    # Pass the style profile so the renderer knows to skip the redundant
+    # bottom caption band (e.g. "Freshwater · Lakes") that collides with
+    # the per-fish labels the field-guide profile already draws. Every
+    # other caller in review_app/app.py passes this — the omission here
+    # was a pre-existing bug.
+    renderer = EditorialMultiRenderer(
+        style_profile=get_profile(poster_spec.layout_style),
+    )
 
     # Honor a small whitelist of layout_config knobs that match what
     # /api/generate-poster sets. Unknown keys are ignored; we deliberately
