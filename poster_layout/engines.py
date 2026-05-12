@@ -3606,6 +3606,151 @@ class FieldGuideBandsEngine(LayoutEngine):
                 (dw, dh) = row["dims"][0]
                 _emit(entry, dw, dh, (canvas_w - dw) / 2.0, yc)
 
+        # ---------------------------------------------------------------
+        # Alpha-aware vertical compression (post-pass).
+        # ---------------------------------------------------------------
+        # The bbox+label_reserve constraint in stack_fits is correct but
+        # CONSERVATIVE — it treats every fish as a rectangle. In reality
+        # fish silhouettes are irregular (long pikes have slim tails,
+        # bluegills are tall but narrow). When a row's bottom-fish has
+        # empty bbox area below its silhouette and the next row's top-
+        # fish has empty bbox area above its silhouette, the two CAN
+        # pack closer than label_reserve allows — without the actual
+        # silhouettes touching.
+        #
+        # This pass walks fish top-down and shifts each one UPWARD until
+        # alpha-silhouette collision (with buff1 dilation) blocks it.
+        # Result: gaps between rows close where shapes are
+        # complementary, while silhouette-overlap is guaranteed never
+        # to occur. Non-destructive — if no compression is possible
+        # (silhouettes are square/incompatible), placements stay where
+        # they were.
+        try:
+            from poster_layout.masks import (
+                get_or_build_pack_mask,
+                validate_no_silhouette_overlap,
+            )
+
+            buff1_canvas = int(round(canvas_h * 0.026))
+            mask_res = 8
+            label_h_canvas = buff1_canvas
+            # Dilate each fish by buff1/2 so combined separation between
+            # any two masks (both dilated) equals buff1. Without halving,
+            # we'd require 2*buff1 between silhouettes — twice the target.
+            buff1_pack = max(1, (buff1_canvas // mask_res) // 2)
+            label_pack = max(1, label_h_canvas // mask_res)
+
+            # Sort placements by current y (top to bottom). Skip hero (idx 0)
+            # since it's anchored at body_top + buffer.
+            indexed = list(enumerate(placements))
+            indexed.sort(key=lambda iv: iv[1].y)
+
+            # Pre-build masks for every placement at its rendered scale,
+            # using buff1 dilation. Position-independent.
+            fish_masks: dict[int, "np.ndarray"] = {}
+            for orig_idx, p in indexed:
+                target_w_pack = max(2, p.draw_width // mask_res)
+                try:
+                    fish_masks[orig_idx] = get_or_build_pack_mask(
+                        p.master.image_path,
+                        target_w_base=target_w_pack,
+                        buff1_px=buff1_pack,
+                        label_h_px=label_pack,
+                    )
+                except Exception:
+                    fish_masks[orig_idx] = None  # type: ignore[assignment]
+
+            def _collides_at(p, m, y_pack: int) -> bool:
+                """Would moving placement p (with mask m) to y_pack
+                cause an alpha-silhouette collision with anything
+                already placed at-or-above y_pack?"""
+                if m is None:
+                    return False
+                x_pack = p.x // mask_res - buff1_pack
+                mh, mw = m.shape
+                for other_idx, other_p in enumerate(placements):
+                    if other_p is p:
+                        continue
+                    other_y_top_pack = other_p.y // mask_res
+                    # Only consider fish placed at-or-above this y (we
+                    # shift downward fish UP into spaces above them).
+                    if other_y_top_pack > y_pack + mh:
+                        continue
+                    other_m = fish_masks.get(other_idx)
+                    if other_m is None:
+                        continue
+                    other_x_pack = other_p.x // mask_res - buff1_pack
+                    other_mh, other_mw = other_m.shape
+                    # Bbox quick-reject in pack coords.
+                    ax0, ay0, ax1, ay1 = (
+                        x_pack,
+                        y_pack,
+                        x_pack + mw,
+                        y_pack + mh,
+                    )
+                    bx0, by0, bx1, by1 = (
+                        other_x_pack,
+                        other_y_top_pack,
+                        other_x_pack + other_mw,
+                        other_y_top_pack + other_mh,
+                    )
+                    ox0 = max(ax0, bx0)
+                    oy0 = max(ay0, by0)
+                    ox1 = min(ax1, bx1)
+                    oy1 = min(ay1, by1)
+                    if ox1 <= ox0 or oy1 <= oy0:
+                        continue
+                    a_slice = m[oy0 - ay0 : oy1 - ay0, ox0 - ax0 : ox1 - ax0]
+                    b_slice = other_m[
+                        oy0 - by0 : oy1 - by0, ox0 - bx0 : ox1 - bx0
+                    ]
+                    if (a_slice & b_slice).any():
+                        return True
+                return False
+
+            # Top-down compression: for each non-hero fish, find max
+            # upward shift via binary search.
+            for orig_idx, p in indexed[1:]:  # skip hero
+                m = fish_masks.get(orig_idx)
+                if m is None:
+                    continue
+                # Pack-grid y of the fish (BEFORE buff1 padding).
+                cur_y_pack = p.y // mask_res - buff1_pack
+                # Max possible shift: up to body_top in pack coords.
+                body_top_pack = int(round(canvas_h * 0.20)) // mask_res
+                lowest_y_pack = max(body_top_pack, 0)
+                # Binary search the lowest y_pack that doesn't collide.
+                lo, hi = lowest_y_pack, cur_y_pack
+                if lo >= hi:
+                    continue
+                # Check if cur position collides (shouldn't, but defensive)
+                if _collides_at(p, m, hi):
+                    continue
+                # Find min-y that doesn't collide.
+                while lo < hi:
+                    mid = (lo + hi) // 2
+                    if _collides_at(p, m, mid):
+                        lo = mid + 1
+                    else:
+                        hi = mid
+                new_y_pack = lo
+                # Convert back to canvas y. Account for buff1 padding.
+                new_y_canvas = (new_y_pack + buff1_pack) * mask_res
+                if new_y_canvas < p.y - 4:
+                    # Apply the shift (only if meaningful: > 4px).
+                    placements[orig_idx] = PlacedItem(
+                        species_ref=p.species_ref,
+                        master=p.master,
+                        x=p.x,
+                        y=new_y_canvas,
+                        draw_width=p.draw_width,
+                        draw_height=p.draw_height,
+                    )
+        except Exception as e:
+            warnings.append(
+                f"FieldGuideBandsEngine: alpha compression skipped ({type(e).__name__})."
+            )
+
         # Alpha-mask silhouette validation (post-pass safety net).
         # The bbox-based stack_fits constraint enforces a label_reserve
         # gap between rectangle bboxes. That's correct for the layout
