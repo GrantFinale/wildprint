@@ -171,8 +171,17 @@ class PlacedItem:
 
 @dataclass
 class LayoutResult:
-    """Output of a LayoutEngine: the spec plus computed placements."""
+    """Output of a LayoutEngine: the spec plus computed placements.
+
+    ``excluded_species`` carries the slugs of species the engine dropped
+    in order to make the layout fit (used by FieldGuidePackedEngine's
+    recovery loop, where it drops last-selected fish until packing
+    succeeds). Empty for engines that always place every species.
+    Callers should surface a UI toast listing the excluded species so
+    the user knows their selection was truncated.
+    """
 
     poster: PosterSpec
     placements: list[PlacedItem]
     warnings: list[str] = field(default_factory=list)
+    excluded_species: list[str] = field(default_factory=list)
