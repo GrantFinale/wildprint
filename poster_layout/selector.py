@@ -36,7 +36,14 @@ def select_layout_engine(
     if style == "field_guide":
         return FieldGuideBandsEngine()
     if style == "field_guide_packed":
-        return FieldGuidePackedEngine()
+        # Route to v2 — the row/pair/single zigzag aesthetic IS what
+        # users describe when they ask for "1 fish on top, then 2, then
+        # 1, then 2 with half-step staggers." Free-packing didn't
+        # deliver a better look. concept-2 stays in the codebase as an
+        # alpha-mask collision toolkit (engines_v3.py + masks.py +
+        # skyline_packer.py) reused by v2 for silhouette-overlap
+        # validation (see FieldGuideBandsEngine).
+        return FieldGuideBandsEngine()
     if style == "vintage_tackle":
         return VintageCatalogEngine()
     if style == "hero" or len(species) <= 1:

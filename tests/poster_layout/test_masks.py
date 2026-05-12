@@ -248,3 +248,60 @@ def test_scale_pack_mask_rejects_zero_scale() -> None:
         masks.scale_pack_mask(m, 0.0)
     with pytest.raises(ValueError):
         masks.scale_pack_mask(m, -1.0)
+
+
+# ---- validate_no_silhouette_overlap ---------------------------------------
+
+
+def test_validator_clean_when_placements_far_apart(tmp_path: Path) -> None:
+    """Two non-overlapping placements → empty collision list."""
+    masks.clear_cache()
+    src_a = _write_synthetic_master(tmp_path, "fish_a", 200, 80)
+    src_b = _write_synthetic_master(tmp_path, "fish_b", 200, 80)
+
+    class _P:
+        def __init__(self, slug, master_path, x, y, w, h):
+            self.species_ref = type("R", (), {"slug": slug})()
+            self.master = type("M", (), {"image_path": master_path})()
+            self.x, self.y, self.draw_width, self.draw_height = x, y, w, h
+
+    placements = [
+        _P("fish_a", src_a, x=0, y=0, w=400, h=160),
+        _P("fish_b", src_b, x=2000, y=2000, w=400, h=160),  # far away
+    ]
+    collisions = masks.validate_no_silhouette_overlap(
+        placements, buff1_canvas_px=160, label_h_canvas_px=160, mask_resolution=8
+    )
+    assert collisions == []
+
+
+def test_validator_reports_overlap_when_silhouettes_collide(tmp_path: Path) -> None:
+    """Two placements whose dilated alpha masks overlap → collision reported."""
+    masks.clear_cache()
+    src = _write_synthetic_master(tmp_path, "fish", 200, 200, shape="ellipse")
+
+    class _P:
+        def __init__(self, slug, master_path, x, y, w, h):
+            self.species_ref = type("R", (), {"slug": slug})()
+            self.master = type("M", (), {"image_path": master_path})()
+            self.x, self.y, self.draw_width, self.draw_height = x, y, w, h
+
+    # Two ellipses sitting on top of each other (same x,y,size) → guaranteed overlap.
+    placements = [
+        _P("fish_one", src, x=100, y=100, w=400, h=400),
+        _P("fish_two", src, x=120, y=120, w=400, h=400),  # heavy overlap
+    ]
+    collisions = masks.validate_no_silhouette_overlap(
+        placements, buff1_canvas_px=80, label_h_canvas_px=80, mask_resolution=8
+    )
+    assert len(collisions) == 1
+    a, b, count = collisions[0]
+    assert {a, b} == {"fish_one", "fish_two"}
+    assert count > 0
+
+
+def test_validator_handles_empty_placements() -> None:
+    """No placements → empty list, no crash."""
+    assert masks.validate_no_silhouette_overlap(
+        [], buff1_canvas_px=100, label_h_canvas_px=100
+    ) == []

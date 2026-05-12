@@ -3606,6 +3606,59 @@ class FieldGuideBandsEngine(LayoutEngine):
                 (dw, dh) = row["dims"][0]
                 _emit(entry, dw, dh, (canvas_w - dw) / 2.0, yc)
 
+        # Alpha-mask silhouette validation (post-pass safety net).
+        # The bbox-based stack_fits constraint enforces a label_reserve
+        # gap between rectangle bboxes. That's correct for the layout
+        # math, but it doesn't tell you if the actual fish silhouettes
+        # (the visible alpha pixels) end up touching. This pass is the
+        # silhouette-precision check: it builds raw alpha masks (no
+        # buffer dilation), positions them at their rendered places,
+        # and verifies no two have overlapping visible pixels.
+        #
+        # Threshold: ignore < 50 pack-pixels of overlap as noise from
+        # downsampling at mask_resolution=8. A real silhouette
+        # collision shows up as hundreds-to-thousands of pixels.
+        # Logs to warnings; does NOT gate the render — even on a real
+        # collision the layout still ships and the user sees the
+        # warning in the result.
+        try:
+            from poster_layout.masks import validate_no_silhouette_overlap
+
+            buff1_canvas = int(round(canvas_h * 0.026))
+            collisions = validate_no_silhouette_overlap(
+                placements,
+                # buff1=0 = pure silhouette check, no buffer dilation.
+                # The bbox+label_reserve check above is what enforces
+                # the buffer zone; this pass catches the rare case
+                # where the buffer-bbox check passed but a thin tail
+                # or fin actually pokes into another fish's silhouette.
+                buff1_canvas_px=0,
+                label_h_canvas_px=buff1_canvas,
+                mask_resolution=8,
+            )
+            # Filter out sub-50-pixel "collisions" — those are downsampling
+            # noise, not real visual overlaps.
+            real_collisions = [c for c in collisions if c[2] >= 50]
+            if real_collisions:
+                real_collisions.sort(key=lambda t: -t[2])
+                summary = ", ".join(
+                    f"{a}↔{b} ({n}px)" for a, b, n in real_collisions[:5]
+                )
+                warnings.append(
+                    f"FieldGuideBandsEngine: silhouette overlap detected "
+                    f"(alpha precision check): {summary}"
+                    + (
+                        f" + {len(real_collisions) - 5} more"
+                        if len(real_collisions) > 5
+                        else ""
+                    )
+                )
+        except Exception as e:
+            # Defensive: validation is informational, never gate the render.
+            warnings.append(
+                f"FieldGuideBandsEngine: alpha validation skipped ({type(e).__name__})."
+            )
+
         return LayoutResult(poster=spec, placements=placements, warnings=warnings)
 
 

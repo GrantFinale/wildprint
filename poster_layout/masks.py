@@ -249,11 +249,99 @@ def cache_size() -> int:
     return len(_MASK_CACHE)
 
 
+def validate_no_silhouette_overlap(
+    placements: list,
+    *,
+    buff1_canvas_px: int,
+    label_h_canvas_px: int,
+    mask_resolution: int = 8,
+) -> list[tuple[str, str, int]]:
+    """Verify no two placed fish silhouettes overlap (alpha-mask precision).
+
+    v2's stack_fits enforces a label_reserve y-gap between x-overlapping
+    bboxes. That uses the rectangular bbox, not the actual fish
+    silhouette. In edge cases a thin tail or fin extending into another
+    fish's bbox area could collide with that fish's silhouette even when
+    bboxes are separated by the bbox-level gap.
+
+    This validator catches those cases:
+    1. Build a downsampled binary mask (alpha + dilate by buff1) for
+       each placement at its actual rendered scale.
+    2. OR the masks onto a shared canvas at their respective positions.
+    3. Walk pairwise — if any TWO masks have overlapping pixels, the
+       pair has a silhouette collision.
+
+    Returns a list of ``(slug_a, slug_b, overlap_pixel_count)`` for each
+    colliding pair. Empty list = clean. Caller can log this as a warning
+    or raise; this function does not gate.
+
+    Args:
+        placements: List of PlacedItem (or anything with ``.species_ref.slug``,
+            ``.master.image_path``, ``.x``, ``.y``, ``.draw_width``,
+            ``.draw_height``).
+        buff1_canvas_px: Buffer thickness in CANVAS pixels.
+        label_h_canvas_px: Label rect height in CANVAS pixels.
+        mask_resolution: Pack-grid downsample factor (default 8).
+    """
+    if not placements:
+        return []
+
+    res = max(1, int(mask_resolution))
+    buff1_pack = max(1, buff1_canvas_px // res)
+    label_pack = max(1, label_h_canvas_px // res)
+
+    # Build per-placement (mask, x_pack, y_pack) tuples. y is the FISH
+    # top, so we shift up by buff1 to reach the dilated mask's origin.
+    items: list[tuple[str, np.ndarray, int, int]] = []
+    for p in placements:
+        # Render-time draw width: convert to pack pixels.
+        target_w_pack = max(2, p.draw_width // res)
+        try:
+            mask = get_or_build_pack_mask(
+                p.master.image_path,
+                target_w_base=target_w_pack,
+                buff1_px=buff1_pack,
+                label_h_px=label_pack,
+            )
+        except Exception:
+            # Defensive: skip placements whose master can't be loaded.
+            continue
+        # Origin in pack grid: (x - buff1, y - buff1) since the mask
+        # has buff1 padding around the fish.
+        x_pack = p.x // res - buff1_pack
+        y_pack = p.y // res - buff1_pack
+        items.append((p.species_ref.slug, mask, x_pack, y_pack))
+
+    # Pairwise check via numpy AND on the overlap region.
+    collisions: list[tuple[str, str, int]] = []
+    for i in range(len(items)):
+        slug_a, mask_a, ax, ay = items[i]
+        ah, aw = mask_a.shape
+        for j in range(i + 1, len(items)):
+            slug_b, mask_b, bx, by = items[j]
+            bh, bw = mask_b.shape
+            # Compute overlap rectangle in pack grid.
+            ox0 = max(ax, bx)
+            oy0 = max(ay, by)
+            ox1 = min(ax + aw, bx + bw)
+            oy1 = min(ay + ah, by + bh)
+            if ox1 <= ox0 or oy1 <= oy0:
+                continue  # bboxes don't even overlap — silhouettes can't
+            # AND the two masks' overlap region.
+            a_slice = mask_a[oy0 - ay : oy1 - ay, ox0 - ax : ox1 - ax]
+            b_slice = mask_b[oy0 - by : oy1 - by, ox0 - bx : ox1 - bx]
+            overlap_count = int((a_slice & b_slice).sum())
+            if overlap_count > 0:
+                collisions.append((slug_a, slug_b, overlap_count))
+    return collisions
+
+
 __all__ = [
     "build_pack_mask",
     "get_or_build_pack_mask",
     "scale_pack_mask",
     "downsample_mask",
+    "validate_no_silhouette_overlap",
     "clear_cache",
     "cache_size",
 ]
