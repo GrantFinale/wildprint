@@ -69,7 +69,14 @@ from poster_layout import (
 
 # Slugs accepted by the layout-style picker. Anything else falls back to
 # "field_guide" — the default since the picker UI shipped.
-_VALID_LAYOUT_STYLES = {"field_guide", "vintage_tackle", "hero", "packed", "custom"}
+_VALID_LAYOUT_STYLES = {
+    "field_guide",
+    "field_guide_packed",  # concept-2 irregular-shape packer (engines_v3.py)
+    "vintage_tackle",
+    "hero",
+    "packed",
+    "custom",
+}
 
 
 def _resolve_layout_style(raw: object) -> str:

@@ -25,6 +25,7 @@ from poster_layout.engines import (
     SmallEnsembleLayoutEngine,
     VintageCatalogEngine,
 )
+from poster_layout.engines_v3 import FieldGuidePackedEngine
 from poster_layout.renderer import (
     EditorialMultiRenderer,
     EditorialPosterRenderer,
@@ -57,6 +58,7 @@ __all__ = [
     "SilhouettePackedLayoutEngine",
     "SmallEnsembleLayoutEngine",
     "FieldGuideBandsEngine",
+    "FieldGuidePackedEngine",
     "VintageCatalogEngine",
     "PillowPosterRenderer",
     "EditorialPosterRenderer",
