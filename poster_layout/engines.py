@@ -2539,8 +2539,23 @@ class FieldGuideBandsEngine(LayoutEngine):
         non_hero_pairs = pairs_sorted[1:]
         non_hero_dims = [fish_dims(ref, m) for (ref, m) in non_hero_pairs]
         small_threshold_w = canvas_w * self.small_fish_threshold_fraction
+        n = len(non_hero_pairs)
+
+        # Predictive triple-mode trigger: when there are MANY fish, the
+        # binary search will converge at a small scale and every fish
+        # ends up well under small_threshold_w. The scale=1.0 width
+        # check below would never fire for these cases (every fish
+        # starts huge at scale=1.0), so triple mode was effectively
+        # disabled for 12+-fish posters. That capped row count at
+        # ceil((N+1)/1.5), making the 20-species Cedar Pond render at
+        # scale=0.1528 (15% of max). With many_fish_mode forcing
+        # triple, row count drops to ceil(N/2.5), letting fish be
+        # significantly larger.
+        many_fish_mode = n >= 10
 
         def _is_small(idx: int) -> bool:
+            if many_fish_mode:
+                return True
             return non_hero_dims[idx][0] < small_threshold_w
 
         # 5. Adaptive slot assignment for the N-1 non-hero fish.
@@ -2549,7 +2564,6 @@ class FieldGuideBandsEngine(LayoutEngine):
         slots: list[str] = []  # parallel to non_hero_pairs / non_hero_dims
         idx = 0
         next_kind = "pair"  # "pair" | "single" | "triple" | "double"
-        n = len(non_hero_pairs)
 
         def _next3_all_small(start: int) -> bool:
             if start + 3 > n:
