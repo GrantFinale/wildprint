@@ -2391,13 +2391,12 @@ class FieldGuideBandsEngine(LayoutEngine):
         # Honest-scale floor so the smallest fish remain substantial.
         min_idx_floor: float = 0.4,
         # Compress the relative_scale_index range via power.
-        # 1.0 = honest scale (no compression). Matches the reference
-        # field-guide poster's dramatic size variation: hero (pike,
-        # idx=2.5) at ~50% canvas vs panfish (idx=0.5) at ~10%, a 5x
-        # ratio. Lower values (0.3-0.5) make all fish more uniform-
-        # sized, but the reference shows the big fish should clearly
-        # dominate.
-        scale_compression: float = 1.0,
+        # 1.0 = honest scale (5x hero/smallest). 0.0 = uniform.
+        # 0.65 is the sweet spot: hero (pike, idx=2.5) at ~3x panfish
+        # (idx=0.5), so the big fish still clearly dominates but the
+        # smaller fish read as substantial, not insignificant.
+        # User feedback: 1.0 was too dramatic — smaller fish vanished.
+        scale_compression: float = 0.65,
         # Hero fish target draw-width as a fraction of canvas_w. 0.65 (was
         # 0.55) so fish read bigger across the board — the prior default
         # left visible whitespace after the shrink-to-fit pass.
@@ -3218,11 +3217,22 @@ class FieldGuideBandsEngine(LayoutEngine):
                 r["dims"] = [(w * s, h * s) for (w, h) in base_dims]
                 r["max_h"] = base_mh * s
 
-        _apply_scale(1.0)
+        # Max scale before hero exceeds usable_w (= would breach the
+        # inner-border buffer). With hero capped at 0.65 canvas_w and
+        # usable_w = 0.88 canvas_w, there's ~1.35x headroom to GROW
+        # into when the layout has whitespace. Without this, sparse
+        # posters (5 fish) sit at scale=1.0 with lots of dead space
+        # below; with it, the binary search grows the whole stack to
+        # fill the body region until alpha collisions force it back.
+        max_grow_scale = float(usable_w) / max(1.0, float(target_hero_w))
+
+        # Try the max_grow_scale first — if even the grown layout fits,
+        # we're done. Otherwise search [0.10, max_grow_scale].
+        _apply_scale(max_grow_scale)
         if stack_fits(hero_h, rows, pair_rows, trailing_single_h):
-            final_scale = 1.0
+            final_scale = max_grow_scale
         else:
-            lo, hi = 0.10, 1.0
+            lo, hi = 0.10, max_grow_scale
             for _ in range(20):
                 mid = (lo + hi) / 2.0
                 _apply_scale(mid)
@@ -3247,19 +3257,24 @@ class FieldGuideBandsEngine(LayoutEngine):
         # touch). So at scales above the bbox-converged value, the
         # alpha-COMPRESSED layout often still fits in the body region.
         #
-        # This second search probes [bbox_scale, 1.0] using a faster
-        # "would the compressed layout fit?" check. The check builds
-        # masks at the candidate scale, simulates compression top-down,
-        # and verifies the bottom-most fish + label stays within
-        # body_bottom. Result: the binary search converges on the true
-        # max scale where the COMPRESSED layout fits, not just the
-        # max where the uncompressed bbox layout fits.
+        # This second search probes [bbox_scale, max_grow_scale] using
+        # a faster "would the compressed layout fit?" check. The check
+        # builds masks at the candidate scale, simulates compression
+        # top-down, and verifies the bottom-most fish + label stays
+        # within body_bottom. Result: the binary search converges on
+        # the true max scale where the COMPRESSED layout fits, not
+        # just the max where the uncompressed bbox layout fits.
+        #
+        # The ceiling is max_grow_scale (NOT 1.0) so sparse posters
+        # can grow into whitespace — user-requested behavior: when
+        # there's slack, push the layout bigger until alpha silhouettes
+        # are forced to touch, then back off.
         #
         # Cost: ~150ms per check at 8 fish (mask build + per-fish
         # binary search for compression). Bounded by 12 iters in this
         # search → ~2s extra render. Skip when final_scale is already
-        # at 0.999 (no upper room).
-        if final_scale < 0.999:
+        # at max_grow_scale (no upper room).
+        if final_scale < max_grow_scale - 0.001:
             saved_scale = final_scale  # so we revert if alpha search blows up
             try:
                 import numpy as np
@@ -3402,8 +3417,10 @@ class FieldGuideBandsEngine(LayoutEngine):
                     return max(final_y_bots) <= body_bot_pack
 
                 # Run second binary search: find max scale where alpha-compressed fits.
-                lo2, hi2 = final_scale, 1.0
-                # Quick check: does scale=1.0 alpha-fit? (Skip search if so.)
+                # Ceiling = max_grow_scale (hero hits usable_w) so we grow
+                # into whitespace, not capped at the old 1.0.
+                lo2, hi2 = final_scale, max_grow_scale
+                # Quick check: does the ceiling already alpha-fit? (Skip search if so.)
                 if _alpha_compressed_fits(hi2):
                     final_scale = hi2
                 else:
