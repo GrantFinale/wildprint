@@ -2391,9 +2391,13 @@ class FieldGuideBandsEngine(LayoutEngine):
         # Honest-scale floor so the smallest fish remain substantial.
         min_idx_floor: float = 0.4,
         # Compress the relative_scale_index range via power.
-        # 0.50 yields a ~2:1 bluegill→pike ratio (tighter than the 0.65
-        # default's ~2.84:1 — closer to the reference poster's even read).
-        scale_compression: float = 0.30,
+        # 1.0 = honest scale (no compression). Matches the reference
+        # field-guide poster's dramatic size variation: hero (pike,
+        # idx=2.5) at ~50% canvas vs panfish (idx=0.5) at ~10%, a 5x
+        # ratio. Lower values (0.3-0.5) make all fish more uniform-
+        # sized, but the reference shows the big fish should clearly
+        # dominate.
+        scale_compression: float = 1.0,
         # Hero fish target draw-width as a fraction of canvas_w. 0.65 (was
         # 0.55) so fish read bigger across the board — the prior default
         # left visible whitespace after the shrink-to-fit pass.
@@ -2511,20 +2515,24 @@ class FieldGuideBandsEngine(LayoutEngine):
         idx_for = lambda ref: max(self.min_idx_floor, ref.relative_scale_index) ** _c
 
         # 4. Size every fish first so we can classify "small" by draw_width.
-        # The widest fish in the catalog (typically the hero or the most-
-        # compressed-large like the carp) is sized to FILL the usable
-        # canvas width — exactly hugging the inner buffer on both sides.
-        # That's the "maximum fish size that does not infringe on the
-        # buffer" constraint, per user direction. Vertical stack then
-        # shrinks to fit body_h if necessary; otherwise grows.
+        # The hero is capped at hero_target_w_fraction * canvas_w (default
+        # 0.65) — matches the reference field-guide poster where the hero
+        # spans ~65% of canvas width, leaving breathing room on both sides.
+        # Without this cap, a sparse poster (5 fish) would let the hero
+        # consume the full usable width (88% canvas_w) and dominate the
+        # composition. unit_w (and therefore every other fish) is derived
+        # from this capped hero, so the whole stack shrinks proportionally
+        # — small counts get whitespace; dense counts use the binary search
+        # to fit. usable_w is still the upper bound (we never exceed the
+        # inner-border buffer).
         N = len(pairs_sorted)
         hero_ref, hero_master = pairs_sorted[0]
         largest_idx = idx_for(hero_ref)
         usable_w = canvas_w - 2 * side_margin
-        # The widest fish across all species is whichever has the
-        # largest compressed-idx (== hero in our pre-sort). Target that
-        # fish at exactly usable_w so it butts up against the buffer.
-        target_hero_w = float(usable_w)
+        target_hero_w = min(
+            float(usable_w),
+            float(canvas_w) * self.hero_target_w_fraction,
+        )
         unit_w = target_hero_w / max(1e-6, largest_idx)
 
         def fish_dims(ref: SpeciesRef, master: MasterImage) -> tuple[float, float]:
@@ -2541,17 +2549,14 @@ class FieldGuideBandsEngine(LayoutEngine):
         small_threshold_w = canvas_w * self.small_fish_threshold_fraction
         n = len(non_hero_pairs)
 
-        # Predictive triple-mode trigger: when there are MANY fish, the
-        # binary search will converge at a small scale and every fish
-        # ends up well under small_threshold_w. The scale=1.0 width
-        # check below would never fire for these cases (every fish
-        # starts huge at scale=1.0), so triple mode was effectively
-        # disabled for 12+-fish posters. That capped row count at
-        # ceil((N+1)/1.5), making the 20-species Cedar Pond render at
-        # scale=0.1528 (15% of max). With many_fish_mode forcing
-        # triple, row count drops to ceil(N/2.5), letting fish be
-        # significantly larger.
-        many_fish_mode = n >= 10
+        # Predictive triple-mode trigger: only fire when there are SO
+        # many fish that pair/single alternation would crush the layout
+        # (15+ rows). The reference field-guide aesthetic uses
+        # pair/single zigzag and KEEPS that for up to 12-15 species —
+        # triple mode looks busy compared to the reference.
+        # Empirically: n=15 (16 species total) starts to feel cramped
+        # in pair/single mode, so triple kicks in at n >= 16.
+        many_fish_mode = n >= 16
 
         def _is_small(idx: int) -> bool:
             if many_fish_mode:
@@ -2884,17 +2889,12 @@ class FieldGuideBandsEngine(LayoutEngine):
             )
 
             if P_local == 1:
-                # Single main: place exactly between hero and pair_bot.
                 pys = [(h_yc + pair_bot) / 2.0]
             elif pair_bot > h_yc:
-                # Even-distribute the N main rows + hero across the
-                # available vertical. Hero is slot 0 (already at h_yc),
-                # mains are slots 1..N at h_yc + i*step.
+                # Hero-inclusive even distribution.
                 step = (pair_bot - h_yc) / P_local
                 pys = [h_yc + (i + 1) * step for i in range(P_local)]
             else:
-                # Body can't fit even uniformly — bunch at top and let
-                # stack_fits drive the binary search to a smaller scale.
                 pys = [h_yc + (i + 1) * body_h * 0.05 for i in range(P_local)]
 
             # ---- Build per-row yc_list including stagger rows ----------
@@ -3375,37 +3375,30 @@ class FieldGuideBandsEngine(LayoutEngine):
                         return False
                     canvas[hy : hy + hm.shape[0], hx : hx + hm.shape[1]] |= hm
                     final_y_bots.append(hy + hm.shape[0])
-                    # Compress each non-hero fish UP. Search the FULL body
-                    # range — at high scales, compute_y_centers may place
-                    # the fish past body_bottom, but compression may still
-                    # find a valid y in the upper part of body. Must search
-                    # the whole valid window, not just up to current y.
+                    # Compress each non-hero fish UP. NEVER above the
+                    # hero's row (preserve row order).
+                    hero_y_bot_pack = hy + hm.shape[0]  # hero's mask bottom
+                    min_y_non_hero = max(body_top_pack, hero_y_bot_pack)
                     for orig_idx, (_, m, x_pack, cur_y_pack, mh) in indexed:
                         if orig_idx == 0:
                             continue
-                        if x_pack < 0 or x_pack + m.shape[1] > pack_w:
+                        mw = m.shape[1]
+                        if x_pack < 0 or x_pack + mw > pack_w:
                             return False
-                        # Search range: any y where the mask fits in body.
-                        y_min = body_top_pack
+                        y_min = min_y_non_hero  # hero floor
                         y_max = body_bot_pack - mh
                         if y_max < y_min:
-                            return False  # mask too tall for body
-                        # Find lowest non-colliding y by linear scan from
-                        # y_min up. Fast (canvas is small at pack-grid).
-                        # Linear scan beats binary search here because the
-                        # "free" region isn't a contiguous interval — it's
-                        # a set of valid rows separated by collision rows.
+                            return False
                         new_y = -1
                         for y in range(y_min, y_max + 1):
-                            test_slice = canvas[y : y + mh, x_pack : x_pack + m.shape[1]]
+                            test_slice = canvas[y : y + mh, x_pack : x_pack + mw]
                             if not (test_slice & m).any():
                                 new_y = y
                                 break
                         if new_y < 0:
-                            return False  # no valid y in body
-                        canvas[new_y : new_y + mh, x_pack : x_pack + m.shape[1]] |= m
+                            return False
+                        canvas[new_y : new_y + mh, x_pack : x_pack + mw] |= m
                         final_y_bots.append(new_y + mh)
-                    # All fish fit within body_top..body_bot.
                     return max(final_y_bots) <= body_bot_pack
 
                 # Run second binary search: find max scale where alpha-compressed fits.
@@ -3921,25 +3914,31 @@ class FieldGuideBandsEngine(LayoutEngine):
                         return True
                 return False
 
-            # Top-down compression: for each non-hero fish, find max
-            # upward shift via binary search.
+            # Top-down vertical compression: for each non-hero fish, find
+            # max upward shift via binary search.
+            #
+            # CRITICAL: respect row order. A non-hero fish must NOT climb
+            # above the hero's row OR the row above its initial position.
+            # Without this guard, a fish whose x-bbox doesn't overlap the
+            # hero's (e.g., a centered single while hero is also centered
+            # but smaller) could shift up to body_top, breaking the row
+            # structure visually (centered single ABOVE the hero — wrong).
+            body_top_pack = int(round(canvas_h * 0.20)) // mask_res
+            # Hero's bottom + label_reserve = floor for non-hero fish.
+            hero_p = placements[0]
+            hero_y_bot_pack = (
+                (hero_p.y + hero_p.draw_height) // mask_res
+                + (label_reserve // mask_res)
+            )
+            min_y_for_non_hero = max(body_top_pack, hero_y_bot_pack)
             for orig_idx, p in indexed[1:]:  # skip hero
                 m = fish_masks.get(orig_idx)
                 if m is None:
                     continue
-                # Pack-grid y of the fish (BEFORE buff1 padding).
                 cur_y_pack = p.y // mask_res - buff1_pack
-                # Max possible shift: up to body_top in pack coords.
-                body_top_pack = int(round(canvas_h * 0.20)) // mask_res
-                lowest_y_pack = max(body_top_pack, 0)
-                # Binary search the lowest y_pack that doesn't collide.
-                lo, hi = lowest_y_pack, cur_y_pack
-                if lo >= hi:
+                lo, hi = min_y_for_non_hero, cur_y_pack
+                if lo >= hi or _collides_at(p, m, hi):
                     continue
-                # Check if cur position collides (shouldn't, but defensive)
-                if _collides_at(p, m, hi):
-                    continue
-                # Find min-y that doesn't collide.
                 while lo < hi:
                     mid = (lo + hi) // 2
                     if _collides_at(p, m, mid):
@@ -3947,10 +3946,8 @@ class FieldGuideBandsEngine(LayoutEngine):
                     else:
                         hi = mid
                 new_y_pack = lo
-                # Convert back to canvas y. Account for buff1 padding.
                 new_y_canvas = (new_y_pack + buff1_pack) * mask_res
                 if new_y_canvas < p.y - 4:
-                    # Apply the shift (only if meaningful: > 4px).
                     placements[orig_idx] = PlacedItem(
                         species_ref=p.species_ref,
                         master=p.master,
