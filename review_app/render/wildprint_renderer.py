@@ -181,7 +181,16 @@ def render_master_image(
     if "show_scientific_names" in cfg:
         renderer._show_scientific_names = bool(cfg["show_scientific_names"])
     if "preheader_text" in cfg and isinstance(cfg["preheader_text"], str):
+        # Caller explicitly overrode → trust them.
         renderer._preheader_text = cfg["preheader_text"].upper()
+    else:
+        # Auto-detect: if the selection contains anything other than
+        # fish (turtles, birds, plants, etc.), use "WILDLIFE OF" as the
+        # preheader so the title is honest. Pure-fish posters keep the
+        # default "FISH OF" from EditorialMultiRenderer.
+        non_fish = [r for r in present_refs if r.category != "fish"]
+        if non_fish:
+            renderer._preheader_text = "WILDLIFE OF"
     if "frame_style" in cfg and cfg["frame_style"] in (
         "walnut",
         "oak",
