@@ -3235,9 +3235,208 @@ class FieldGuideBandsEngine(LayoutEngine):
 
         if final_scale < 0.999:
             warnings.append(
-                f"FieldGuideBandsEngine: max-fit scale={final_scale:.4f} "
+                f"FieldGuideBandsEngine: bbox-fit scale={final_scale:.4f} "
                 f"(buffer + label_reserve binding)."
             )
+
+        # 7d. Alpha-aware second binary search.
+        # The bbox-based stack_fits is conservative — it requires
+        # label_reserve gap between every x-overlapping pair. The
+        # alpha-aware compression post-pass shows that REAL silhouette
+        # collision happens at smaller gaps (where buff1/2 dilations
+        # touch). So at scales above the bbox-converged value, the
+        # alpha-COMPRESSED layout often still fits in the body region.
+        #
+        # This second search probes [bbox_scale, 1.0] using a faster
+        # "would the compressed layout fit?" check. The check builds
+        # masks at the candidate scale, simulates compression top-down,
+        # and verifies the bottom-most fish + label stays within
+        # body_bottom. Result: the binary search converges on the true
+        # max scale where the COMPRESSED layout fits, not just the
+        # max where the uncompressed bbox layout fits.
+        #
+        # Cost: ~150ms per check at 8 fish (mask build + per-fish
+        # binary search for compression). Bounded by 12 iters in this
+        # search → ~2s extra render. Skip when final_scale is already
+        # at 0.999 (no upper room).
+        if final_scale < 0.999:
+            saved_scale = final_scale  # so we revert if alpha search blows up
+            try:
+                import numpy as np
+                from poster_layout.masks import (
+                    get_or_build_pack_mask,
+                    scale_pack_mask,
+                )
+
+                buff1_canvas = label_reserve  # buff1 = label font height
+                mask_res = 8
+                buff1_pack = max(1, (buff1_canvas // mask_res) // 2)
+                label_pack = max(1, buff1_canvas // mask_res)
+                pack_w = canvas_w // mask_res
+                pack_h = canvas_h // mask_res
+                body_top_pack = body_top // mask_res
+                body_bot_pack = body_bottom // mask_res
+
+                def _alpha_compressed_fits(s: float) -> bool:
+                    """At scale s, simulate alpha compression and verify
+                    the bottom-most fish + label stays within body_bot.
+
+                    Uses the same compression logic as the post-pass:
+                    build masks at scale s, walk fish top-down, shift
+                    each one UP to lowest non-colliding y. Return True
+                    if final extent fits.
+                    """
+                    _apply_scale(s)
+                    h_yc, yc_list, pys = compute_y_centers(
+                        hero_h, rows, pair_rows, trailing_single_h
+                    )
+                    if not yc_list:
+                        return True
+                    # Build (x, y_pack, mask) tuples for every fish at
+                    # the EMIT-time positions.
+                    # Mirror the emit's per-fish x-positioning.
+                    placements_xy: list[tuple[float, np.ndarray, int, int, int]] = []
+                    # (target_w_pack, mask, x_pack, y_pack, h_pack)
+                    # Hero
+                    target_w_hero = max(2, int(round(hero_w)) // mask_res)
+                    try:
+                        hero_base = get_or_build_pack_mask(
+                            hero_master.image_path,
+                            target_w_base=target_w_hero,
+                            buff1_px=buff1_pack,
+                            label_h_px=label_pack,
+                        )
+                    except Exception:
+                        return False
+                    hero_x_canvas = (canvas_w - int(round(hero_w))) // 2
+                    hero_y_canvas = int(round(h_yc - hero_h / 2.0))
+                    hero_x_pack = hero_x_canvas // mask_res - buff1_pack
+                    hero_y_pack = hero_y_canvas // mask_res - buff1_pack
+                    placements_xy.append(
+                        (target_w_hero, hero_base, hero_x_pack, hero_y_pack, hero_base.shape[0])
+                    )
+                    for ri, (row, yc) in enumerate(zip(rows, yc_list)):
+                        for ei, (entry, (w, h)) in enumerate(
+                            zip(row["fish"], row["dims"])
+                        ):
+                            if entry is None:
+                                continue
+                            ref, master = entry
+                            kind = row["kind"]
+                            # Mirror emit x-position
+                            if kind == "pair":
+                                if ei == 0:
+                                    x_canvas = side_margin
+                                else:
+                                    x_canvas = canvas_w - side_margin - int(round(w))
+                            elif kind == "triple":
+                                if ei == 0:
+                                    x_canvas = side_margin
+                                elif ei == 1:
+                                    x_canvas = (canvas_w - int(round(w))) // 2
+                                else:
+                                    x_canvas = canvas_w - side_margin - int(round(w))
+                            elif kind == "double":
+                                lc = side_margin + w / 2.0
+                                rc = canvas_w - side_margin - w / 2.0
+                                cc = canvas_w / 2.0
+                                mid = (lc + cc) / 2.0 if ei == 0 else (cc + rc) / 2.0
+                                x_canvas = int(mid - w / 2.0)
+                            else:
+                                x_canvas = (canvas_w - int(round(w))) // 2
+                            y_canvas = int(round(yc - h / 2.0))
+                            target_w_pack = max(2, int(round(w)) // mask_res)
+                            try:
+                                m = get_or_build_pack_mask(
+                                    master.image_path,
+                                    target_w_base=target_w_pack,
+                                    buff1_px=buff1_pack,
+                                    label_h_px=label_pack,
+                                )
+                            except Exception:
+                                return False
+                            x_pack = x_canvas // mask_res - buff1_pack
+                            y_pack = y_canvas // mask_res - buff1_pack
+                            placements_xy.append(
+                                (target_w_pack, m, x_pack, y_pack, m.shape[0])
+                            )
+                    # Sort by current y_pack (top-down), keep hero index 0.
+                    indexed = list(enumerate(placements_xy))
+                    indexed.sort(key=lambda iv: iv[1][3])
+
+                    canvas = np.zeros((pack_h, pack_w), dtype=bool)
+                    final_y_bots: list[int] = []
+                    # Place hero first (no compression).
+                    hero_idx_in_indexed = next(
+                        i for i, iv in enumerate(indexed) if iv[0] == 0
+                    )
+                    _, (_, hm, hx, hy, _) = indexed[hero_idx_in_indexed]
+                    if hx < 0 or hy < 0 or hx + hm.shape[1] > pack_w or hy + hm.shape[0] > pack_h:
+                        return False
+                    canvas[hy : hy + hm.shape[0], hx : hx + hm.shape[1]] |= hm
+                    final_y_bots.append(hy + hm.shape[0])
+                    # Compress each non-hero fish UP. Search the FULL body
+                    # range — at high scales, compute_y_centers may place
+                    # the fish past body_bottom, but compression may still
+                    # find a valid y in the upper part of body. Must search
+                    # the whole valid window, not just up to current y.
+                    for orig_idx, (_, m, x_pack, cur_y_pack, mh) in indexed:
+                        if orig_idx == 0:
+                            continue
+                        if x_pack < 0 or x_pack + m.shape[1] > pack_w:
+                            return False
+                        # Search range: any y where the mask fits in body.
+                        y_min = body_top_pack
+                        y_max = body_bot_pack - mh
+                        if y_max < y_min:
+                            return False  # mask too tall for body
+                        # Find lowest non-colliding y by linear scan from
+                        # y_min up. Fast (canvas is small at pack-grid).
+                        # Linear scan beats binary search here because the
+                        # "free" region isn't a contiguous interval — it's
+                        # a set of valid rows separated by collision rows.
+                        new_y = -1
+                        for y in range(y_min, y_max + 1):
+                            test_slice = canvas[y : y + mh, x_pack : x_pack + m.shape[1]]
+                            if not (test_slice & m).any():
+                                new_y = y
+                                break
+                        if new_y < 0:
+                            return False  # no valid y in body
+                        canvas[new_y : new_y + mh, x_pack : x_pack + m.shape[1]] |= m
+                        final_y_bots.append(new_y + mh)
+                    # All fish fit within body_top..body_bot.
+                    return max(final_y_bots) <= body_bot_pack
+
+                # Run second binary search: find max scale where alpha-compressed fits.
+                lo2, hi2 = final_scale, 1.0
+                # Quick check: does scale=1.0 alpha-fit? (Skip search if so.)
+                if _alpha_compressed_fits(hi2):
+                    final_scale = hi2
+                else:
+                    for _ in range(12):
+                        mid = (lo2 + hi2) / 2.0
+                        if _alpha_compressed_fits(mid):
+                            lo2 = mid
+                        else:
+                            hi2 = mid
+                    if lo2 > final_scale + 0.005:
+                        final_scale = lo2
+                _apply_scale(final_scale)
+                warnings.append(
+                    f"FieldGuideBandsEngine: alpha-aware scale={final_scale:.4f} "
+                    f"(silhouette compression binding)."
+                )
+            except Exception as e:
+                # Don't gate the render on this — use the bbox-converged scale.
+                # Revert: alpha probe may have left _apply_scale at a higher
+                # scale before the exception. Restore the bbox-converged
+                # scale so the emit step uses the safe value.
+                final_scale = saved_scale
+                _apply_scale(final_scale)
+                warnings.append(
+                    f"FieldGuideBandsEngine: alpha-aware search skipped ({type(e).__name__}: {e})."
+                )
 
         usable_w = canvas_w - 2 * side_margin  # used by emit code below
 
