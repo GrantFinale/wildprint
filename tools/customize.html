@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Customize Your Poster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  /* Neutral light backdrop — matches the reference fish_poster.jpeg's
+     product-shot background. Lets the walnut frame's natural shadow read
+     properly without competing with a dark gallery wall. */
+  html, body { margin: 0; height: 100%; background: #f1ece4; color: #2b1d10;
+               font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+               -webkit-font-smoothing: antialiased; }
+  /* Top bar: minimal, single-line input + ghost order button */
+  #topbar { position: fixed; top: 0; left: 0; right: 0; height: 76px;
+            display: grid; grid-template-columns: 200px 1fr 200px; align-items: center;
+            padding: 0 28px; z-index: 10; gap: 28px;
+            background: linear-gradient(180deg, rgba(241,236,228,0.95) 0%, rgba(241,236,228,0.0) 100%);
+            backdrop-filter: blur(20px); }
+  #topbar-left  { display: flex; align-items: center; gap: 16px; }
+  #topbar-center{ display: flex; align-items: center; justify-content: center; gap: 28px; }
+  #topbar-right { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
+  #title-input { background: transparent; border: none; outline: none;
+                 color: #2b1d10; font: 500 16px 'Inter', sans-serif;
+                 text-align: center; width: 100%; max-width: 280px;
+                 padding: 6px 12px; border-radius: 8px;
+                 transition: background 0.15s; }
+  #title-input:hover { background: rgba(43,29,16,0.06); }
+  #title-input:focus { background: rgba(43,29,16,0.10); }
+  #logo { font: 600 14px 'Inter', sans-serif; letter-spacing: 0.5px; color: #4a3520; }
+  #order-btn { background: #2b1d10; color: #fff; border: none; font: 600 13px 'Inter', sans-serif;
+               padding: 9px 18px; border-radius: 100px; cursor: pointer; transition: transform 0.1s; }
+  #order-btn:hover { transform: scale(1.04); }
+  #order-btn:active { transform: scale(0.98); }
+  /* Three style chips (Scientific / Watercolor / Engraving) — pill-toggle group */
+  .style-group { display: inline-flex; background: rgba(43,29,16,0.08); padding: 4px; border-radius: 100px; }
+  .style-chip { background: transparent; border: none; cursor: pointer;
+                font: 500 12px 'Inter', sans-serif; color: #4a3520;
+                padding: 7px 14px; border-radius: 100px; transition: background 0.15s, color 0.15s; }
+  .style-chip:hover { color: #2b1d10; }
+  .style-chip.active { background: #fff; color: #2b1d10; box-shadow: 0 1px 3px rgba(0,0,0,0.10); }
+  /* Scale slider */
+  .scale-wrap { display: flex; align-items: center; gap: 10px; }
+  .scale-wrap label { font: 500 12px 'Inter', sans-serif; color: #4a3520; letter-spacing: 0.3px; }
+  #scale-slider { -webkit-appearance: none; appearance: none; width: 140px; height: 4px;
+                  background: rgba(43,29,16,0.18); border-radius: 100px; outline: none; }
+  #scale-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none;
+                  width: 18px; height: 18px; border-radius: 50%; background: #2b1d10;
+                  cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,0.20); }
+  #scale-slider::-webkit-slider-thumb:active { cursor: grabbing; }
+  #scale-value { font: 500 11px 'Inter', sans-serif; color: #4a3520; min-width: 32px; text-align: right;}
+  /* Stage holds the poster centered */
+  #stage { display: flex; align-items: center; justify-content: center;
+           height: 100vh; padding: 80px 40px 60px; }
+  /* Drop shadow that matches the reference fish_poster.jpeg's product
+     shot — soft, slightly offset down-right, like the framed print is
+     sitting against a wall under diffuse light. Two layers (close + far)
+     give the soft-and-deep look. */
+  #poster { max-height: 100%; max-width: 100%; height: auto; width: auto;
+            aspect-ratio: 5400 / 7200;
+            filter: drop-shadow(0 8px 14px rgba(0,0,0,0.18))
+                    drop-shadow(0 24px 48px rgba(0,0,0,0.22)); }
+  /* Hint that fades after first interaction */
+  #hint { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+          padding: 10px 18px; border-radius: 100px;
+          background: rgba(43,29,16,0.10); backdrop-filter: blur(12px);
+          font: 500 12px 'Inter', sans-serif; color: rgba(43,29,16,0.78);
+          letter-spacing: 0.3px; pointer-events: none;
+          transition: opacity 0.6s; opacity: 1; }
+  #hint.fade { opacity: 0; }
+  /* Each fish is wrapped in a <g class="fish"> — pointer goes to grab when over a fish */
+  .fish { cursor: grab; transition: filter 0.15s; }
+  .fish:hover { filter: drop-shadow(0 6px 18px rgba(0,0,0,0.18)); }
+  .fish.dragging { cursor: grabbing; filter: drop-shadow(0 12px 32px rgba(0,0,0,0.35)); }
+  /* No selection rectangles, no handles, no slot outlines — pure poster look. */
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div id="topbar-left">
+    <div id="logo">WILDPRINT</div>
+    <div class="style-group" role="tablist" aria-label="Art style">
+      <button class="style-chip active" data-style="scientific">Scientific</button>
+      <button class="style-chip" data-style="watercolor">Watercolor</button>
+      <button class="style-chip" data-style="vintage_engraving">Engraved</button>
+    </div>
+  </div>
+  <div id="topbar-center">
+    <input id="title-input" type="text" value="Your Lake Here" maxlength="32" spellcheck="false">
+    <div class="scale-wrap">
+      <label for="scale-slider">SIZE</label>
+      <input id="scale-slider" type="range" min="60" max="200" value="150" step="2">
+      <span id="scale-value">100%</span>
+    </div>
+  </div>
+  <div id="topbar-right">
+    <button id="order-btn">Order Print</button>
+  </div>
+</div>
+
+<div id="stage">
+  <svg id="poster" viewBox="0 0 5400 7200" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <!-- Linen/paper texture: stacked turbulence + warm noise -->
+      <filter id="linen" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="2" seed="7" stitchTiles="stitch"/>
+        <feColorMatrix values="0 0 0 0 0.79
+                               0 0 0 0 0.68
+                               0 0 0 0 0.50
+                               0 0 0 0.16 0"/>
+      </filter>
+      <filter id="grain" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.006" numOctaves="3" seed="3" stitchTiles="stitch"/>
+        <feColorMatrix values="0 0 0 0 0.50
+                               0 0 0 0 0.40
+                               0 0 0 0 0.28
+                               0 0 0 0.06 0"/>
+      </filter>
+      <!-- Inner-shadow gradients: 4 bands fading from black at the frame
+           inside edge to transparent on the paper. Together they simulate
+           the frame casting a soft shadow onto the paper, like a real
+           framed print. -->
+      <linearGradient id="shTop"    x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgba(0,0,0,0.32)"/>
+        <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+      </linearGradient>
+      <linearGradient id="shBottom" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0%" stop-color="rgba(0,0,0,0.32)"/>
+        <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+      </linearGradient>
+      <linearGradient id="shLeft"   x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="rgba(0,0,0,0.28)"/>
+        <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+      </linearGradient>
+      <linearGradient id="shRight"  x1="1" y1="0" x2="0" y2="0">
+        <stop offset="0%" stop-color="rgba(0,0,0,0.28)"/>
+        <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Cream paper base -->
+    <rect width="100%" height="100%" fill="#EFE7D2"/>
+    <!-- Linen noise overlay -->
+    <rect width="100%" height="100%" filter="url(#linen)"/>
+    <!-- Fine warm grain on top -->
+    <rect width="100%" height="100%" filter="url(#grain)"/>
+
+    <!-- Inner shadow bands at the frame-paper boundary (frame thickness = 180px).
+         Each band starts at the frame inside edge and fades into the paper. -->
+    <g id="inner-shadow" pointer-events="none">
+      <rect x="180"  y="180"  width="5040" height="120" fill="url(#shTop)"/>
+      <rect x="180"  y="6900" width="5040" height="120" fill="url(#shBottom)"/>
+      <rect x="180"  y="180"  width="120"  height="6840" fill="url(#shLeft)"/>
+      <rect x="5100" y="180"  width="120"  height="6840" fill="url(#shRight)"/>
+    </g>
+
+    <!-- Inner inset line border (the thin dark rule inside the frame).
+         Pulled further inward to match the fish_poster.jpeg reference's
+         generous margin between frame and inset rule. -->
+    <rect id="inset-border" x="380" y="380" width="4640" height="6440"
+          fill="none" stroke="#2b1d10" stroke-width="3" opacity="0.85"
+          pointer-events="none"/>
+
+    <!-- Title block — scaled to match the fish_poster.jpeg reference where
+         "Your Lake Here" is the dominant headline. Preheader stays small
+         and refined, main title swells to ~22% of canvas height. -->
+    <g id="title-block" pointer-events="none">
+      <!-- "FISH OF" preheader: small caps, flanked by horizontal rules -->
+      <line x1="1700" y1="660" x2="2400" y2="660" stroke="#2b1d10" stroke-width="3" opacity="0.85"/>
+      <line x1="3000" y1="660" x2="3700" y2="660" stroke="#2b1d10" stroke-width="3" opacity="0.85"/>
+      <text x="2700" y="700" text-anchor="middle"
+            font-family="'Inter', sans-serif" font-weight="600" font-size="80" letter-spacing="20"
+            fill="#2b1d10">FISH OF</text>
+      <!-- Main title (Playfair) — bumped from 320 → 440 to match reference scale -->
+      <text id="poster-title" x="2700" y="1180" text-anchor="middle"
+            font-family="'Playfair Display', Georgia, serif" font-weight="500" font-size="440"
+            letter-spacing="2" fill="#2b1d10">Your Lake Here</text>
+    </g>
+
+    <!-- Fish layer: populated by JS from layout_12fish.json -->
+    <g id="fish-layer"></g>
+
+    <!-- Real walnut frame PNG, built by tools/build_customizer_frame.py via
+         the production 9-slice logic. Sits on TOP of everything so it acts
+         as a clipping vignette: fish dragged past the frame edge are hidden
+         under the wood. pointer-events=none so the frame's transparent
+         interior doesn't swallow clicks meant for fish underneath. -->
+    <image href="/output/customizer/frame_walnut.png"
+           x="0" y="0" width="5400" height="7200"
+           preserveAspectRatio="none"
+           pointer-events="none"/>
+  </svg>
+</div>
+
+<div id="hint">drag a fish to reposition · click the title to edit</div>
+
+<script>
+const POSTER = document.getElementById("poster");
+const FISH_LAYER = document.getElementById("fish-layer");
+const TITLE_INPUT = document.getElementById("title-input");
+const POSTER_TITLE = document.getElementById("poster-title");
+const HINT = document.getElementById("hint");
+const SCALE_SLIDER = document.getElementById("scale-slider");
+const SCALE_VALUE = document.getElementById("scale-value");
+
+let currentStyle = "scientific";
+let placements = []; // original layout loaded from JSON
+let fishNodes = {};  // slug -> {g, img, common, latin, baseW, baseH, baseCx, baseCy}
+
+// ---- Title bind ----
+TITLE_INPUT.addEventListener("input", () => { POSTER_TITLE.textContent = TITLE_INPUT.value || " "; });
+
+// ---- Style chips ----
+document.querySelectorAll(".style-chip").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".style-chip").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentStyle = btn.dataset.style;
+    for (const slug in fishNodes) {
+      const url = `/output/master/${currentStyle}/${slug}.png`;
+      fishNodes[slug].img.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", url);
+    }
+  });
+});
+
+// ---- Scale slider ----
+function applyScale(pct) {
+  const s = pct / 100;
+  SCALE_VALUE.textContent = `${pct}%`;
+  for (const slug in fishNodes) {
+    const n = fishNodes[slug];
+    const newW = n.baseW * s;
+    const newH = n.baseH * s;
+    // Keep CENTER of the fish constant — re-anchor top-left around (baseCx, baseCy)
+    const newX = n.baseCx - newW / 2;
+    const newY = n.baseCy - newH / 2;
+    n.g.setAttribute("transform", `translate(${newX}, ${newY})`);
+    n.g.dataset.x = newX;
+    n.g.dataset.y = newY;
+    n.img.setAttribute("width", newW);
+    n.img.setAttribute("height", newH);
+    // Re-position labels to sit below the scaled fish
+    const labelY = newH + 60 * s;
+    n.common.setAttribute("x", newW / 2);
+    n.common.setAttribute("y", labelY);
+    n.common.setAttribute("font-size", 52 * s);
+    if (n.latin) {
+      n.latin.setAttribute("x", newW / 2);
+      n.latin.setAttribute("y", labelY + 60 * s);
+      n.latin.setAttribute("font-size", 42 * s);
+    }
+  }
+}
+SCALE_SLIDER.addEventListener("input", () => applyScale(parseInt(SCALE_SLIDER.value, 10)));
+
+// ---- Load layout JSON and populate fish layer ----
+async function loadLayout() {
+  const res = await fetch("/output/customizer/layout_12fish.json");
+  const data = await res.json();
+  placements = data.placements;
+  for (const p of placements) {
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("class", "fish");
+    g.setAttribute("data-slug", p.slug);
+    g.setAttribute("data-x", p.x);
+    g.setAttribute("data-y", p.y);
+    g.setAttribute("transform", `translate(${p.x}, ${p.y})`);
+    const img = document.createElementNS("http://www.w3.org/2000/svg", "image");
+    img.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href",
+      `/output/master/${currentStyle}/${p.slug}.png`);
+    img.setAttribute("x", 0); img.setAttribute("y", 0);
+    img.setAttribute("width", p.w); img.setAttribute("height", p.h);
+    img.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    g.appendChild(img);
+    const labelY = p.h + 60;
+    const common = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    common.setAttribute("x", p.w / 2); common.setAttribute("y", labelY);
+    common.setAttribute("text-anchor", "middle");
+    common.setAttribute("font-family", "'Inter', sans-serif");
+    common.setAttribute("font-weight", "600");
+    common.setAttribute("font-size", "52");
+    common.setAttribute("letter-spacing", "4");
+    common.setAttribute("fill", "#2b1d10");
+    common.textContent = p.common_name.toUpperCase();
+    g.appendChild(common);
+    let latin = null;
+    if (p.scientific_name) {
+      latin = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      latin.setAttribute("x", p.w / 2); latin.setAttribute("y", labelY + 60);
+      latin.setAttribute("text-anchor", "middle");
+      latin.setAttribute("font-family", "'Iowan Old Style', Georgia, serif");
+      latin.setAttribute("font-style", "italic");
+      latin.setAttribute("font-size", "42");
+      latin.setAttribute("fill", "#4a3520");
+      latin.textContent = p.scientific_name;
+      g.appendChild(latin);
+    }
+    FISH_LAYER.appendChild(g);
+    fishNodes[p.slug] = {
+      g, img, common, latin,
+      baseW: p.w, baseH: p.h,
+      baseCx: p.x + p.w / 2,
+      baseCy: p.y + p.h / 2,
+    };
+  }
+  installDrag();
+  // Apply the default scale (matches the slider's initial value of 150)
+  applyScale(parseInt(SCALE_SLIDER.value, 10));
+}
+
+// ---- Drag (pointer events) ----
+// Works on each .fish group. The frame overlay, inset border, title block,
+// and inner-shadow gradients all have pointer-events=none so they don't
+// swallow these events.
+function installDrag() {
+  const svgPt = (evt) => {
+    const pt = POSTER.createSVGPoint();
+    pt.x = evt.clientX; pt.y = evt.clientY;
+    return pt.matrixTransform(POSTER.getScreenCTM().inverse());
+  };
+  document.querySelectorAll(".fish").forEach(g => {
+    let startSvgPt = null, startPos = null, pointerId = null;
+    g.addEventListener("pointerdown", (e) => {
+      g.classList.add("dragging");
+      FISH_LAYER.appendChild(g); // raise to top
+      startSvgPt = svgPt(e);
+      startPos = { x: parseFloat(g.dataset.x), y: parseFloat(g.dataset.y) };
+      pointerId = e.pointerId;
+      g.setPointerCapture(pointerId);
+      HINT.classList.add("fade");
+      e.preventDefault();
+    });
+    g.addEventListener("pointermove", (e) => {
+      if (pointerId === null) return;
+      const p = svgPt(e);
+      const newX = startPos.x + (p.x - startSvgPt.x);
+      const newY = startPos.y + (p.y - startSvgPt.y);
+      g.setAttribute("transform", `translate(${newX}, ${newY})`);
+      g.dataset.x = newX; g.dataset.y = newY;
+      // Update baseCx/baseCy so subsequent scale-slider use the new position
+      const node = fishNodes[g.dataset.slug];
+      const w = parseFloat(g.querySelector("image").getAttribute("width"));
+      const h = parseFloat(g.querySelector("image").getAttribute("height"));
+      node.baseCx = newX + w / 2;
+      node.baseCy = newY + h / 2;
+    });
+    const endDrag = (e) => {
+      if (pointerId === null) return;
+      g.classList.remove("dragging");
+      try { g.releasePointerCapture(pointerId); } catch (_) {}
+      pointerId = null;
+    };
+    g.addEventListener("pointerup", endDrag);
+    g.addEventListener("pointercancel", endDrag);
+  });
+}
+
+loadLayout();
+</script>
+</body>
+</html>

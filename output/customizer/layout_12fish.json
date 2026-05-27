@@ -1,0 +1,132 @@
+{
+  "canvas": {
+    "w": 5400,
+    "h": 7200
+  },
+  "title": {
+    "main": "Your Lake Here",
+    "preheader": "FISH OF"
+  },
+  "placements": [
+    {
+      "slug": "northern_pike",
+      "common_name": "Northern Pike",
+      "scientific_name": "Esox lucius",
+      "x": 1498,
+      "y": 1602,
+      "w": 2405,
+      "h": 717,
+      "image_url": "/output/master/scientific/northern_pike.png"
+    },
+    {
+      "slug": "bowfin",
+      "common_name": "Bowfin",
+      "scientific_name": "Amia calva",
+      "x": 450,
+      "y": 2704,
+      "w": 1799,
+      "h": 576,
+      "image_url": "/output/master/scientific/bowfin.png"
+    },
+    {
+      "slug": "largemouth_bass",
+      "common_name": "Largemouth Bass",
+      "scientific_name": "Micropterus salmoides",
+      "x": 3363,
+      "y": 2584,
+      "w": 1572,
+      "h": 734,
+      "image_url": "/output/master/scientific/largemouth_bass.png"
+    },
+    {
+      "slug": "smallmouth_bass",
+      "common_name": "Smallmouth Bass",
+      "scientific_name": "Micropterus dolomieu",
+      "x": 2037,
+      "y": 3543,
+      "w": 1326,
+      "h": 592,
+      "image_url": "/output/master/scientific/smallmouth_bass.png"
+    },
+    {
+      "slug": "black_crappie",
+      "common_name": "Black Crappie",
+      "scientific_name": "Pomoxis nigromaculatus",
+      "x": 874,
+      "y": 3728,
+      "w": 951,
+      "h": 528,
+      "image_url": "/output/master/scientific/black_crappie.png"
+    },
+    {
+      "slug": "yellow_perch",
+      "common_name": "Yellow Perch",
+      "scientific_name": "Perca flavescens",
+      "x": 3601,
+      "y": 3760,
+      "w": 899,
+      "h": 444,
+      "image_url": "/output/master/scientific/yellow_perch.png"
+    },
+    {
+      "slug": "rock_bass",
+      "common_name": "Rock Bass",
+      "scientific_name": "Ambloplites rupestris",
+      "x": 2251,
+      "y": 4366,
+      "w": 899,
+      "h": 492,
+      "image_url": "/output/master/scientific/rock_bass.png"
+    },
+    {
+      "slug": "bluegill",
+      "common_name": "Bluegill",
+      "scientific_name": "Lepomis macrochirus",
+      "x": 927,
+      "y": 4696,
+      "w": 845,
+      "h": 517,
+      "image_url": "/output/master/scientific/bluegill.png"
+    },
+    {
+      "slug": "channel_catfish",
+      "common_name": "Channel Catfish",
+      "scientific_name": "Ictalurus punctatus",
+      "x": 2996,
+      "y": 4857,
+      "w": 2080,
+      "h": 851,
+      "image_url": "/output/master/scientific/channel_catfish.png"
+    },
+    {
+      "slug": "common_carp",
+      "common_name": "Common Carp",
+      "scientific_name": "Cyprinus carpio",
+      "x": 1875,
+      "y": 5896,
+      "w": 1650,
+      "h": 847,
+      "image_url": "/output/master/scientific/common_carp.png"
+    },
+    {
+      "slug": "white_sucker",
+      "common_name": "White Sucker",
+      "scientific_name": "Catostomus commersonii",
+      "x": 464,
+      "y": 6092,
+      "w": 1410,
+      "h": 597,
+      "image_url": "/output/master/scientific/white_sucker.png"
+    },
+    {
+      "slug": "bullhead_catfish",
+      "common_name": "Bullhead Catfish",
+      "scientific_name": "Ameiurus melas",
+      "x": 3525,
+      "y": 6115,
+      "w": 1238,
+      "h": 551,
+      "image_url": "/output/master/scientific/bullhead_catfish.png"
+    }
+  ]
+}

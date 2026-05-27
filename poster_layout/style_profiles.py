@@ -151,6 +151,11 @@ def get_profile(layout_style: str) -> StyleProfile:
     s = (layout_style or "").strip().lower()
     if s == "field_guide":
         return FIELD_GUIDE_PROFILE
+    if s == "field_guide_packed":
+        # Concept-2 (engines_v3.py) reuses the field-guide visual
+        # profile — same fonts, paper color, label style. Only the
+        # placement algorithm differs.
+        return FIELD_GUIDE_PROFILE
     if s == "vintage_tackle":
         return VINTAGE_TACKLE_PROFILE
     return LEGACY_PROFILE

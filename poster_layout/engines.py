@@ -2391,9 +2391,12 @@ class FieldGuideBandsEngine(LayoutEngine):
         # Honest-scale floor so the smallest fish remain substantial.
         min_idx_floor: float = 0.4,
         # Compress the relative_scale_index range via power.
-        # 0.50 yields a ~2:1 bluegill→pike ratio (tighter than the 0.65
-        # default's ~2.84:1 — closer to the reference poster's even read).
-        scale_compression: float = 0.30,
+        # 1.0 = honest scale (5x hero/smallest). 0.0 = uniform.
+        # 0.65 is the sweet spot: hero (pike, idx=2.5) at ~3x panfish
+        # (idx=0.5), so the big fish still clearly dominates but the
+        # smaller fish read as substantial, not insignificant.
+        # User feedback: 1.0 was too dramatic — smaller fish vanished.
+        scale_compression: float = 0.65,
         # Hero fish target draw-width as a fraction of canvas_w. 0.65 (was
         # 0.55) so fish read bigger across the board — the prior default
         # left visible whitespace after the shrink-to-fit pass.
@@ -2511,20 +2514,24 @@ class FieldGuideBandsEngine(LayoutEngine):
         idx_for = lambda ref: max(self.min_idx_floor, ref.relative_scale_index) ** _c
 
         # 4. Size every fish first so we can classify "small" by draw_width.
-        # The widest fish in the catalog (typically the hero or the most-
-        # compressed-large like the carp) is sized to FILL the usable
-        # canvas width — exactly hugging the inner buffer on both sides.
-        # That's the "maximum fish size that does not infringe on the
-        # buffer" constraint, per user direction. Vertical stack then
-        # shrinks to fit body_h if necessary; otherwise grows.
+        # The hero is capped at hero_target_w_fraction * canvas_w (default
+        # 0.65) — matches the reference field-guide poster where the hero
+        # spans ~65% of canvas width, leaving breathing room on both sides.
+        # Without this cap, a sparse poster (5 fish) would let the hero
+        # consume the full usable width (88% canvas_w) and dominate the
+        # composition. unit_w (and therefore every other fish) is derived
+        # from this capped hero, so the whole stack shrinks proportionally
+        # — small counts get whitespace; dense counts use the binary search
+        # to fit. usable_w is still the upper bound (we never exceed the
+        # inner-border buffer).
         N = len(pairs_sorted)
         hero_ref, hero_master = pairs_sorted[0]
         largest_idx = idx_for(hero_ref)
         usable_w = canvas_w - 2 * side_margin
-        # The widest fish across all species is whichever has the
-        # largest compressed-idx (== hero in our pre-sort). Target that
-        # fish at exactly usable_w so it butts up against the buffer.
-        target_hero_w = float(usable_w)
+        target_hero_w = min(
+            float(usable_w),
+            float(canvas_w) * self.hero_target_w_fraction,
+        )
         unit_w = target_hero_w / max(1e-6, largest_idx)
 
         def fish_dims(ref: SpeciesRef, master: MasterImage) -> tuple[float, float]:
@@ -2539,8 +2546,20 @@ class FieldGuideBandsEngine(LayoutEngine):
         non_hero_pairs = pairs_sorted[1:]
         non_hero_dims = [fish_dims(ref, m) for (ref, m) in non_hero_pairs]
         small_threshold_w = canvas_w * self.small_fish_threshold_fraction
+        n = len(non_hero_pairs)
+
+        # Predictive triple-mode trigger: only fire when there are SO
+        # many fish that pair/single alternation would crush the layout
+        # (15+ rows). The reference field-guide aesthetic uses
+        # pair/single zigzag and KEEPS that for up to 12-15 species —
+        # triple mode looks busy compared to the reference.
+        # Empirically: n=15 (16 species total) starts to feel cramped
+        # in pair/single mode, so triple kicks in at n >= 16.
+        many_fish_mode = n >= 16
 
         def _is_small(idx: int) -> bool:
+            if many_fish_mode:
+                return True
             return non_hero_dims[idx][0] < small_threshold_w
 
         # 5. Adaptive slot assignment for the N-1 non-hero fish.
@@ -2549,7 +2568,6 @@ class FieldGuideBandsEngine(LayoutEngine):
         slots: list[str] = []  # parallel to non_hero_pairs / non_hero_dims
         idx = 0
         next_kind = "pair"  # "pair" | "single" | "triple" | "double"
-        n = len(non_hero_pairs)
 
         def _next3_all_small(start: int) -> bool:
             if start + 3 > n:
@@ -2625,6 +2643,22 @@ class FieldGuideBandsEngine(LayoutEngine):
                     slots.append("single")
                     idx += 1
                     next_kind = "pair"
+
+        # Combine two trailing singles into a final pair. The natural
+        # alternation produces a tail like "... pair, single, single"
+        # whenever N leaves a single after the last pair AND the prior
+        # slot was also a single (happens for certain N counts, e.g.
+        # 11 non-hero fish). Two centered singles stacked vertically
+        # waste a row's worth of body height and force the rest of the
+        # stack tighter; merging them into one L/R pair frees that
+        # vertical budget for better distribution across the layout.
+        if (
+            len(slots) >= 2
+            and slots[-1] == "single"
+            and slots[-2] == "single"
+        ):
+            slots[-2] = "pair_L"
+            slots[-1] = "pair_R"
 
         # Group slots into rows. Each row knows its kind + 1/2/3 fish entries.
         rows: list[dict] = []  # {"kind": "pair"|"single"|"triple"|"double", "fish": [...]}
@@ -2793,29 +2827,59 @@ class FieldGuideBandsEngine(LayoutEngine):
                 trailing_stagger_h,
                 local_trailing_single_h,
             )
-            # Reserve below the LAST main row for the trailing stagger.
-            # The trailing fish's OWN caption is reserved separately
-            # (it bottoms out at body_bottom — see pair_bot formula).
-            # We only need room for the trailing fish body + a tiny
-            # breathing gap between the last main and the trailing fish.
+            # Reserve below the LAST main row for trailing stagger(s).
+            # When the slot pattern produces MULTIPLE trailing staggers
+            # in a row (e.g. ...pair, single, single — happens when N
+            # leaves a remainder that triggers two consecutive singles),
+            # we must reserve room for all of them stacked: each fish's
+            # body + each fish's caption (label_reserve) + breathing
+            # gaps between. The trailing-most caption still bottoms out
+            # exactly at body_bottom (handled via pair_bot formula).
             trailing_reserve = 0.0
-            if trailing_stagger_h > 0 or local_trailing_single_h > 0:
-                th = max(trailing_stagger_h, local_trailing_single_h)
-                trailing_reserve = th + body_h * 0.005
+            # Walk backward from the end of local_rows collecting
+            # consecutive trailing stagger rows.
+            _trail: list[dict] = []
+            for r in reversed(local_rows):
+                if r["kind"] in STAGGER_KINDS:
+                    _trail.append(r)
+                else:
+                    break
+            _trail.reverse()
+            if _trail:
+                # Bottom-most trailing stagger contributes only its body
+                # height (its caption sits BELOW it, accounted for in
+                # pair_bot via the standalone label_reserve term). Every
+                # OTHER trailing stagger contributes body + label +
+                # breathing.
+                last_trail = _trail[-1]
+                trailing_reserve = (
+                    last_trail["max_h"] + body_h * 0.005
+                )
+                for extra in _trail[:-1]:
+                    trailing_reserve += (
+                        extra["max_h"] + label_reserve + body_h * 0.005
+                    )
 
-            pair_top = (
-                h_yc + local_hero_h / 2.0
-                + inner_buffer_px
-                + first_h / 2.0
-            )
-            # body_bottom already represents the bottom of usable content
-            # (the outer 0.030 inner-border inset + 0.030 inner buffer
-            # were both baked into bottom_margin_fraction = 0.045 on a
-            # 3:4 canvas). So the bottom-most fish's caption-bottom
-            # should sit AT body_bottom — not body_bottom - buffer.
-            # pair_bot = last main yc such that last main's caption,
-            # plus the trailing stagger and its own caption (if any),
-            # bottom out exactly at body_bottom.
+            # ---- Hero-inclusive even distribution ---------------------
+            # Treat the hero as the FIRST slot in the vertical row
+            # sequence (yc_0 = h_yc), then distribute the N main rows
+            # as slots 1..N evenly between hero's yc and pair_bot.
+            # Why: pinning pair_top tightly to hero_y_bot + inner_buffer
+            # caused the binary search to bind on hero ↔ first_pair
+            # x-overlap (gap was only 162px, needed 187px label_reserve),
+            # leaving huge slack between bottom rows. Including hero in
+            # the slot distribution amortizes the body height evenly
+            # across N+1 slots, so the gap below hero scales with the
+            # bottom slack. Result: max-fit scale jumps from ~0.38 to
+            # ~0.65+ for short layouts (significant size increase).
+            #
+            # body_bottom is the bottom of usable content (the outer
+            # 0.030 inner-border inset + 0.030 inner buffer were both
+            # baked into bottom_margin_fraction = 0.045 on a 3:4
+            # canvas). So the bottom-most fish's caption-bottom sits
+            # AT body_bottom — pair_bot is the LAST main's yc such that
+            # its label (+ any trailing stagger and its label) bottom
+            # out exactly at body_bottom.
             pair_bot = (
                 body_bottom
                 - last_h / 2.0
@@ -2824,51 +2888,162 @@ class FieldGuideBandsEngine(LayoutEngine):
             )
 
             if P_local == 1:
-                pys = [(pair_top + pair_bot) / 2.0]
-            elif pair_bot > pair_top:
-                step = (pair_bot - pair_top) / (P_local - 1)
-                pys = [pair_top + i * step for i in range(P_local)]
+                pys = [(h_yc + pair_bot) / 2.0]
+            elif pair_bot > h_yc:
+                # Hero-inclusive even distribution.
+                step = (pair_bot - h_yc) / P_local
+                pys = [h_yc + (i + 1) * step for i in range(P_local)]
             else:
-                # Body really can't fit even uniformly — bunch at top
-                # and let shrink_loop / stack_fits handle the overflow.
-                pys = [pair_top + i * body_h * 0.05 for i in range(P_local)]
+                pys = [h_yc + (i + 1) * body_h * 0.05 for i in range(P_local)]
 
             # ---- Build per-row yc_list including stagger rows ----------
             yc_list: list[float] = []
             pair_i = 0
+            trailing_prev_bot: float | None = None
             for row in local_rows:
                 if row["kind"] in MAIN_KINDS:
                     yc_list.append(pys[pair_i])
                     pair_i += 1
                 else:
                     if 1 <= pair_i < len(pys):
-                        # Between main[pair_i-1] and main[pair_i].
                         y_upper = pys[pair_i - 1]
                         y_lower = pys[pair_i]
                         yc = y_upper + (y_lower - y_upper) * self.single_y_offset_fraction
                     elif pair_i >= len(pys):
-                        # Trailing stagger after the last main row. Sit
-                        # below last main with breathing + its own
-                        # caption beneath. Mains have L/R captions, the
-                        # trailing stagger is centered — so its top can
-                        # sit close to the last main's bottom.
                         stagger_h = row["max_h"]
-                        last_main_h = local_pair_rows[-1]["max_h"]
-                        yc = (
-                            pys[-1]
-                            + last_main_h / 2.0
-                            + body_h * 0.005
-                            + stagger_h / 2.0
-                        )
-                        # Clamp so the stagger's caption stays in body.
+                        if trailing_prev_bot is None:
+                            last_main_h = local_pair_rows[-1]["max_h"]
+                            top = (
+                                pys[-1]
+                                + last_main_h / 2.0
+                                + body_h * 0.005
+                            )
+                        else:
+                            top = (
+                                trailing_prev_bot
+                                + label_reserve
+                                + body_h * 0.005
+                            )
+                        yc = top + stagger_h / 2.0
                         yc = min(
                             yc,
                             body_bottom - stagger_h / 2.0 - label_reserve,
                         )
+                        trailing_prev_bot = yc + stagger_h / 2.0
                     else:
-                        # Leading stagger (no main rows before it).
                         yc = (h_yc + pys[0]) / 2.0
                     yc_list.append(yc)
+
+            # ---- Stagger shift to bbox-no-overlap valid range ---------
+            # The default midpoint position can place a stagger so its
+            # bbox overlaps an adjacent main fish (when the main is wide
+            # enough to enter the center x-column AND the gap between
+            # mains is smaller than the stagger's height). For each
+            # stagger, compute the valid yc range bounded by x-overlap
+            # neighbors above and below, then clamp into the range. If
+            # the range is non-empty, the stagger gets a feasible
+            # position. If it's empty, we leave the stagger at the
+            # midpoint and let stack_fits's pairwise check signal the
+            # binary search to shrink. Doing this INSIDE compute_y_centers
+            # (rather than as a post-pass) lets the binary search SEE the
+            # shifted positions and converge on a higher scale.
+            def _entry_x(row_local: dict, ei: int, w: float) -> float:
+                k = row_local["kind"]
+                if k == "pair":
+                    return float(side_margin) if ei == 0 else float(canvas_w - side_margin - w)
+                if k == "triple":
+                    if ei == 0:
+                        return float(side_margin)
+                    if ei == 1:
+                        return (canvas_w - w) / 2.0
+                    return float(canvas_w - side_margin - w)
+                if k == "double":
+                    lc = side_margin + w / 2.0
+                    rc = canvas_w - side_margin - w / 2.0
+                    cc = canvas_w / 2.0
+                    mid = (lc + cc) / 2.0 if ei == 0 else (cc + rc) / 2.0
+                    return mid - w / 2.0
+                return (canvas_w - w) / 2.0  # single
+
+            # Build bbox list for all placed fish (hero + every row entry).
+            inner_bboxes: list[tuple[float, float, float, float, int]] = []
+            # (x0, y0, x1, y1, row_idx)  — row_idx = -1 for hero.
+            hx_min = (canvas_w - hero_w) / 2.0
+            inner_bboxes.append((
+                hx_min, h_yc - local_hero_h / 2.0,
+                hx_min + hero_w, h_yc + local_hero_h / 2.0,
+                -1,
+            ))
+            for ri, (rr, yc_v) in enumerate(zip(local_rows, yc_list)):
+                for ei, (entry, (w, h)) in enumerate(zip(rr["fish"], rr["dims"])):
+                    if entry is None:
+                        continue
+                    xx = _entry_x(rr, ei, w)
+                    inner_bboxes.append((
+                        xx, yc_v - h / 2.0,
+                        xx + w, yc_v + h / 2.0,
+                        ri,
+                    ))
+
+            # For each stagger row, shift its yc into the valid range.
+            # Constraint includes label_reserve clearance from any
+            # x-overlapping fish (so the stack_fits universal pairwise
+            # check sees a valid position and the binary search can
+            # converge on a higher scale).
+            for ri, rr in enumerate(local_rows):
+                if rr["kind"] not in STAGGER_KINDS:
+                    continue
+                row_h = rr["max_h"]
+                cur_yc = yc_list[ri]
+                my_bboxes = [b for b in inner_bboxes if b[4] == ri]
+                if not my_bboxes:
+                    continue
+                max_upper = float("-inf")
+                min_lower = float("inf")
+                for mb in my_bboxes:
+                    mx0, my0, mx1, my1, _ = mb
+                    for ob in inner_bboxes:
+                        if ob[4] == ri:
+                            continue
+                        ox0, oy0, ox1, oy1, _ = ob
+                        if mx1 <= ox0 or ox1 <= mx0:
+                            continue
+                        if oy1 <= my0 + 1:
+                            if oy1 > max_upper:
+                                max_upper = oy1
+                        elif oy0 >= my1 - 1:
+                            if oy0 < min_lower:
+                                min_lower = oy0
+                        else:
+                            ob_yc = (oy0 + oy1) / 2.0
+                            if ob_yc <= cur_yc:
+                                if oy1 > max_upper:
+                                    max_upper = oy1
+                            else:
+                                if oy0 < min_lower:
+                                    min_lower = oy0
+                # Add label_reserve to the constraint so stack_fits's
+                # universal pairwise check passes after the shift —
+                # otherwise binary search would converge at the scale
+                # where the MIDPOINT position satisfies label_reserve,
+                # negating most of the benefit of the shift.
+                yc_min = (max_upper + label_reserve + row_h / 2.0) if max_upper != float("-inf") else float("-inf")
+                yc_max = (min_lower - label_reserve - row_h / 2.0) if min_lower != float("inf") else float("inf")
+                if yc_min <= yc_max:
+                    new_yc = cur_yc
+                    if cur_yc < yc_min:
+                        new_yc = yc_min
+                    elif cur_yc > yc_max:
+                        new_yc = yc_max
+                    if abs(new_yc - cur_yc) > 0.5:
+                        yc_list[ri] = new_yc
+                        # Update inner_bboxes so later staggers see this
+                        # row's new position.
+                        delta = new_yc - cur_yc
+                        for k, b in enumerate(inner_bboxes):
+                            if b[4] == ri:
+                                inner_bboxes[k] = (b[0], b[1] + delta, b[2], b[3] + delta, b[4])
+
             return h_yc, yc_list, pys
 
         # 7. Determine whether stack fits. If not, iterative uniform shrink.
@@ -2945,133 +3120,628 @@ class FieldGuideBandsEngine(LayoutEngine):
                     # are on the outside (no x-collision).
                     if a_kind in MAIN_KINDS and b_kind in MAIN_KINDS:
                         return False
+
+            # Universal pairwise stagger-vs-other constraint.
+            # For every pair of fish whose x-bboxes overlap, require at
+            # least label_reserve worth of y-gap between the lower edge
+            # of the upper fish and the upper edge of the lower fish —
+            # so the upper fish's caption (occupying label_reserve) fits
+            # between them without crashing into the lower fish's top
+            # fin/tail. This applies to: stagger↔adjacent-main (e.g.
+            # centered bluegill vs wide carp), stagger↔stagger in the
+            # same column (e.g. rock_bass↔bluegill in the centered
+            # column), hero↔first-row when their x-bboxes overlap. The
+            # shrink loop converges to the size where this is satisfied
+            # for every x-overlapping pair.
+            #
+            # NOTE: we deliberately use label_reserve only (not
+            # label_reserve + inner_buffer_px) — inner_buffer_px is
+            # already enforced separately between MAIN rows above. This
+            # keeps the constraint moderate so the layout doesn't
+            # over-shrink.
+            def _entry_x_for(row: dict, ei: int, w: float) -> float:
+                k = row["kind"]
+                if k == "pair":
+                    return float(side_margin) if ei == 0 else float(canvas_w - side_margin - w)
+                if k == "triple":
+                    if ei == 0:
+                        return float(side_margin)
+                    if ei == 1:
+                        return (canvas_w - w) / 2.0
+                    return float(canvas_w - side_margin - w)
+                if k == "double":
+                    lc = side_margin + w / 2.0
+                    rc = canvas_w - side_margin - w / 2.0
+                    cc = canvas_w / 2.0
+                    mid = (lc + cc) / 2.0 if ei == 0 else (cc + rc) / 2.0
+                    return mid - w / 2.0
+                return (canvas_w - w) / 2.0
+
+            local_bboxes: list[tuple[float, float, float, float]] = []
+            _hx = (canvas_w - hero_w) / 2.0
+            local_bboxes.append((
+                _hx, h_yc - local_hero_h / 2.0,
+                _hx + hero_w, h_yc + local_hero_h / 2.0,
+            ))
+            for r, yc in zip(local_rows, yc_list):
+                for ei, (entry, (w, h)) in enumerate(zip(r["fish"], r["dims"])):
+                    if entry is None:
+                        continue
+                    x = _entry_x_for(r, ei, w)
+                    local_bboxes.append((
+                        x, yc - h / 2.0, x + w, yc + h / 2.0,
+                    ))
+            nb = len(local_bboxes)
+            for i in range(nb):
+                ax0, ay0, ax1, ay1 = local_bboxes[i]
+                for j in range(i + 1, nb):
+                    bx0, by0, bx1, by1 = local_bboxes[j]
+                    # x-overlap?
+                    if ax1 <= bx0 or bx1 <= ax0:
+                        continue
+                    # Determine upper vs lower by y-center.
+                    if (ay0 + ay1) <= (by0 + by1):
+                        u_y1, l_y0 = ay1, by0
+                    else:
+                        u_y1, l_y0 = by1, ay0
+                    if l_y0 - u_y1 < label_reserve - 1:
+                        return False
             return True
 
-        scale = 1.0
-        for _ in range(60):
-            if stack_fits(hero_h, rows, pair_rows, trailing_single_h):
-                break
-            scale *= 0.94
-            hero_h *= 0.94
-            hero_w *= 0.94
-            trailing_single_h *= 0.94
-            for row in rows:
-                row["dims"] = [(w * 0.94, h * 0.94) for (w, h) in row["dims"]]
-                row["max_h"] *= 0.94
-            if scale < 0.25:
-                break
+        # 7. MAX-SCALE binary search.
+        # Find the largest uniform scale s ∈ [0.1, 1.0] such that
+        # stack_fits(s * base_dims) returns True. This replaces the
+        # old discrete shrink-by-0.94 / grow-by-1.05 loops with a
+        # tight binary search that converges on the optimum size
+        # given the buffer + label-clearance constraints encoded in
+        # stack_fits. Hero is sized at usable_w when scale=1.0
+        # (horizontal max), so 1.0 is the upper bound; non-hero fish
+        # stay proportionally smaller via unit_w * idx.
+        #
+        # 20 iterations of binary search give resolution ≈ 1e-6, far
+        # tighter than the coarse 0.94 step the old loop used. Result:
+        # fish settle at the true max size that respects buffers, not
+        # at the nearest 6%-down step.
+        base_hero_w = hero_w
+        base_hero_h = hero_h
+        base_trailing = trailing_single_h
+        base_rows_dims = [list(r["dims"]) for r in rows]
+        base_rows_max_h = [r["max_h"] for r in rows]
 
-        if scale < 1.0:
+        def _apply_scale(s: float) -> None:
+            nonlocal hero_w, hero_h, trailing_single_h
+            hero_w = base_hero_w * s
+            hero_h = base_hero_h * s
+            trailing_single_h = base_trailing * s
+            for r, base_dims, base_mh in zip(rows, base_rows_dims, base_rows_max_h):
+                r["dims"] = [(w * s, h * s) for (w, h) in base_dims]
+                r["max_h"] = base_mh * s
+
+        # Max scale before hero exceeds usable_w (= would breach the
+        # inner-border buffer). With hero capped at 0.65 canvas_w and
+        # usable_w = 0.88 canvas_w, there's ~1.35x headroom to GROW
+        # into when the layout has whitespace. Without this, sparse
+        # posters (5 fish) sit at scale=1.0 with lots of dead space
+        # below; with it, the binary search grows the whole stack to
+        # fill the body region until alpha collisions force it back.
+        max_grow_scale = float(usable_w) / max(1.0, float(target_hero_w))
+
+        # Try the max_grow_scale first — if even the grown layout fits,
+        # we're done. Otherwise search [0.10, max_grow_scale].
+        _apply_scale(max_grow_scale)
+        if stack_fits(hero_h, rows, pair_rows, trailing_single_h):
+            final_scale = max_grow_scale
+        else:
+            lo, hi = 0.10, max_grow_scale
+            for _ in range(20):
+                mid = (lo + hi) / 2.0
+                _apply_scale(mid)
+                if stack_fits(hero_h, rows, pair_rows, trailing_single_h):
+                    lo = mid
+                else:
+                    hi = mid
+            final_scale = lo
+            _apply_scale(final_scale)
+
+        if final_scale < 0.999:
             warnings.append(
-                f"FieldGuideBandsEngine: applied uniform shrink scale={scale:.3f} to fit body."
+                f"FieldGuideBandsEngine: bbox-fit scale={final_scale:.4f} "
+                f"(buffer + label_reserve binding)."
             )
 
-        # 7b. Whitespace fill — symmetric "iterative uniform grow". If the
-        # body region has significant unused vertical space at the bottom
-        # after the shrink convergence, uniformly grow ALL fish to fill it.
-        # Stops when (a) the bottom-most row hits body_bottom, or (b) any
-        # fish would exceed body width (overflow side margins). The last
-        # grow step that violates is reverted.
+        # 7d. Alpha-aware second binary search.
+        # The bbox-based stack_fits is conservative — it requires
+        # label_reserve gap between every x-overlapping pair. The
+        # alpha-aware compression post-pass shows that REAL silhouette
+        # collision happens at smaller gaps (where buff1/2 dilations
+        # touch). So at scales above the bbox-converged value, the
+        # alpha-COMPRESSED layout often still fits in the body region.
         #
-        # We only attempt the grow when scale==1.0 (i.e. we didn't have to
-        # shrink to fit), since growing a layout that already had to shrink
-        # would immediately overflow again.
-        def _stack_bottom(h_yc: float, ycs: list[float], _rows: list[dict]) -> float:
-            """Return the lowest y-coordinate touched by any placement (row
-            or hero). Used to measure unused vertical space at the bottom."""
-            bot = h_yc + hero_h / 2.0
-            for r, yc in zip(_rows, ycs):
-                bot = max(bot, yc + r["max_h"] / 2.0)
-            return bot
-
-        def _max_row_width(_rows: list[dict]) -> float:
-            """Return the widest single fish width across all rows. For
-            pair rows this is L or R fish width; for triple rows it's
-            max of L/C/R; etc. The constraint we enforce is that the
-            widest fish fits within (canvas_w - 2*side_margin)."""
-            max_w = hero_w
-            for r in _rows:
-                for (w, _h) in r["dims"]:
-                    if w > max_w:
-                        max_w = w
-            return max_w
-
-        # Whitespace-fill grow always runs (even after shrink). With the
-        # even-distribution layout, fish are placed at fixed y-centers
-        # spread across pair_top..pair_bot. After shrink, the rows fit
-        # but there's slack BETWEEN them. We grow fish until the min
-        # inter-row gap (between adjacent MAIN rows) equals the inner
-        # buffer (~108px) — that's "max fish size respecting buffers".
-        if True:
-            usable_w = canvas_w - 2 * side_margin
-
-            def _min_inter_main_gap() -> float:
-                """Return the smallest gap between consecutive main rows
-                in the current sizing. Used as the grow-stop signal."""
-                _, _, current_pys = compute_y_centers(
-                    hero_h, rows, pair_rows, trailing_single_h
+        # This second search probes [bbox_scale, max_grow_scale] using
+        # a faster "would the compressed layout fit?" check. The check
+        # builds masks at the candidate scale, simulates compression
+        # top-down, and verifies the bottom-most fish + label stays
+        # within body_bottom. Result: the binary search converges on
+        # the true max scale where the COMPRESSED layout fits, not
+        # just the max where the uncompressed bbox layout fits.
+        #
+        # The ceiling is max_grow_scale (NOT 1.0) so sparse posters
+        # can grow into whitespace — user-requested behavior: when
+        # there's slack, push the layout bigger until alpha silhouettes
+        # are forced to touch, then back off.
+        #
+        # Cost: ~150ms per check at 8 fish (mask build + per-fish
+        # binary search for compression). Bounded by 12 iters in this
+        # search → ~2s extra render. Skip when final_scale is already
+        # at max_grow_scale (no upper room).
+        if final_scale < max_grow_scale - 0.001:
+            saved_scale = final_scale  # so we revert if alpha search blows up
+            try:
+                import numpy as np
+                from poster_layout.masks import (
+                    get_or_build_pack_mask,
+                    scale_pack_mask,
                 )
-                if len(current_pys) < 2:
-                    return float("inf")
-                heights = [r["max_h"] for r in pair_rows]
-                gaps = []
-                for i in range(len(current_pys) - 1):
-                    step = current_pys[i + 1] - current_pys[i]
-                    gap = step - (heights[i] + heights[i + 1]) / 2.0
-                    gaps.append(gap)
-                return min(gaps) if gaps else float("inf")
 
-            grow_total = 1.0
-            for _i in range(40):
-                gap = _min_inter_main_gap()
-                if gap <= inner_buffer_px:
-                    break
-                # Try a 5% grow step.
-                step = 1.05
-                new_hero_w = hero_w * step
-                new_hero_h = hero_h * step
-                new_trailing = trailing_single_h * step
-                new_rows_dims = [
-                    [(w * step, h * step) for (w, h) in r["dims"]]
-                    for r in rows
-                ]
-                new_max_w = max(
-                    [new_hero_w] +
-                    [w for dims in new_rows_dims for (w, _h) in dims]
-                )
-                # Width-bound check: no fish may exceed the body's usable
-                # width. (Pair fish hug L/R edges so we use single-fish
-                # width as the limiter.)
-                if new_max_w > usable_w:
-                    break
-                # Apply the step.
-                hero_w = new_hero_w
-                hero_h = new_hero_h
-                trailing_single_h = new_trailing
-                for r, new_dims in zip(rows, new_rows_dims):
-                    r["dims"] = new_dims
-                    r["max_h"] = max((d[1] for d in new_dims), default=0.0)
-                grow_total *= step
-                # Vertical safety: if the stack now overflows the body,
-                # revert the last step.
-                if not stack_fits(hero_h, rows, pair_rows, trailing_single_h):
-                    hero_w /= step
-                    hero_h /= step
-                    trailing_single_h /= step
-                    for r in rows:
-                        r["dims"] = [(w / step, h / step) for (w, h) in r["dims"]]
-                        r["max_h"] = max((d[1] for d in r["dims"]), default=0.0)
-                    grow_total /= step
-                    break
-            if grow_total > 1.001:
+                buff1_canvas = label_reserve  # buff1 = label font height
+                mask_res = 8
+                buff1_pack = max(1, (buff1_canvas // mask_res) // 2)
+                label_pack = max(1, buff1_canvas // mask_res)
+                pack_w = canvas_w // mask_res
+                pack_h = canvas_h // mask_res
+                body_top_pack = body_top // mask_res
+                body_bot_pack = body_bottom // mask_res
+
+                def _alpha_compressed_fits(s: float) -> bool:
+                    """At scale s, simulate alpha compression and verify
+                    the bottom-most fish + label stays within body_bot.
+
+                    Uses the same compression logic as the post-pass:
+                    build masks at scale s, walk fish top-down, shift
+                    each one UP to lowest non-colliding y. Return True
+                    if final extent fits.
+                    """
+                    _apply_scale(s)
+                    h_yc, yc_list, pys = compute_y_centers(
+                        hero_h, rows, pair_rows, trailing_single_h
+                    )
+                    if not yc_list:
+                        return True
+                    # Build (x, y_pack, mask) tuples for every fish at
+                    # the EMIT-time positions.
+                    # Mirror the emit's per-fish x-positioning.
+                    placements_xy: list[tuple[float, np.ndarray, int, int, int]] = []
+                    # (target_w_pack, mask, x_pack, y_pack, h_pack)
+                    # Hero
+                    target_w_hero = max(2, int(round(hero_w)) // mask_res)
+                    try:
+                        hero_base = get_or_build_pack_mask(
+                            hero_master.image_path,
+                            target_w_base=target_w_hero,
+                            buff1_px=buff1_pack,
+                            label_h_px=label_pack,
+                        )
+                    except Exception:
+                        return False
+                    hero_x_canvas = (canvas_w - int(round(hero_w))) // 2
+                    hero_y_canvas = int(round(h_yc - hero_h / 2.0))
+                    hero_x_pack = hero_x_canvas // mask_res - buff1_pack
+                    hero_y_pack = hero_y_canvas // mask_res - buff1_pack
+                    placements_xy.append(
+                        (target_w_hero, hero_base, hero_x_pack, hero_y_pack, hero_base.shape[0])
+                    )
+                    for ri, (row, yc) in enumerate(zip(rows, yc_list)):
+                        for ei, (entry, (w, h)) in enumerate(
+                            zip(row["fish"], row["dims"])
+                        ):
+                            if entry is None:
+                                continue
+                            ref, master = entry
+                            kind = row["kind"]
+                            # Mirror emit x-position
+                            if kind == "pair":
+                                if ei == 0:
+                                    x_canvas = side_margin
+                                else:
+                                    x_canvas = canvas_w - side_margin - int(round(w))
+                            elif kind == "triple":
+                                if ei == 0:
+                                    x_canvas = side_margin
+                                elif ei == 1:
+                                    x_canvas = (canvas_w - int(round(w))) // 2
+                                else:
+                                    x_canvas = canvas_w - side_margin - int(round(w))
+                            elif kind == "double":
+                                lc = side_margin + w / 2.0
+                                rc = canvas_w - side_margin - w / 2.0
+                                cc = canvas_w / 2.0
+                                mid = (lc + cc) / 2.0 if ei == 0 else (cc + rc) / 2.0
+                                x_canvas = int(mid - w / 2.0)
+                            else:
+                                x_canvas = (canvas_w - int(round(w))) // 2
+                            y_canvas = int(round(yc - h / 2.0))
+                            target_w_pack = max(2, int(round(w)) // mask_res)
+                            try:
+                                m = get_or_build_pack_mask(
+                                    master.image_path,
+                                    target_w_base=target_w_pack,
+                                    buff1_px=buff1_pack,
+                                    label_h_px=label_pack,
+                                )
+                            except Exception:
+                                return False
+                            x_pack = x_canvas // mask_res - buff1_pack
+                            y_pack = y_canvas // mask_res - buff1_pack
+                            placements_xy.append(
+                                (target_w_pack, m, x_pack, y_pack, m.shape[0])
+                            )
+                    # Sort by current y_pack (top-down), keep hero index 0.
+                    indexed = list(enumerate(placements_xy))
+                    indexed.sort(key=lambda iv: iv[1][3])
+
+                    canvas = np.zeros((pack_h, pack_w), dtype=bool)
+                    final_y_bots: list[int] = []
+                    # Place hero first (no compression).
+                    hero_idx_in_indexed = next(
+                        i for i, iv in enumerate(indexed) if iv[0] == 0
+                    )
+                    _, (_, hm, hx, hy, _) = indexed[hero_idx_in_indexed]
+                    if hx < 0 or hy < 0 or hx + hm.shape[1] > pack_w or hy + hm.shape[0] > pack_h:
+                        return False
+                    canvas[hy : hy + hm.shape[0], hx : hx + hm.shape[1]] |= hm
+                    final_y_bots.append(hy + hm.shape[0])
+                    # Compress each non-hero fish UP. NEVER above the
+                    # hero's row (preserve row order).
+                    hero_y_bot_pack = hy + hm.shape[0]  # hero's mask bottom
+                    min_y_non_hero = max(body_top_pack, hero_y_bot_pack)
+                    for orig_idx, (_, m, x_pack, cur_y_pack, mh) in indexed:
+                        if orig_idx == 0:
+                            continue
+                        mw = m.shape[1]
+                        if x_pack < 0 or x_pack + mw > pack_w:
+                            return False
+                        y_min = min_y_non_hero  # hero floor
+                        y_max = body_bot_pack - mh
+                        if y_max < y_min:
+                            return False
+                        new_y = -1
+                        for y in range(y_min, y_max + 1):
+                            test_slice = canvas[y : y + mh, x_pack : x_pack + mw]
+                            if not (test_slice & m).any():
+                                new_y = y
+                                break
+                        if new_y < 0:
+                            return False
+                        canvas[new_y : new_y + mh, x_pack : x_pack + mw] |= m
+                        final_y_bots.append(new_y + mh)
+                    return max(final_y_bots) <= body_bot_pack
+
+                # Run second binary search: find max scale where alpha-compressed fits.
+                # Ceiling = max_grow_scale (hero hits usable_w) so we grow
+                # into whitespace, not capped at the old 1.0.
+                lo2, hi2 = final_scale, max_grow_scale
+                # Quick check: does the ceiling already alpha-fit? (Skip search if so.)
+                if _alpha_compressed_fits(hi2):
+                    final_scale = hi2
+                else:
+                    for _ in range(12):
+                        mid = (lo2 + hi2) / 2.0
+                        if _alpha_compressed_fits(mid):
+                            lo2 = mid
+                        else:
+                            hi2 = mid
+                    if lo2 > final_scale + 0.005:
+                        final_scale = lo2
+                _apply_scale(final_scale)
                 warnings.append(
-                    f"FieldGuideBandsEngine: applied uniform grow "
-                    f"scale={grow_total:.3f} to fill body whitespace."
+                    f"FieldGuideBandsEngine: alpha-aware scale={final_scale:.4f} "
+                    f"(silhouette compression binding)."
                 )
+            except Exception as e:
+                # Don't gate the render on this — use the bbox-converged scale.
+                # Revert: alpha probe may have left _apply_scale at a higher
+                # scale before the exception. Restore the bbox-converged
+                # scale so the emit step uses the safe value.
+                final_scale = saved_scale
+                _apply_scale(final_scale)
+                warnings.append(
+                    f"FieldGuideBandsEngine: alpha-aware search skipped ({type(e).__name__}: {e})."
+                )
+
+        usable_w = canvas_w - 2 * side_margin  # used by emit code below
 
         hero_yc, row_y_centers, pair_ys = compute_y_centers(
             hero_h, rows, pair_rows, trailing_single_h
         )
+
+        # 7c. Stagger overlap-resolution shift.
+        # The even-distribution layout above places stagger rows
+        # (single/double) at the geometric midpoint between adjacent
+        # main rows. But when a main fish is WIDE enough to enter the
+        # center x-column, its bbox can overlap the centered stagger's
+        # bbox (carp's tail crossing into bluegill's bottom fin). This
+        # post-pass walks every stagger row and shifts its yc up or
+        # down within the valid range bounded by x-overlapping fish
+        # ABOVE (their bottoms) and BELOW (their tops). Only stagger
+        # rows move — mains are anchored by even-distribution and the
+        # hero is anchored at body_top + buffer. If the valid range is
+        # empty (rare; means upper and lower x-overlaps mutually
+        # constrain the stagger), no shift is applied and the existing
+        # geometry stands. Uses bbox-no-overlap (NOT label_reserve) as
+        # the constraint so we resolve fish silhouette collisions
+        # without forcing a global shrink.
+        def _row_entry_x(row: dict, ei: int, w: float) -> float:
+            """Mirror of the emit-time x-placement logic so this shift
+            pass uses the same x-positions the renderer will."""
+            k = row["kind"]
+            if k == "pair":
+                return float(side_margin) if ei == 0 else float(canvas_w - side_margin - w)
+            if k == "triple":
+                if ei == 0:
+                    return float(side_margin)
+                if ei == 1:
+                    return (canvas_w - w) / 2.0
+                return float(canvas_w - side_margin - w)
+            if k == "double":
+                lc = side_margin + w / 2.0
+                rc = canvas_w - side_margin - w / 2.0
+                cc = canvas_w / 2.0
+                mid = (lc + cc) / 2.0 if ei == 0 else (cc + rc) / 2.0
+                return mid - w / 2.0
+            return (canvas_w - w) / 2.0  # single
+
+        # Build the bbox list for every placed fish using current yc's.
+        _bboxes: list[dict] = []
+        _hx = (canvas_w - hero_w) / 2.0
+        _bboxes.append({
+            "row_idx": -1, "x0": _hx, "y0": hero_yc - hero_h / 2.0,
+            "x1": _hx + hero_w, "y1": hero_yc + hero_h / 2.0,
+        })
+        for _ri, (_row, _yc) in enumerate(zip(rows, row_y_centers)):
+            for _ei, (_entry, (_w, _h)) in enumerate(zip(_row["fish"], _row["dims"])):
+                if _entry is None:
+                    continue
+                _x = _row_entry_x(_row, _ei, _w)
+                _bboxes.append({
+                    "row_idx": _ri, "x0": _x, "y0": _yc - _h / 2.0,
+                    "x1": _x + _w, "y1": _yc + _h / 2.0,
+                })
+
+        # Shift each stagger row's yc into the valid bbox-only range.
+        for _ri, _row in enumerate(rows):
+            if _row["kind"] not in STAGGER_KINDS:
+                continue
+            row_h = _row["max_h"]
+            cur_yc = row_y_centers[_ri]
+            # Find all bboxes belonging to this row.
+            row_b = [b for b in _bboxes if b["row_idx"] == _ri]
+            if not row_b:
+                continue
+            # Aggregate upper/lower x-overlapping constraints across
+            # every entry in this stagger row.
+            max_upper_y1 = float("-inf")
+            min_lower_y0 = float("inf")
+            for rb in row_b:
+                for ob in _bboxes:
+                    if ob["row_idx"] == _ri:
+                        continue
+                    # x-overlap?
+                    if rb["x1"] <= ob["x0"] or ob["x1"] <= rb["x0"]:
+                        continue
+                    # ob above this stagger?
+                    if ob["y1"] <= rb["y0"] + 1:
+                        if ob["y1"] > max_upper_y1:
+                            max_upper_y1 = ob["y1"]
+                    elif ob["y0"] >= rb["y1"] - 1:
+                        if ob["y0"] < min_lower_y0:
+                            min_lower_y0 = ob["y0"]
+                    else:
+                        # ob currently overlaps stagger bbox; treat as
+                        # the binding constraint on whichever side is
+                        # closer to its own center.
+                        ob_yc = (ob["y0"] + ob["y1"]) / 2.0
+                        if ob_yc <= cur_yc:
+                            if ob["y1"] > max_upper_y1:
+                                max_upper_y1 = ob["y1"]
+                        else:
+                            if ob["y0"] < min_lower_y0:
+                                min_lower_y0 = ob["y0"]
+            # Translate to yc bounds.
+            yc_min = (max_upper_y1 + row_h / 2.0) if max_upper_y1 != float("-inf") else float("-inf")
+            yc_max = (min_lower_y0 - row_h / 2.0) if min_lower_y0 != float("inf") else float("inf")
+            # Clamp into the valid range, preferring the side that
+            # moves us LEAST from the original midpoint.
+            if yc_min <= yc_max:
+                new_yc = cur_yc
+                if cur_yc < yc_min:
+                    new_yc = yc_min
+                elif cur_yc > yc_max:
+                    new_yc = yc_max
+                if abs(new_yc - cur_yc) > 0.5:
+                    row_y_centers[_ri] = new_yc
+                    # Update this stagger's bboxes in the list so a
+                    # later stagger sees its new position (in case two
+                    # staggers x-overlap each other).
+                    for rb in row_b:
+                        delta = new_yc - cur_yc
+                        rb["y0"] += delta
+                        rb["y1"] += delta
+
+        # 7d. Pair-centering horizontal shift.
+        # Per user direction: pair fish should be PUSHED TOWARD THE
+        # CENTER horizontally when possible. Default emit positions
+        # have pair_L at x=side_margin and pair_R hugging the right
+        # buffer — leaving a large empty gap in the middle. This pass
+        # moves each pair fish inward (toward canvas_w/4 quadrant
+        # center for L, 3*canvas_w/4 for R) as far as the label_reserve
+        # constraint allows. If the shift would cause the fish's bbox
+        # to x-overlap with a neighbor (hero, centered single, etc.)
+        # while the y-gap is < label_reserve, the shift is reduced via
+        # binary search. The result: pair fish read as a more
+        # cohesive, centered composition while still respecting every
+        # buffer / label clearance rule.
+        #
+        # Per-fish x positions are stored in `row_x_overrides[(ri, ei)]`
+        # and used by the emit code below in lieu of the default
+        # side_margin / canvas_w - side_margin - w positions.
+        row_x_overrides: dict[tuple[int, int], float] = {}
+
+        def _label_reserve_safe(
+            new_x: float, w: float, h: float, yc: float,
+            ignore_idx: int,
+        ) -> bool:
+            """Return True if placing a bbox at (new_x, yc) with the
+            given (w, h) doesn't create any label_reserve y-gap
+            violation with the other bboxes in _bboxes. ignore_idx is
+            the position of the fish being moved (skip self-test)."""
+            nx0, ny0, nx1, ny1 = new_x, yc - h / 2.0, new_x + w, yc + h / 2.0
+            for idx_b, ob in enumerate(_bboxes):
+                if idx_b == ignore_idx:
+                    continue
+                if nx1 <= ob["x0"] or ob["x1"] <= nx0:
+                    continue
+                # y-gap (positive = no overlap)
+                if (ny0 + ny1) <= (ob["y0"] + ob["y1"]):
+                    gap = ob["y0"] - ny1
+                else:
+                    gap = ny0 - ob["y1"]
+                if gap < label_reserve - 1:
+                    return False
+            return True
+
+        # Build an index of (row_idx, entry_idx) -> position in _bboxes.
+        bbox_index: dict[tuple[int, int], int] = {}
+        # _bboxes[0] is the hero; row entries follow in emit order.
+        _pos = 1
+        for _ri, _row in enumerate(rows):
+            for _ei, _entry in enumerate(_row["fish"]):
+                if _entry is None:
+                    continue
+                bbox_index[(_ri, _ei)] = _pos
+                _pos += 1
+
+        for _ri, _row in enumerate(rows):
+            if _row["kind"] != "pair":
+                continue
+            L_entry, R_entry = _row["fish"]
+            if L_entry is None or R_entry is None:
+                continue
+            (lw, lh) = _row["dims"][0]
+            (rw, rh) = _row["dims"][1]
+            yc = row_y_centers[_ri]
+
+            # L: original at side_margin; target (quadrant center) at
+            # canvas_w/4 - lw/2. Only shift INWARD (right).
+            l_cur = float(side_margin)
+            l_target = canvas_w / 4.0 - lw / 2.0
+            if l_target > l_cur:
+                idx_L = bbox_index.get((_ri, 0))
+                if idx_L is not None:
+                    # Binary search for max safe shift.
+                    lo, hi = l_cur, l_target
+                    # First check the target — fast path when constraints
+                    # are loose enough to allow full inward shift.
+                    if _label_reserve_safe(hi, lw, lh, yc, idx_L):
+                        new_l = hi
+                    else:
+                        for _ in range(15):
+                            mid = (lo + hi) / 2.0
+                            if _label_reserve_safe(mid, lw, lh, yc, idx_L):
+                                lo = mid
+                            else:
+                                hi = mid
+                        new_l = lo
+                    # Floor to integer so emit-time rounding can't push
+                    # us past the float-safe boundary into bbox overlap.
+                    new_l = float(math.floor(new_l))
+                    if new_l - l_cur > 0.5:
+                        row_x_overrides[(_ri, 0)] = new_l
+                        # Update _bboxes so the R search sees the new L.
+                        _bboxes[idx_L]["x0"] = new_l
+                        _bboxes[idx_L]["x1"] = new_l + lw
+
+            # R: original at canvas_w - side_margin - rw; target at
+            # 3*canvas_w/4 - rw/2. Only shift INWARD (left).
+            r_cur = float(canvas_w - side_margin - rw)
+            r_target = 3.0 * canvas_w / 4.0 - rw / 2.0
+            if r_target < r_cur:
+                idx_R = bbox_index.get((_ri, 1))
+                if idx_R is not None:
+                    lo, hi = r_target, r_cur
+                    # We binary-search the "safe" boundary, where safe
+                    # is the LARGER (rightward, less inward) end.
+                    if _label_reserve_safe(lo, rw, rh, yc, idx_R):
+                        new_r = lo
+                    else:
+                        for _ in range(15):
+                            mid = (lo + hi) / 2.0
+                            if _label_reserve_safe(mid, rw, rh, yc, idx_R):
+                                hi = mid
+                            else:
+                                lo = mid
+                        new_r = hi
+                    # Ceil to integer so emit-time rounding can't push
+                    # us past the float-safe boundary into bbox overlap.
+                    new_r = float(math.ceil(new_r))
+                    if r_cur - new_r > 0.5:
+                        row_x_overrides[(_ri, 1)] = new_r
+                        _bboxes[idx_R]["x0"] = new_r
+                        _bboxes[idx_R]["x1"] = new_r + rw
+
+        # 7e. Bottom-pair even distribution override.
+        # Special rule for the LAST row when it's a pair: instead of
+        # using the pair-centering shift (which targets independent
+        # quadrant centers and can yield asymmetric gaps when L and R
+        # have different widths), distribute the two fish with THREE
+        # equal horizontal gaps — left_margin == middle_gap ==
+        # right_margin. The bottom of the poster reads as a balanced
+        # final beat; the natural visual closure for the field guide.
+        if rows and rows[-1]["kind"] == "pair":
+            last_idx = len(rows) - 1
+            last_row = rows[-1]
+            L_entry, R_entry = last_row["fish"]
+            if L_entry is not None and R_entry is not None:
+                (lw, _lh) = last_row["dims"][0]
+                (rw, _rh) = last_row["dims"][1]
+                empty = canvas_w - lw - rw
+                if empty > 0:
+                    gap = empty / 3.0
+                    # Verify the even-distribution positions don't
+                    # create a new label_reserve violation. If they do,
+                    # fall back to whatever the pair-centering pass
+                    # already chose (or to the default L/R justification
+                    # if no override exists).
+                    new_l = math.floor(gap)
+                    new_r = math.ceil(canvas_w - gap - rw)
+                    yc_last = row_y_centers[last_idx]
+                    idx_L = bbox_index.get((last_idx, 0))
+                    idx_R = bbox_index.get((last_idx, 1))
+                    if idx_L is not None and idx_R is not None:
+                        # Temporarily move L; if safe, also try R.
+                        save_l = (_bboxes[idx_L]["x0"], _bboxes[idx_L]["x1"])
+                        _bboxes[idx_L]["x0"] = float(new_l)
+                        _bboxes[idx_L]["x1"] = float(new_l) + lw
+                        l_safe = _label_reserve_safe(
+                            float(new_l), lw, last_row["dims"][0][1],
+                            yc_last, idx_L,
+                        )
+                        if l_safe:
+                            save_r = (_bboxes[idx_R]["x0"], _bboxes[idx_R]["x1"])
+                            _bboxes[idx_R]["x0"] = float(new_r)
+                            _bboxes[idx_R]["x1"] = float(new_r) + rw
+                            r_safe = _label_reserve_safe(
+                                float(new_r), rw, last_row["dims"][1][1],
+                                yc_last, idx_R,
+                            )
+                            if r_safe:
+                                row_x_overrides[(last_idx, 0)] = float(new_l)
+                                row_x_overrides[(last_idx, 1)] = float(new_r)
+                            else:
+                                # Revert both.
+                                _bboxes[idx_L]["x0"], _bboxes[idx_L]["x1"] = save_l
+                                _bboxes[idx_R]["x0"], _bboxes[idx_R]["x1"] = save_r
+                        else:
+                            _bboxes[idx_L]["x0"], _bboxes[idx_L]["x1"] = save_l
 
         # 8. Emit placements. (The global 1.5x bump was baked into
         # target_hero_w earlier so the layout math saw the FINAL sizes;
@@ -3103,21 +3773,23 @@ class FieldGuideBandsEngine(LayoutEngine):
                 )
             )
 
-        # Pair / triple rows are pushed OUTWARD to the inner-border
-        # buffer — fish hug the L/R side margins. This frees up the
-        # horizontal center for the half-step staggered single without
-        # creating x-overlap. The inner-buffer side_margin guarantees
-        # the buffer around the fish from the inner border.
-        for row, yc in zip(rows, row_y_centers):
+        # Pair fish: default to side_margin / canvas_w-side_margin
+        # justification, but honor any inward shift computed by the
+        # pair-centering pass above (row_x_overrides).
+        for row_idx, (row, yc) in enumerate(zip(rows, row_y_centers)):
             kind = row["kind"]
             if kind == "pair":
                 left_entry, right_entry = row["fish"]
                 (lw, lh) = row["dims"][0]
                 (rw, rh) = row["dims"][1]
                 if left_entry is not None:
-                    _emit(left_entry, lw, lh, side_margin, yc)
+                    l_x = row_x_overrides.get((row_idx, 0), float(side_margin))
+                    _emit(left_entry, lw, lh, l_x, yc)
                 if right_entry is not None:
-                    _emit(right_entry, rw, rh, canvas_w - side_margin - rw, yc)
+                    r_x = row_x_overrides.get(
+                        (row_idx, 1), float(canvas_w - side_margin - rw)
+                    )
+                    _emit(right_entry, rw, rh, r_x, yc)
             elif kind == "triple":
                 lE, cE, rE = row["fish"]
                 (lw, lh) = row["dims"][0]
@@ -3127,11 +3799,11 @@ class FieldGuideBandsEngine(LayoutEngine):
                 rx = canvas_w - side_margin - rw
                 cx = (canvas_w - cw) / 2.0
                 if lE is not None:
-                    _emit(lE, lw, lh, lx, yc)
+                    _emit(lE, lw, lh, row_x_overrides.get((row_idx, 0), float(lx)), yc)
                 if cE is not None:
                     _emit(cE, cw, ch, cx, yc)
                 if rE is not None:
-                    _emit(rE, rw, rh, rx, yc)
+                    _emit(rE, rw, rh, row_x_overrides.get((row_idx, 2), float(rx)), yc)
             elif kind == "double":
                 # Position in the two gaps of the triple pattern: midway
                 # between (L center) and (C center), and between (C center)
@@ -3156,6 +3828,208 @@ class FieldGuideBandsEngine(LayoutEngine):
                     continue
                 (dw, dh) = row["dims"][0]
                 _emit(entry, dw, dh, (canvas_w - dw) / 2.0, yc)
+
+        # ---------------------------------------------------------------
+        # Alpha-aware vertical compression (post-pass).
+        # ---------------------------------------------------------------
+        # The bbox+label_reserve constraint in stack_fits is correct but
+        # CONSERVATIVE — it treats every fish as a rectangle. In reality
+        # fish silhouettes are irregular (long pikes have slim tails,
+        # bluegills are tall but narrow). When a row's bottom-fish has
+        # empty bbox area below its silhouette and the next row's top-
+        # fish has empty bbox area above its silhouette, the two CAN
+        # pack closer than label_reserve allows — without the actual
+        # silhouettes touching.
+        #
+        # This pass walks fish top-down and shifts each one UPWARD until
+        # alpha-silhouette collision (with buff1 dilation) blocks it.
+        # Result: gaps between rows close where shapes are
+        # complementary, while silhouette-overlap is guaranteed never
+        # to occur. Non-destructive — if no compression is possible
+        # (silhouettes are square/incompatible), placements stay where
+        # they were.
+        try:
+            from poster_layout.masks import (
+                get_or_build_pack_mask,
+                validate_no_silhouette_overlap,
+            )
+
+            buff1_canvas = int(round(canvas_h * 0.026))
+            mask_res = 8
+            label_h_canvas = buff1_canvas
+            # Dilate each fish by buff1/2 so combined separation between
+            # any two masks (both dilated) equals buff1. Without halving,
+            # we'd require 2*buff1 between silhouettes — twice the target.
+            buff1_pack = max(1, (buff1_canvas // mask_res) // 2)
+            label_pack = max(1, label_h_canvas // mask_res)
+
+            # Sort placements by current y (top to bottom). Skip hero (idx 0)
+            # since it's anchored at body_top + buffer.
+            indexed = list(enumerate(placements))
+            indexed.sort(key=lambda iv: iv[1].y)
+
+            # Pre-build masks for every placement at its rendered scale,
+            # using buff1 dilation. Position-independent.
+            fish_masks: dict[int, "np.ndarray"] = {}
+            for orig_idx, p in indexed:
+                target_w_pack = max(2, p.draw_width // mask_res)
+                try:
+                    fish_masks[orig_idx] = get_or_build_pack_mask(
+                        p.master.image_path,
+                        target_w_base=target_w_pack,
+                        buff1_px=buff1_pack,
+                        label_h_px=label_pack,
+                    )
+                except Exception:
+                    fish_masks[orig_idx] = None  # type: ignore[assignment]
+
+            def _collides_at(p, m, y_pack: int) -> bool:
+                """Would moving placement p (with mask m) to y_pack
+                cause an alpha-silhouette collision with anything
+                already placed at-or-above y_pack?"""
+                if m is None:
+                    return False
+                x_pack = p.x // mask_res - buff1_pack
+                mh, mw = m.shape
+                for other_idx, other_p in enumerate(placements):
+                    if other_p is p:
+                        continue
+                    other_y_top_pack = other_p.y // mask_res
+                    # Only consider fish placed at-or-above this y (we
+                    # shift downward fish UP into spaces above them).
+                    if other_y_top_pack > y_pack + mh:
+                        continue
+                    other_m = fish_masks.get(other_idx)
+                    if other_m is None:
+                        continue
+                    other_x_pack = other_p.x // mask_res - buff1_pack
+                    other_mh, other_mw = other_m.shape
+                    # Bbox quick-reject in pack coords.
+                    ax0, ay0, ax1, ay1 = (
+                        x_pack,
+                        y_pack,
+                        x_pack + mw,
+                        y_pack + mh,
+                    )
+                    bx0, by0, bx1, by1 = (
+                        other_x_pack,
+                        other_y_top_pack,
+                        other_x_pack + other_mw,
+                        other_y_top_pack + other_mh,
+                    )
+                    ox0 = max(ax0, bx0)
+                    oy0 = max(ay0, by0)
+                    ox1 = min(ax1, bx1)
+                    oy1 = min(ay1, by1)
+                    if ox1 <= ox0 or oy1 <= oy0:
+                        continue
+                    a_slice = m[oy0 - ay0 : oy1 - ay0, ox0 - ax0 : ox1 - ax0]
+                    b_slice = other_m[
+                        oy0 - by0 : oy1 - by0, ox0 - bx0 : ox1 - bx0
+                    ]
+                    if (a_slice & b_slice).any():
+                        return True
+                return False
+
+            # Top-down vertical compression: for each non-hero fish, find
+            # max upward shift via binary search.
+            #
+            # CRITICAL: respect row order. A non-hero fish must NOT climb
+            # above the hero's row OR the row above its initial position.
+            # Without this guard, a fish whose x-bbox doesn't overlap the
+            # hero's (e.g., a centered single while hero is also centered
+            # but smaller) could shift up to body_top, breaking the row
+            # structure visually (centered single ABOVE the hero — wrong).
+            body_top_pack = int(round(canvas_h * 0.20)) // mask_res
+            # Hero's bottom + label_reserve = floor for non-hero fish.
+            hero_p = placements[0]
+            hero_y_bot_pack = (
+                (hero_p.y + hero_p.draw_height) // mask_res
+                + (label_reserve // mask_res)
+            )
+            min_y_for_non_hero = max(body_top_pack, hero_y_bot_pack)
+            for orig_idx, p in indexed[1:]:  # skip hero
+                m = fish_masks.get(orig_idx)
+                if m is None:
+                    continue
+                cur_y_pack = p.y // mask_res - buff1_pack
+                lo, hi = min_y_for_non_hero, cur_y_pack
+                if lo >= hi or _collides_at(p, m, hi):
+                    continue
+                while lo < hi:
+                    mid = (lo + hi) // 2
+                    if _collides_at(p, m, mid):
+                        lo = mid + 1
+                    else:
+                        hi = mid
+                new_y_pack = lo
+                new_y_canvas = (new_y_pack + buff1_pack) * mask_res
+                if new_y_canvas < p.y - 4:
+                    placements[orig_idx] = PlacedItem(
+                        species_ref=p.species_ref,
+                        master=p.master,
+                        x=p.x,
+                        y=new_y_canvas,
+                        draw_width=p.draw_width,
+                        draw_height=p.draw_height,
+                    )
+        except Exception as e:
+            warnings.append(
+                f"FieldGuideBandsEngine: alpha compression skipped ({type(e).__name__})."
+            )
+
+        # Alpha-mask silhouette validation (post-pass safety net).
+        # The bbox-based stack_fits constraint enforces a label_reserve
+        # gap between rectangle bboxes. That's correct for the layout
+        # math, but it doesn't tell you if the actual fish silhouettes
+        # (the visible alpha pixels) end up touching. This pass is the
+        # silhouette-precision check: it builds raw alpha masks (no
+        # buffer dilation), positions them at their rendered places,
+        # and verifies no two have overlapping visible pixels.
+        #
+        # Threshold: ignore < 50 pack-pixels of overlap as noise from
+        # downsampling at mask_resolution=8. A real silhouette
+        # collision shows up as hundreds-to-thousands of pixels.
+        # Logs to warnings; does NOT gate the render — even on a real
+        # collision the layout still ships and the user sees the
+        # warning in the result.
+        try:
+            from poster_layout.masks import validate_no_silhouette_overlap
+
+            buff1_canvas = int(round(canvas_h * 0.026))
+            collisions = validate_no_silhouette_overlap(
+                placements,
+                # buff1=0 = pure silhouette check, no buffer dilation.
+                # The bbox+label_reserve check above is what enforces
+                # the buffer zone; this pass catches the rare case
+                # where the buffer-bbox check passed but a thin tail
+                # or fin actually pokes into another fish's silhouette.
+                buff1_canvas_px=0,
+                label_h_canvas_px=buff1_canvas,
+                mask_resolution=8,
+            )
+            # Filter out sub-50-pixel "collisions" — those are downsampling
+            # noise, not real visual overlaps.
+            real_collisions = [c for c in collisions if c[2] >= 50]
+            if real_collisions:
+                real_collisions.sort(key=lambda t: -t[2])
+                summary = ", ".join(
+                    f"{a}↔{b} ({n}px)" for a, b, n in real_collisions[:5]
+                )
+                warnings.append(
+                    f"FieldGuideBandsEngine: silhouette overlap detected "
+                    f"(alpha precision check): {summary}"
+                    + (
+                        f" + {len(real_collisions) - 5} more"
+                        if len(real_collisions) > 5
+                        else ""
+                    )
+                )
+        except Exception as e:
+            # Defensive: validation is informational, never gate the render.
+            warnings.append(
+                f"FieldGuideBandsEngine: alpha validation skipped ({type(e).__name__})."
+            )
 
         return LayoutResult(poster=spec, placements=placements, warnings=warnings)
 

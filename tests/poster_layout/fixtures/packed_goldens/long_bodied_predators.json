@@ -1,0 +1,58 @@
+[
+  {
+    "slug": "northern_pike",
+    "x": 1304,
+    "y": 1624,
+    "draw_width": 2792,
+    "draw_height": 656
+  },
+  {
+    "slug": "bowfin",
+    "x": 1816,
+    "y": 2832,
+    "draw_width": 1568,
+    "draw_height": 336
+  },
+  {
+    "slug": "white_sucker",
+    "x": 504,
+    "y": 3608,
+    "draw_width": 1384,
+    "draw_height": 432
+  },
+  {
+    "slug": "channel_catfish",
+    "x": 3208,
+    "y": 3672,
+    "draw_width": 1688,
+    "draw_height": 536
+  },
+  {
+    "slug": "bullhead_catfish",
+    "x": 1872,
+    "y": 4448,
+    "draw_width": 1296,
+    "draw_height": 432
+  },
+  {
+    "slug": "smallmouth_bass",
+    "x": 3496,
+    "y": 4760,
+    "draw_width": 1344,
+    "draw_height": 448
+  },
+  {
+    "slug": "largemouth_bass",
+    "x": 504,
+    "y": 5360,
+    "draw_width": 1464,
+    "draw_height": 536
+  },
+  {
+    "slug": "common_carp",
+    "x": 2200,
+    "y": 5760,
+    "draw_width": 1744,
+    "draw_height": 752
+  }
+]

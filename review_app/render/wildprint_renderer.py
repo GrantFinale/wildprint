@@ -122,6 +122,7 @@ def render_master_image(
         EditorialMultiRenderer,
         FileSystemMasterImageLoader,
         PosterSpec,
+        get_profile,
         select_layout_engine,
     )
 
@@ -165,7 +166,14 @@ def render_master_image(
             f"style={style_slug!r} species={[r.slug for r in present_refs]!r}."
         )
 
-    renderer = EditorialMultiRenderer()
+    # Pass the style profile so the renderer knows to skip the redundant
+    # bottom caption band (e.g. "Freshwater · Lakes") that collides with
+    # the per-fish labels the field-guide profile already draws. Every
+    # other caller in review_app/app.py passes this — the omission here
+    # was a pre-existing bug.
+    renderer = EditorialMultiRenderer(
+        style_profile=get_profile(poster_spec.layout_style),
+    )
 
     # Honor a small whitelist of layout_config knobs that match what
     # /api/generate-poster sets. Unknown keys are ignored; we deliberately
@@ -173,7 +181,16 @@ def render_master_image(
     if "show_scientific_names" in cfg:
         renderer._show_scientific_names = bool(cfg["show_scientific_names"])
     if "preheader_text" in cfg and isinstance(cfg["preheader_text"], str):
+        # Caller explicitly overrode → trust them.
         renderer._preheader_text = cfg["preheader_text"].upper()
+    else:
+        # Auto-detect: if the selection contains anything other than
+        # fish (turtles, birds, plants, etc.), use "WILDLIFE OF" as the
+        # preheader so the title is honest. Pure-fish posters keep the
+        # default "FISH OF" from EditorialMultiRenderer.
+        non_fish = [r for r in present_refs if r.category != "fish"]
+        if non_fish:
+            renderer._preheader_text = "WILDLIFE OF"
     if "frame_style" in cfg and cfg["frame_style"] in (
         "walnut",
         "oak",
